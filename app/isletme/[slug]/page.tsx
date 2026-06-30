@@ -1,27 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, use, useEffect, useMemo, useState } from "react";
+import { FormEvent, use, useEffect, useMemo, useRef, useState } from "react";
+import { readBusinesses } from "../../../lib/business-storage";
+import type { Business, Product, ProductCategory } from "../../../lib/businesses";
+import { getAccessMessage } from "../../../lib/subscription";
 import {
-  mergeBusinessIntoStorage,
-  readBusinessesFromStorage,
-} from "../../../lib/business-storage";
+  PublicOrderRequestError,
+  createPublicOrder,
+  type PublicOrderCreateInput,
+} from "../../../lib/supabase-orders";
 import {
-  getBusinessBySlug,
-  type Business,
-  type Product,
-} from "../../../lib/businesses";
-import { fetchBusinessBySlugFromSupabase } from "../../../lib/supabase/business-service";
+  fetchPublicBusinessBySlug,
+  fetchPublicProductsByBusinessSlug,
+  type BusinessProduct,
+} from "../../../lib/supabase-business";
 
-type CartItem = Product & {
-  quantity: number;
-};
+type CartItem = Product & { quantity: number };
 
 type Customer = {
   fullName: string;
   phone: string;
   address: string;
   note: string;
+};
+
+type OrderType = "delivery" | "pickup";
+
+type SavedCustomerDetails = Pick<Customer, "fullName" | "phone" | "address">;
+
+type PendingOrderAttempt = {
+  fingerprint: string;
+  idempotencyKey: string;
+  payload: PublicOrderCreateInput;
+  message: {
+    businessName: string;
+    customer: Customer;
+    orderType: OrderType;
+    items: Array<{
+      name: string;
+      quantity: number;
+      lineTotal: number;
+    }>;
+    total: number;
+  };
+};
+
+type OrderRecoveryMode =
+  | "none"
+  | "saved"
+  | "definitive"
+  | "uncertain"
+  | "conflict";
+
+type DisplayBusiness = Business & {
+  city?: string | null;
+  logoUrl?: string | null;
+  coverImageUrl?: string | null;
 };
 
 const initialCustomer: Customer = {
@@ -31,473 +66,1156 @@ const initialCustomer: Customer = {
   note: "",
 };
 
+const pageFetchTimeoutMs = 10000;
+const allCategoriesFilter = "Tümü";
+const customerDetailsStorageKey = "yerel-siparis:customer-details:v1";
+
 function formatPrice(price: number) {
   return `${price.toLocaleString("tr-TR")} TL`;
 }
 
-function NotFoundView() {
+function normalizeCategoryName(name?: string | null) {
+  return name?.trim() || "Genel";
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs = pageFetchTimeoutMs) {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error("İstek zaman aşımına uğradı."));
+    }, timeoutMs);
+
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => window.clearTimeout(timeoutId));
+  });
+}
+
+function readFallbackBusiness(slug: string) {
+  try {
+    return readBusinesses().find((item) => item.slug === slug) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function isSavedCustomerDetails(value: unknown): value is SavedCustomerDetails {
+  if (!value || typeof value !== "object") return false;
+  const details = value as Record<string, unknown>;
   return (
-    <main className="min-h-screen bg-[#F5F7FA] px-4 py-10 text-[#333333]">
-      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center text-center">
-        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-2xl font-black text-[#2D2A74] shadow-sm">
-          ?
-        </div>
-        <h1 className="text-3xl font-black text-[#2D2A74]">
-          İşletme bulunamadı
-        </h1>
-        <p className="mt-3 text-base leading-7 text-[#333333]">
-          Aradığınız işletme yayında olmayabilir veya bağlantı hatalı olabilir.
-        </p>
-        <Link
-          className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#0D7CC2] px-5 font-bold text-white shadow-sm transition hover:bg-[#2D2A74]"
-          href="/"
-        >
-          İşletme listesine dön
-        </Link>
-      </div>
-    </main>
+    typeof details.fullName === "string" &&
+    typeof details.phone === "string" &&
+    typeof details.address === "string"
   );
 }
 
-function BusinessHero({ business }: { business: Business }) {
-  return (
-    <header className="max-w-full overflow-hidden rounded-[28px] bg-[#2D2A74] p-5 text-white shadow-[0_16px_35px_rgba(45,42,116,0.18)] sm:p-7">
-      <Link
-        className="mb-5 inline-flex min-h-10 items-center rounded-full bg-white/10 px-4 text-sm font-bold text-white"
-        href="/"
-      >
-        İşletmeler
-      </Link>
+function readSavedCustomerDetails() {
+  try {
+    const rawValue = window.localStorage.getItem(customerDetailsStorageKey);
+    if (!rawValue) return null;
+    const parsedValue = JSON.parse(rawValue) as unknown;
+    if (!isSavedCustomerDetails(parsedValue)) {
+      window.localStorage.removeItem(customerDetailsStorageKey);
+      return null;
+    }
 
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-white text-2xl font-black text-[#2D2A74]">
-          {business.logoText}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-white/75">{business.category}</p>
-          <h1 className="mt-1 break-words text-4xl font-black leading-tight tracking-normal sm:text-5xl">
-            {business.name}
-          </h1>
-          <p className="mt-3 break-words text-base leading-7 text-white/85">
-            {business.description}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-        <div className="rounded-2xl bg-white/10 p-4">
-          <p className="font-bold">Adres</p>
-          <p className="mt-1 text-white/80">
-            {business.neighborhood}, {business.district} / {business.city}
-          </p>
-          <p className="mt-1 text-white/80">{business.address}</p>
-        </div>
-        <div className="rounded-2xl bg-white/10 p-4">
-          <p className="font-bold">Teslimat</p>
-          <p className="mt-1 text-white/80">{business.deliveryStatus}</p>
-        </div>
-      </div>
-    </header>
-  );
+    return parsedValue;
+  } catch {
+    try {
+      window.localStorage.removeItem(customerDetailsStorageKey);
+    } catch {
+      // Ignore localStorage cleanup errors.
+    }
+    return null;
+  }
 }
 
-export default function BusinessOrderPage({
+function saveCustomerDetails(details: SavedCustomerDetails) {
+  try {
+    window.localStorage.setItem(customerDetailsStorageKey, JSON.stringify(details));
+    return true;
+  } catch {
+    // Ignore localStorage write errors.
+    return false;
+  }
+}
+
+function removeSavedCustomerDetails() {
+  try {
+    window.localStorage.removeItem(customerDetailsStorageKey);
+  } catch {
+    // Ignore localStorage remove errors.
+  }
+}
+
+function getLogoText(business: Business) {
+  if (business.logoText?.trim()) return business.logoText.trim();
+  return business.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function normalizeWhatsAppPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) return "";
+  if (digits.startsWith("90") && digits.length === 12) return digits;
+  if (digits.startsWith("0") && digits.length === 11) return `90${digits.slice(1)}`;
+  if (digits.startsWith("5") && digits.length === 10) return `90${digits}`;
+
+  return digits;
+}
+
+function isMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+}
+
+function openMobileWhatsApp(appLink: string, fallbackLink: string) {
+  let fallbackTimer: number | undefined;
+
+  const cleanup = () => {
+    if (fallbackTimer) window.clearTimeout(fallbackTimer);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("pagehide", cleanup);
+    window.removeEventListener("blur", cleanup);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) cleanup();
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("pagehide", cleanup, { once: true });
+  window.addEventListener("blur", cleanup, { once: true });
+
+  fallbackTimer = window.setTimeout(() => {
+    cleanup();
+    window.location.href = fallbackLink;
+  }, 1800);
+
+  window.location.href = appLink;
+}
+
+function groupSupabaseProducts(products: BusinessProduct[]): ProductCategory[] {
+  const categories = new Map<string, Product[]>();
+
+  products.forEach((product) => {
+    const categoryName = normalizeCategoryName(product.category);
+    const categoryProducts = categories.get(categoryName) ?? [];
+    categoryProducts.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      description: product.description ?? "",
+      imageLabel: product.imageLabel || categoryName,
+      imageUrl: product.imageUrl,
+      isActive: product.isActive,
+    });
+    categories.set(categoryName, categoryProducts);
+  });
+
+  return Array.from(categories.entries()).map(([name, categoryProducts], index) => ({
+    id: `supabase-${index}-${name.toLowerCase().replaceAll(" ", "-")}`,
+    name,
+    products: categoryProducts,
+  }));
+}
+
+export default function BusinessPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const fallbackBusiness = getBusinessBySlug(slug);
-  const [business, setBusiness] = useState<Business | undefined>(
-    fallbackBusiness,
-  );
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [supabaseCategories, setSupabaseCategories] = useState<ProductCategory[] | null>(null);
+  const [isLoadingBusiness, setIsLoadingBusiness] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
+  const [orderType, setOrderType] = useState<OrderType>("delivery");
+  const [rememberCustomerDetails, setRememberCustomerDetails] = useState(false);
+  const [hasSavedCustomerDetails, setHasSavedCustomerDetails] = useState(false);
   const [warning, setWarning] = useState("");
+  const [orderRecordWarning, setOrderRecordWarning] = useState("");
+  const [orderRecoveryMode, setOrderRecoveryMode] =
+    useState<OrderRecoveryMode>("none");
+  const [fallbackWhatsAppMessage, setFallbackWhatsAppMessage] = useState("");
+  const [isRecordingOrder, setIsRecordingOrder] = useState(false);
+  const [showCartOnMobile, setShowCartOnMobile] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(allCategoriesFilter);
+  const cartSectionRef = useRef<HTMLElement | null>(null);
+  const pendingOrderAttemptRef = useRef<PendingOrderAttempt | null>(null);
+  const activeOrderRequestRef = useRef<PendingOrderAttempt | null>(null);
+  const isRecordingOrderRef = useRef(false);
 
   useEffect(() => {
-    const storedBusiness = readBusinessesFromStorage().find(
-      (item) => item.slug === slug,
-    );
-    setBusiness(storedBusiness);
-    setCart((items) =>
-      items.filter((item) =>
-        storedBusiness?.productCategories.some((category) =>
-          category.products.some(
-            (product) => product.id === item.id && product.isActive !== false,
-          ),
-        ),
-      ),
-    );
+    const savedDetails = readSavedCustomerDetails();
+    if (!savedDetails) return;
 
-    fetchBusinessBySlugFromSupabase(slug)
-      .then((supabaseBusiness) => {
-        if (!supabaseBusiness) return;
-        setBusiness(supabaseBusiness);
-        mergeBusinessIntoStorage(supabaseBusiness);
-        setCart((items) =>
-          items.filter((item) =>
-            supabaseBusiness.productCategories.some((category) =>
-              category.products.some(
-                (product) => product.id === item.id && product.isActive !== false,
-              ),
-            ),
-          ),
+    setCustomer((current) => ({
+      ...current,
+      fullName: savedDetails.fullName,
+      phone: savedDetails.phone,
+      address: savedDetails.address,
+    }));
+    setRememberCustomerDetails(true);
+    setHasSavedCustomerDetails(true);
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    setBusiness(null);
+    setSupabaseCategories(null);
+    setLoadError("");
+    setIsLoadingBusiness(true);
+
+    async function loadBusinessPage() {
+      const fallbackBusiness = readFallbackBusiness(slug);
+
+      try {
+        const supabaseBusiness = await withTimeout(fetchPublicBusinessBySlug(slug));
+        if (isCancelled) return;
+
+        const nextBusiness = supabaseBusiness ?? fallbackBusiness;
+        setBusiness(nextBusiness);
+        if (!nextBusiness) setLoadError("İşletme bulunamadı.");
+      } catch {
+        if (isCancelled) return;
+        setBusiness(fallbackBusiness);
+        if (!fallbackBusiness) {
+          setLoadError("İşletme bilgisi alınamadı.");
+        }
+      } finally {
+        if (!isCancelled) setIsLoadingBusiness(false);
+      }
+
+      try {
+        const products = await withTimeout(fetchPublicProductsByBusinessSlug(slug));
+        if (isCancelled) return;
+        setSupabaseCategories(
+          products.length > 0 ? groupSupabaseProducts(products) : null,
         );
-      })
-      .catch(() => undefined);
+      } catch {
+        if (!isCancelled) setSupabaseCategories(null);
+      }
+    }
+
+    loadBusinessPage();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [slug]);
+
+  useEffect(() => {
+    if (cart.length === 0) setShowCartOnMobile(false);
+  }, [cart.length]);
 
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [cart],
   );
-
-  const itemCount = useMemo(
+  const cartItemCount = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart],
   );
 
+  function scrollToCart() {
+    setShowCartOnMobile(true);
+    window.setTimeout(() => {
+      cartSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
+  if (isLoadingBusiness) {
+    return (
+      <main className="page">
+        <div className="shell section">
+          <p>İşletme bilgisi yükleniyor...</p>
+        </div>
+      </main>
+    );
+  }
+
   if (!business) {
-    return <NotFoundView />;
+    return (
+      <main className="page">
+        <div className="shell section">
+          <h1>{loadError || "İşletme bulunamadı"}</h1>
+          <Link href="/">Ana sayfaya dön</Link>
+        </div>
+      </main>
+    );
   }
 
   const currentBusiness = business;
-  const activeProductCategories = currentBusiness.productCategories
+  const accessMessage = getAccessMessage(currentBusiness);
+  const fallbackCategories = currentBusiness.productCategories
     .map((category) => ({
       ...category,
+      name: normalizeCategoryName(category.name),
       products: category.products.filter((product) => product.isActive !== false),
     }))
     .filter((category) => category.products.length > 0);
+  const categories = supabaseCategories ?? fallbackCategories;
+  const totalProductCount = categories.reduce(
+    (count, category) => count + category.products.length,
+    0,
+  );
+  const hasAnyProducts = totalProductCount > 0;
+  const selectedCategoryExists =
+    selectedCategory === allCategoriesFilter ||
+    categories.some((category) => category.name === selectedCategory);
+  const effectiveSelectedCategory = selectedCategoryExists
+    ? selectedCategory
+    : allCategoriesFilter;
+  const visibleCategories =
+    effectiveSelectedCategory === allCategoriesFilter
+      ? categories
+      : categories.filter((category) => category.name === effectiveSelectedCategory);
+  const displayBusiness = currentBusiness as DisplayBusiness;
+  const coverImageUrl = displayBusiness.coverImageUrl?.trim();
+  const addressText = [
+    currentBusiness.neighborhood,
+    currentBusiness.district,
+    displayBusiness.city,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  const heroStyle = coverImageUrl
+    ? {
+        backgroundImage: `linear-gradient(135deg, rgba(23, 33, 27, 0.68), rgba(17, 130, 59, 0.78)), url("${coverImageUrl.replaceAll('"', "%22")}")`,
+      }
+    : undefined;
+  const minimumOrderAmount =
+    typeof currentBusiness.minimumOrderAmount === "number" &&
+    Number.isFinite(currentBusiness.minimumOrderAmount) &&
+    currentBusiness.minimumOrderAmount > 0
+      ? currentBusiness.minimumOrderAmount
+      : null;
+  const preparationTimeMinutes =
+    typeof currentBusiness.preparationTimeMinutes === "number" &&
+    Number.isFinite(currentBusiness.preparationTimeMinutes) &&
+    currentBusiness.preparationTimeMinutes > 0
+      ? currentBusiness.preparationTimeMinutes
+      : null;
+  const isOrderingOpen = currentBusiness.isOpen !== false;
+  const orderNote = currentBusiness.orderNote?.trim() || "";
+  const hasExplicitOrderInfo =
+    Boolean(currentBusiness.deliveryStatus?.trim()) ||
+    minimumOrderAmount !== null ||
+    preparationTimeMinutes !== null ||
+    Boolean(orderNote);
+  const minimumRemaining =
+    minimumOrderAmount !== null ? Math.max(minimumOrderAmount - total, 0) : 0;
+  const minimumOrderWarning =
+    minimumOrderAmount !== null && cart.length > 0 && minimumRemaining > 0
+      ? `Minimum sipariş tutarı ${formatPrice(
+          minimumOrderAmount,
+        )}. Sipariş için sepete ${formatPrice(minimumRemaining)} daha ekleyin.`
+      : "";
+  const orderInfoItems = [
+    currentBusiness.deliveryStatus?.trim() || "",
+    minimumOrderAmount !== null ? `Min. ${formatPrice(minimumOrderAmount)}` : "",
+    preparationTimeMinutes !== null ? `Tahmini ${preparationTimeMinutes} dk` : "",
+    !isOrderingOpen ? "Şu an kapalı" : hasExplicitOrderInfo ? "Açık" : "",
+  ].filter(Boolean);
+  const isOrderSubmitDisabled =
+    cart.length === 0 ||
+    !isOrderingOpen ||
+    Boolean(minimumOrderWarning) ||
+    isRecordingOrder;
+
+  function clearPendingOrderAttempt() {
+    pendingOrderAttemptRef.current = null;
+    setOrderRecordWarning("");
+    setOrderRecoveryMode("none");
+    setFallbackWhatsAppMessage("");
+  }
 
   function addToCart(product: Product) {
+    if (isRecordingOrderRef.current) return;
+    if (!isOrderingOpen) {
+      setWarning("Bu işletme şu an sipariş almıyor.");
+      return;
+    }
     setWarning("");
+    clearPendingOrderAttempt();
     setCart((items) => {
-      const current = items.find((item) => item.id === product.id);
-
-      if (current) {
-        return items.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item,
-        );
-      }
-
-      return [...items, { ...product, quantity: 1 }];
+      const existing = items.find((item) => item.id === product.id);
+      if (!existing) return [...items, { ...product, quantity: 1 }];
+      return items.map((item) =>
+        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+      );
     });
   }
 
-  function decreaseItem(productId: string) {
+  function decrease(productId: string) {
+    if (isRecordingOrderRef.current) return;
+    if (!isOrderingOpen) {
+      setWarning("Bu işletme şu an sipariş almıyor.");
+      return;
+    }
     setWarning("");
+    clearPendingOrderAttempt();
     setCart((items) =>
       items
         .map((item) =>
-          item.id === productId
-            ? { ...item, quantity: item.quantity - 1 }
-            : item,
+          item.id === productId ? { ...item, quantity: item.quantity - 1 } : item,
         )
         .filter((item) => item.quantity > 0),
     );
   }
 
-  function increaseItem(productId: string) {
+  function increase(productId: string) {
+    if (isRecordingOrderRef.current) return;
+    if (!isOrderingOpen) {
+      setWarning("Bu işletme şu an sipariş almıyor.");
+      return;
+    }
     setWarning("");
+    clearPendingOrderAttempt();
     setCart((items) =>
       items.map((item) =>
-        item.id === productId
-          ? { ...item, quantity: item.quantity + 1 }
-          : item,
+        item.id === productId ? { ...item, quantity: item.quantity + 1 } : item,
       ),
     );
   }
 
-  function removeItem(productId: string) {
-    setWarning("");
-    setCart((items) => items.filter((item) => item.id !== productId));
-  }
-
   function updateCustomer(field: keyof Customer, value: string) {
+    if (isRecordingOrderRef.current) return;
     setWarning("");
-    setCustomer((current) => ({ ...current, [field]: value }));
+    clearPendingOrderAttempt();
+    const nextCustomer = { ...customer, [field]: value };
+    setCustomer(nextCustomer);
+
+    if (
+      rememberCustomerDetails &&
+      (field === "fullName" || field === "phone" || field === "address")
+    ) {
+      setHasSavedCustomerDetails(
+        saveCustomerDetails({
+          fullName: nextCustomer.fullName,
+          phone: nextCustomer.phone,
+          address: nextCustomer.address,
+        }),
+      );
+    }
   }
 
-  function createWhatsAppMessage() {
-    const orderLines = cart
+  function toggleRememberCustomerDetails(shouldRemember: boolean) {
+    setRememberCustomerDetails(shouldRemember);
+    if (shouldRemember) {
+      setHasSavedCustomerDetails(
+        saveCustomerDetails({
+          fullName: customer.fullName,
+          phone: customer.phone,
+          address: customer.address,
+        }),
+      );
+      return;
+    }
+
+    removeSavedCustomerDetails();
+    setHasSavedCustomerDetails(false);
+  }
+
+  function clearSavedCustomerDetails() {
+    if (isRecordingOrderRef.current) return;
+    removeSavedCustomerDetails();
+    setRememberCustomerDetails(false);
+    setHasSavedCustomerDetails(false);
+    clearPendingOrderAttempt();
+    setCustomer((current) => ({
+      ...current,
+      fullName: "",
+      phone: "",
+      address: "",
+    }));
+  }
+
+  function createMessage(attempt: PendingOrderAttempt, orderNumber?: number) {
+    const lines = attempt.message.items
       .map(
         (item) =>
-          `* ${item.name} x ${item.quantity} = ${formatPrice(
-            item.price * item.quantity,
-          )}`,
+          `- ${item.name} x ${item.quantity} = ${formatPrice(item.lineTotal)}`,
       )
       .join("\n");
+    const orderTypeLabel =
+      attempt.message.orderType === "delivery" ? "Teslimat" : "Gel-al";
+    const customerLines = [
+      `Ad Soyad: ${attempt.message.customer.fullName}`,
+      `Telefon: ${attempt.message.customer.phone}`,
+      `Sipariş Türü: ${orderTypeLabel}`,
+      ...(attempt.message.orderType === "delivery"
+        ? [`Adres: ${attempt.message.customer.address}`]
+        : []),
+      `Not: ${attempt.message.customer.note || "-"}`,
+    ];
 
     return [
       "Yeni Sipariş",
+      ...(orderNumber ? [`Sipariş No: #${orderNumber}`] : []),
+      `İşletme: ${attempt.message.businessName}`,
       "",
-      "İşletme:",
-      currentBusiness.name,
-      "",
-      "Müşteri:",
-      "",
-      `Ad Soyad: ${customer.fullName.trim()}`,
-      `Telefon: ${customer.phone.trim()}`,
-      `Adres: ${customer.address.trim()}`,
-      `Not: ${customer.note.trim() || "-"}`,
+      "Müşteri Bilgileri:",
+      ...customerLines,
       "",
       "Sipariş:",
+      lines,
       "",
-      orderLines,
-      "",
-      "Genel Toplam:",
-      formatPrice(total),
+      `Genel Toplam: ${formatPrice(attempt.message.total)}`,
     ].join("\n");
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function sendWhatsAppMessage(
+    message: string,
+    preparedWindow: Window | null = null,
+  ) {
+    const phone = normalizeWhatsAppPhone(currentBusiness.whatsappOrderNumber);
+    if (!phone) {
+      setWarning("İşletmenin WhatsApp numarası bulunamadı.");
+      return false;
+    }
 
+    const encodedMessage = encodeURIComponent(message);
+    const webLink = `https://wa.me/${phone}?text=${encodedMessage}`;
+
+    if (!isMobileDevice()) {
+      try {
+        const targetWindow =
+          preparedWindow ?? window.open("about:blank", "_blank");
+        if (!targetWindow) return false;
+        targetWindow.opener = null;
+        targetWindow.location.replace(webLink);
+        return true;
+      } catch {
+        preparedWindow?.close();
+        return false;
+      }
+    }
+
+    openMobileWhatsApp(
+      `whatsapp://send?phone=${phone}&text=${encodedMessage}`,
+      webLink,
+    );
+    return true;
+  }
+
+  async function submitOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isRecordingOrderRef.current) return;
+    setOrderRecordWarning("");
+    setOrderRecoveryMode("none");
+    setFallbackWhatsAppMessage("");
+    if (!isOrderingOpen) {
+      setWarning("Bu işletme şu an sipariş almıyor.");
+      return;
+    }
     if (cart.length === 0) {
       setWarning("Sipariş oluşturmak için sepete en az bir ürün ekleyin.");
       return;
     }
-
-    if (
-      !customer.fullName.trim() ||
-      !customer.phone.trim() ||
-      !customer.address.trim()
-    ) {
-      setWarning("Lütfen Ad Soyad, Telefon ve Adres alanlarını doldurun.");
+    if (minimumOrderWarning) {
+      setWarning(minimumOrderWarning);
+      return;
+    }
+    if (!customer.fullName.trim() || !customer.phone.trim()) {
+      setWarning("Lütfen Ad Soyad ve Telefon alanlarını doldurun.");
+      return;
+    }
+    if (orderType === "delivery" && !customer.address.trim()) {
+      setWarning("Teslimat için adres bilgisi girin.");
       return;
     }
 
-    const message = encodeURIComponent(createWhatsAppMessage());
-    window.open(
-      `https://wa.me/${currentBusiness.whatsappOrderNumber}?text=${message}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    const phone = normalizeWhatsAppPhone(currentBusiness.whatsappOrderNumber);
+    if (!phone) {
+      setWarning("İşletmenin WhatsApp numarası bulunamadı.");
+      return;
+    }
+
+    const normalizedCustomer = {
+      fullName: customer.fullName.trim(),
+      phone: customer.phone.trim(),
+      address: orderType === "delivery" ? customer.address.trim() : null,
+      note: customer.note.trim(),
+    };
+    const normalizedItems = cart
+      .map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+      }))
+      .sort((first, second) => first.productId.localeCompare(second.productId));
+    const attemptFingerprint = JSON.stringify({
+      businessSlug: currentBusiness.slug,
+      orderType,
+      customer: normalizedCustomer,
+      items: normalizedItems,
+    });
+
+    let attempt =
+      pendingOrderAttemptRef.current?.fingerprint === attemptFingerprint
+        ? pendingOrderAttemptRef.current
+        : null;
+    if (!attempt) {
+      if (
+        typeof crypto === "undefined" ||
+        typeof crypto.randomUUID !== "function"
+      ) {
+        setWarning("Sipariş güvenli biçimde başlatılamadı. Lütfen tekrar deneyin.");
+        return;
+      }
+      const idempotencyKey = crypto.randomUUID();
+      attempt = {
+        fingerprint: attemptFingerprint,
+        idempotencyKey,
+        payload: {
+          businessSlug: currentBusiness.slug,
+          orderType,
+          customer: normalizedCustomer,
+          items: normalizedItems,
+          idempotencyKey,
+        },
+        message: {
+          businessName: currentBusiness.name,
+          customer: {
+            ...normalizedCustomer,
+            address: normalizedCustomer.address ?? "",
+          },
+          orderType,
+          items: cart.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            lineTotal: item.price * item.quantity,
+          })),
+          total,
+        },
+      };
+      pendingOrderAttemptRef.current = attempt;
+    }
+
+    const preparedWhatsAppWindow = !isMobileDevice()
+      ? window.open("about:blank", "_blank")
+      : null;
+    if (preparedWhatsAppWindow) preparedWhatsAppWindow.opener = null;
+
+    activeOrderRequestRef.current = attempt;
+    isRecordingOrderRef.current = true;
+    setIsRecordingOrder(true);
+    try {
+      const result = await createPublicOrder(attempt.payload);
+      if (
+        activeOrderRequestRef.current !== attempt ||
+        pendingOrderAttemptRef.current !== attempt
+      ) {
+        preparedWhatsAppWindow?.close();
+        return;
+      }
+      pendingOrderAttemptRef.current = null;
+      setWarning("");
+      const whatsappOpened = sendWhatsAppMessage(
+        createMessage(attempt, result.orderNumber),
+        preparedWhatsAppWindow,
+      );
+      if (!whatsappOpened) {
+        setOrderRecoveryMode("saved");
+        setFallbackWhatsAppMessage(createMessage(attempt, result.orderNumber));
+        setOrderRecordWarning(
+          "Sipariş kaydedildi. WhatsApp penceresini açmak için aşağıdaki butonu kullanın.",
+        );
+      }
+    } catch (error) {
+      preparedWhatsAppWindow?.close();
+      if (
+        activeOrderRequestRef.current !== attempt ||
+        pendingOrderAttemptRef.current !== attempt
+      ) {
+        return;
+      }
+      setWarning("");
+      setFallbackWhatsAppMessage(createMessage(attempt));
+      if (
+        error instanceof PublicOrderRequestError &&
+        error.kind === "uncertain"
+      ) {
+        setOrderRecoveryMode("uncertain");
+        setOrderRecordWarning(
+          "Siparişiniz kaydedilmiş olabilir. Çift siparişi önlemek için önce aynı siparişi tekrar kontrol edin.",
+        );
+      } else if (
+        error instanceof PublicOrderRequestError &&
+        error.code === "IDEMPOTENCY_CONFLICT"
+      ) {
+        setOrderRecoveryMode("conflict");
+        setFallbackWhatsAppMessage("");
+        setOrderRecordWarning(
+          "Sipariş bilgileri bu deneme sırasında değişti. Lütfen sayfayı yenileyip tekrar deneyin.",
+        );
+      } else {
+        setOrderRecoveryMode("definitive");
+        setOrderRecordWarning(
+          "Sipariş panel kaydı oluşturulamadı. WhatsApp ile yine de gönderebilirsiniz.",
+        );
+      }
+    } finally {
+      if (activeOrderRequestRef.current === attempt) {
+        activeOrderRequestRef.current = null;
+        isRecordingOrderRef.current = false;
+        setIsRecordingOrder(false);
+      }
+    }
+  }
+
+  async function retryPendingOrder() {
+    if (isRecordingOrderRef.current) return;
+    const attempt = pendingOrderAttemptRef.current;
+    if (!attempt) {
+      setOrderRecoveryMode("conflict");
+      setOrderRecordWarning(
+        "Bekleyen sipariş denemesi bulunamadı. Lütfen siparişi yeniden oluşturun.",
+      );
+      return;
+    }
+
+    activeOrderRequestRef.current = attempt;
+    isRecordingOrderRef.current = true;
+    setIsRecordingOrder(true);
+    setWarning("");
+    setOrderRecordWarning("Sipariş sonucu tekrar kontrol ediliyor...");
+    try {
+      const result = await createPublicOrder(attempt.payload);
+      if (
+        activeOrderRequestRef.current !== attempt ||
+        pendingOrderAttemptRef.current !== attempt
+      ) {
+        return;
+      }
+      pendingOrderAttemptRef.current = null;
+      setOrderRecoveryMode("saved");
+      setFallbackWhatsAppMessage(createMessage(attempt, result.orderNumber));
+      setOrderRecordWarning(
+        "Sipariş kaydedildi. WhatsApp ile devam etmek için aşağıdaki butonu kullanın.",
+      );
+    } catch (error) {
+      if (
+        activeOrderRequestRef.current !== attempt ||
+        pendingOrderAttemptRef.current !== attempt
+      ) {
+        return;
+      }
+      if (
+        error instanceof PublicOrderRequestError &&
+        error.kind === "uncertain"
+      ) {
+        setOrderRecoveryMode("uncertain");
+        setOrderRecordWarning(
+          "Sipariş sonucu hâlâ doğrulanamadı. Aynı siparişi yeniden kontrol edebilir veya uyarıyı dikkate alarak numarasız gönderebilirsiniz.",
+        );
+      } else if (
+        error instanceof PublicOrderRequestError &&
+        error.code === "IDEMPOTENCY_CONFLICT"
+      ) {
+        setOrderRecoveryMode("conflict");
+        setFallbackWhatsAppMessage("");
+        setOrderRecordWarning(
+          "Sipariş bilgileri bu deneme sırasında değişti. Lütfen sayfayı yenileyip tekrar deneyin.",
+        );
+      } else {
+        setOrderRecoveryMode("definitive");
+        setOrderRecordWarning(
+          "Sipariş kaydı oluşturulamadı. WhatsApp ile yine de gönderebilirsiniz.",
+        );
+      }
+    } finally {
+      if (activeOrderRequestRef.current === attempt) {
+        activeOrderRequestRef.current = null;
+        isRecordingOrderRef.current = false;
+        setIsRecordingOrder(false);
+      }
+    }
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F5F7FA] px-3 py-4 text-[#333333] sm:px-5 sm:py-6">
-      <div className="mx-auto w-full max-w-full min-w-0 sm:max-w-6xl">
-        <BusinessHero business={currentBusiness} />
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <section className="min-w-0 max-w-full overflow-hidden rounded-[28px] bg-white p-4 shadow-[0_12px_30px_rgba(45,42,116,0.08)] sm:p-6">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-wide text-[#0D7CC2]">
-                  QR menü
-                </p>
-                <h2 className="mt-1 text-3xl font-black text-[#2D2A74]">
-                  Ürünler
-                </h2>
-              </div>
-              <span className="shrink-0 rounded-full bg-[#F5F7FA] px-3 py-2 text-sm font-bold text-[#2D2A74]">
-                {activeProductCategories.length} kategori
-              </span>
+    <main className="page">
+      <div className="shell">
+        <header className="hero business-hero" style={heroStyle}>
+          <div className="hero-content business-hero-content">
+            <div className="business-topline">
+              <Link className="eyebrow business-back-link" href="/">
+                ← İşletmeler
+              </Link>
             </div>
 
-            <div className="mt-5 space-y-7">
-              {activeProductCategories.map((category) => (
-                <div key={category.id}>
-                  <h3 className="text-xl font-black text-[#2D2A74]">
-                    {category.name}
-                  </h3>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="business-identity">
+              {displayBusiness.logoUrl ? (
+                <img
+                  alt={currentBusiness.name}
+                  className="business-logo"
+                  src={displayBusiness.logoUrl}
+                />
+              ) : (
+                <span className="business-logo-text">{getLogoText(currentBusiness)}</span>
+              )}
+              <div>
+                <h1>{currentBusiness.name}</h1>
+                <p>{currentBusiness.description}</p>
+              </div>
+            </div>
+
+            <div className="business-meta">
+              {addressText ? <span>{addressText}</span> : null}
+              {currentBusiness.address ? <span>{currentBusiness.address}</span> : null}
+            </div>
+          </div>
+        </header>
+
+        {orderInfoItems.length > 0 || orderNote ? (
+          <section className="business-order-info" aria-label="Sipariş bilgileri">
+            {orderInfoItems.length > 0 ? (
+              <div className="business-order-badges">
+                {orderInfoItems.map((item) => (
+                  <span
+                    className={`business-order-badge ${
+                      item === "Şu an kapalı" ? "closed" : ""
+                    }`}
+                    key={item}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {orderNote ? (
+              <p className="business-order-note">
+                <strong>Sipariş notu:</strong> {orderNote}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {accessMessage ? (
+          <section className="section access-message">
+            <h2>Sipariş alınamıyor</h2>
+            <p>{accessMessage}</p>
+          </section>
+        ) : (
+          <div className="layout">
+            <section className="section menu-section">
+              {!isOrderingOpen ? (
+                <p className="manual-order-warning">
+                  Bu işletme şu an sipariş almıyor.
+                </p>
+              ) : null}
+              <div className="menu-heading">
+                <div>
+                  <span className="menu-kicker">Menü</span>
+                  <h2>Ürünler</h2>
+                </div>
+                <span>{categories.length} kategori</span>
+              </div>
+              {hasAnyProducts ? (
+                <div className="menu-category-tabs" aria-label="Kategori menüsü">
+                  <button
+                    className={`menu-category-tab ${
+                      effectiveSelectedCategory === allCategoriesFilter ? "selected" : ""
+                    }`}
+                    type="button"
+                    onClick={() => setSelectedCategory(allCategoriesFilter)}
+                  >
+                    {allCategoriesFilter} ({totalProductCount})
+                  </button>
+                  {categories.map((category) => (
+                    <button
+                      className={`menu-category-tab ${
+                        effectiveSelectedCategory === category.name ? "selected" : ""
+                      }`}
+                      key={category.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(category.name)}
+                    >
+                      {category.name} ({category.products.length})
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {!hasAnyProducts ? (
+                <div className="menu-empty-state">
+                  <strong>Menü henüz hazır değil.</strong>
+                  <p>Bu işletme ürünlerini eklediğinde burada görünecek.</p>
+                </div>
+              ) : visibleCategories.length === 0 ? (
+                <div className="menu-empty-state">
+                  <strong>Bu kategoride ürün yok.</strong>
+                  <p>Başka bir kategori seçerek menüye göz atabilirsiniz.</p>
+                </div>
+              ) : null}
+              {visibleCategories.map((category) => (
+                <div className="category" key={category.id}>
+                  <h3 className="category-title">{category.name}</h3>
+                  <div className="products">
                     {category.products.map((product) => (
-                      <article
-                        className="flex min-w-0 max-w-full flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white p-3 shadow-[0_8px_24px_rgba(45,42,116,0.08)]"
-                        key={product.id}
-                      >
-                        <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-[#F5F7FA] text-lg font-black text-[#2D2A74]">
-                          {product.imageLabel}
-                        </div>
-                        <div className="flex flex-1 flex-col pt-4">
-                          <h4 className="text-lg font-black leading-snug text-[#2D2A74]">
-                            {product.name}
-                          </h4>
-                          <p className="mt-2 flex-1 text-sm leading-6 text-[#333333]">
-                            {product.description}
-                          </p>
-                          <div className="mt-4 flex items-center justify-between gap-3">
-                            <span className="text-xl font-black text-[#2D2A74]">
-                              {formatPrice(product.price)}
+                      <article className="product-card menu-product-card" key={product.id}>
+                        <div className="product-card-body">
+                          {product.imageUrl ? (
+                            <img
+                              alt={product.name}
+                              className="product-card-image"
+                              src={product.imageUrl}
+                            />
+                          ) : (
+                            <span className="product-image-placeholder">
+                              {product.imageLabel || category.name}
                             </span>
+                          )}
+                          <div className="product-copy">
+                            <p className="product-name">{product.name}</p>
+                            {product.description ? (
+                              <p className="product-description">{product.description}</p>
+                            ) : null}
+                            <span className="price">{formatPrice(product.price)}</span>
                           </div>
-                          <button
-                            className="mt-4 min-h-12 w-full rounded-2xl bg-[#0D7CC2] px-4 font-black text-white shadow-sm transition hover:bg-[#2D2A74]"
-                            type="button"
-                            onClick={() => addToCart(product)}
-                          >
-                            Sepete Ekle
-                          </button>
                         </div>
+                        <button
+                          className="add-button"
+                          disabled={!isOrderingOpen || isRecordingOrder}
+                          type="button"
+                          onClick={() => addToCart(product)}
+                        >
+                          {isOrderingOpen ? "Sepete Ekle" : "Kapalı"}
+                        </button>
                       </article>
                     ))}
                   </div>
                 </div>
               ))}
-            </div>
-          </section>
+            </section>
 
-          <aside className="lg:sticky lg:top-5">
-            <div className="max-w-full overflow-hidden rounded-[28px] bg-white p-4 shadow-[0_12px_30px_rgba(45,42,116,0.1)] sm:p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-2xl font-black text-[#2D2A74]">
-                  Sepetim
-                </h2>
-                <span className="rounded-full bg-[#F5F7FA] px-3 py-2 text-sm font-black text-[#2D2A74]">
-                  {itemCount} adet
-                </span>
-              </div>
-
-              {cart.length === 0 ? (
-                <p className="mt-4 rounded-2xl bg-[#F5F7FA] p-4 text-sm leading-6 text-[#333333]">
-                  Sepetiniz boş. Ürünlerden seçim yaparak siparişe başlayın.
-                </p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {cart.map((item) => (
-                    <div
-                      className="rounded-2xl border border-slate-100 bg-[#F5F7FA] p-3"
-                      key={item.id}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="font-black leading-snug text-[#2D2A74]">
-                            {item.name}
-                          </h3>
-                          <p className="mt-1 text-sm text-[#333333]">
-                            {formatPrice(item.price)} x {item.quantity}
-                          </p>
+            <aside
+              className={`order-panel ${
+                cart.length > 0 && showCartOnMobile ? "" : "mobile-cart-hidden"
+              }`}
+              ref={cartSectionRef}
+            >
+              <div className="order-inner section order-card">
+                <div className="section-title">
+                  <h2>Sepetim</h2>
+                  <span>{cartItemCount} adet</span>
+                </div>
+                <div className="cart">
+                  {cart.length === 0 ? (
+                    <p className="empty-cart">Sepetiniz boş.</p>
+                  ) : (
+                    cart.map((item) => (
+                      <div className="cart-item" key={item.id}>
+                        <div className="cart-line">
+                          <strong>{item.name}</strong>
+                          <span>{formatPrice(item.price * item.quantity)}</span>
                         </div>
-                        <p className="shrink-0 font-black text-[#2D2A74]">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            aria-label={`${item.name} adet azalt`}
-                            className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl font-black text-[#2D2A74] shadow-sm"
-                            type="button"
-                            onClick={() => decreaseItem(item.id)}
-                          >
-                            -
-                          </button>
-                          <strong className="min-w-7 text-center text-lg">
-                            {item.quantity}
-                          </strong>
-                          <button
-                            aria-label={`${item.name} adet artır`}
-                            className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl font-black text-[#2D2A74] shadow-sm"
-                            type="button"
-                            onClick={() => increaseItem(item.id)}
-                          >
-                            +
-                          </button>
+                        <div className="cart-actions">
+                          <div className="quantity">
+                            <button
+                              className="quantity-button"
+                              disabled={!isOrderingOpen || isRecordingOrder}
+                              type="button"
+                              onClick={() => decrease(item.id)}
+                            >
+                              -
+                            </button>
+                            <strong>{item.quantity}</strong>
+                            <button
+                              className="quantity-button"
+                              disabled={!isOrderingOpen || isRecordingOrder}
+                              type="button"
+                              onClick={() => increase(item.id)}
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          className="min-h-10 rounded-full bg-white px-4 text-sm font-black text-[#2D2A74] shadow-sm"
-                          type="button"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          Sil
-                        </button>
                       </div>
+                    ))
+                  )}
+                </div>
+                <div className="cart-total">
+                  <span>Genel Toplam</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
+                <form className="customer-form" onSubmit={submitOrder}>
+                  {!isOrderingOpen ? (
+                    <p className="order-rule-warning">
+                      Bu işletme şu an sipariş almıyor.
+                    </p>
+                  ) : minimumOrderWarning ? (
+                    <p className="order-rule-warning">{minimumOrderWarning}</p>
+                  ) : null}
+                  <div className="field">
+                    <span className="order-type-label">Sipariş Türü</span>
+                    <div className="order-type-toggle" role="group" aria-label="Sipariş türü">
+                      <button
+                        aria-pressed={orderType === "delivery"}
+                        className={`order-type-button ${
+                          orderType === "delivery" ? "selected" : ""
+                        }`}
+                        disabled={isRecordingOrder}
+                        type="button"
+                        onClick={() => {
+                          setWarning("");
+                          clearPendingOrderAttempt();
+                          setOrderType("delivery");
+                        }}
+                      >
+                        Teslimat
+                      </button>
+                      <button
+                        aria-pressed={orderType === "pickup"}
+                        className={`order-type-button ${
+                          orderType === "pickup" ? "selected" : ""
+                        }`}
+                        disabled={isRecordingOrder}
+                        type="button"
+                        onClick={() => {
+                          setWarning("");
+                          clearPendingOrderAttempt();
+                          setOrderType("pickup");
+                        }}
+                      >
+                        Gel-al
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-5 flex items-center justify-between border-t border-slate-200 pt-4 text-xl font-black">
-                <span>Toplam</span>
-                <span className="text-[#2D2A74]">{formatPrice(total)}</span>
-              </div>
-
-              <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-                <div>
-                  <label className="text-sm font-black" htmlFor="fullName">
-                    Ad Soyad *
-                  </label>
-                  <input
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 text-base outline-none focus:border-[#0D7CC2]"
-                    id="fullName"
-                    autoComplete="name"
-                    value={customer.fullName}
-                    onChange={(event) =>
-                      updateCustomer("fullName", event.target.value)
-                    }
-                    placeholder="Örn. Ahmet Yılmaz"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-black" htmlFor="phone">
-                    Telefon *
-                  </label>
-                  <input
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 text-base outline-none focus:border-[#0D7CC2]"
-                    id="phone"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    value={customer.phone}
-                    onChange={(event) =>
-                      updateCustomer("phone", event.target.value)
-                    }
-                    placeholder="Örn. 05xx xxx xx xx"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-black" htmlFor="address">
-                    Adres *
-                  </label>
-                  <textarea
-                    className="mt-2 min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-[#0D7CC2]"
-                    id="address"
-                    autoComplete="street-address"
-                    value={customer.address}
-                    onChange={(event) =>
-                      updateCustomer("address", event.target.value)
-                    }
-                    placeholder="Mahalle, sokak, bina, daire"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-black" htmlFor="note">
-                    Sipariş Notu
-                  </label>
-                  <textarea
-                    className="mt-2 min-h-20 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-[#0D7CC2]"
-                    id="note"
-                    value={customer.note}
-                    onChange={(event) =>
-                      updateCustomer("note", event.target.value)
-                    }
-                    placeholder="Teslimat notu veya ürün tercihi"
-                  />
-                </div>
-
-                {warning ? (
-                  <p className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-bold leading-6 text-red-700">
-                    {warning}
+                  </div>
+                  <div className="field">
+                    <label htmlFor="fullName">Ad Soyad *</label>
+                    <input disabled={isRecordingOrder} id="fullName" value={customer.fullName} onChange={(event) => updateCustomer("fullName", event.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="phone">Telefon *</label>
+                    <input disabled={isRecordingOrder} id="phone" inputMode="tel" value={customer.phone} onChange={(event) => updateCustomer("phone", event.target.value)} />
+                  </div>
+                  {orderType === "delivery" ? (
+                    <div className="field">
+                      <label htmlFor="address">Teslimat Adresi *</label>
+                      <textarea disabled={isRecordingOrder} id="address" value={customer.address} onChange={(event) => updateCustomer("address", event.target.value)} />
+                    </div>
+                  ) : (
+                    <p className="pickup-address-hint">
+                      Gel-al siparişlerinde adres gerekmez.
+                    </p>
+                  )}
+                  <div className="customer-remember-panel">
+                    <label className="customer-remember-option">
+                      <input
+                        checked={rememberCustomerDetails}
+                        className="customer-remember-checkbox"
+                        disabled={isRecordingOrder}
+                        type="checkbox"
+                        onChange={(event) =>
+                          toggleRememberCustomerDetails(event.target.checked)
+                        }
+                      />
+                      <span>Bilgilerimi bu cihazda hatırla</span>
+                    </label>
+                    <p>Ortak cihazlarda bilgilerinizi kaydetmeyin.</p>
+                    {hasSavedCustomerDetails ? (
+                      <button
+                        className="clear-saved-customer-button"
+                        disabled={isRecordingOrder}
+                        type="button"
+                        onClick={clearSavedCustomerDetails}
+                      >
+                        Kaydedilen bilgileri sil
+                      </button>
+                    ) : null}
+                  </div>
+                  <p className="order-data-note">
+                    Siparişinizi hazırlamak ve takip etmek için adınız, telefonunuz,
+                    teslimat adresiniz ve sipariş notunuz işletmenin sipariş panelinde
+                    siparişin oluşturulmasından 180 gün sonra periyodik olarak silinir.
+                    Gel-al siparişlerinde adres kaydedilmez.
                   </p>
-                ) : null}
-
-                <button
-                  className="min-h-14 w-full rounded-2xl bg-[#25D366] px-5 text-lg font-black text-white shadow-[0_12px_26px_rgba(37,211,102,0.24)] transition hover:bg-[#128C7E]"
-                  type="submit"
-                >
-                  WhatsApp Siparişi Gönder
-                </button>
-              </form>
-            </div>
-          </aside>
-        </div>
+                  <div className="field">
+                    <label htmlFor="note">Sipariş Notu</label>
+                    <textarea disabled={isRecordingOrder} id="note" value={customer.note} onChange={(event) => updateCustomer("note", event.target.value)} />
+                  </div>
+                  {warning ? <p className="alert">{warning}</p> : null}
+                  {orderRecordWarning ? (
+                    <div
+                      className={`order-record-fallback${
+                        orderRecoveryMode === "uncertain"
+                          ? " order-record-uncertain"
+                          : ""
+                      }`}
+                    >
+                      <p>{orderRecordWarning}</p>
+                      {orderRecoveryMode === "uncertain" ? (
+                        <button
+                          className="submit-button order-retry-button"
+                          disabled={isRecordingOrder}
+                          type="button"
+                          onClick={retryPendingOrder}
+                        >
+                          {isRecordingOrder
+                            ? "Sipariş kontrol ediliyor..."
+                            : "Siparişi tekrar dene"}
+                        </button>
+                      ) : null}
+                      {orderRecoveryMode !== "conflict" &&
+                      fallbackWhatsAppMessage ? (
+                        <button
+                          className="submit-button secondary-whatsapp-button"
+                          disabled={isRecordingOrder}
+                          type="button"
+                          onClick={() => {
+                            setOrderRecordWarning("");
+                            sendWhatsAppMessage(fallbackWhatsAppMessage);
+                          }}
+                        >
+                          {orderRecoveryMode === "uncertain"
+                            ? "Yine de numarasız WhatsApp ile gönder"
+                            : orderRecoveryMode === "saved"
+                              ? "WhatsApp ile devam et"
+                            : "WhatsApp ile yine de gönder"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <button
+                    className="submit-button"
+                    disabled={isOrderSubmitDisabled}
+                    type="submit"
+                  >
+                    {isRecordingOrder
+                      ? "Sipariş kaydediliyor..."
+                      : "WhatsApp ile Sipariş Oluştur"}
+                  </button>
+                </form>
+              </div>
+            </aside>
+            {cart.length > 0 && !showCartOnMobile && isOrderingOpen ? (
+              <button
+                className="mobile-cart-shortcut"
+                type="button"
+                onClick={scrollToCart}
+              >
+                <span>
+                  <strong>Sepette {cartItemCount} ürün</strong>
+                  <small>Toplam: {formatPrice(total)}</small>
+                </span>
+                <b>Sepete Git</b>
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
     </main>
   );

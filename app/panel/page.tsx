@@ -1,707 +1,1844 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  clearActiveBusinessSlug,
-  createSlug,
-  mergeBusinessIntoStorage,
-  readBusinessesFromStorage,
-  writeBusinessesToStorage,
-} from "../../lib/business-storage";
-import type { Business, Product } from "../../lib/businesses";
+  clearBrowserAuthSession,
+  getValidAccessToken,
+} from "../../lib/browser-auth-session";
 import {
-  deleteProductFromSupabase,
-  getCurrentBusinessFromSupabaseSession,
-  saveBusinessDetailsToSupabase,
-  signOutFromSupabase,
-  upsertProductInSupabase,
-} from "../../lib/supabase/business-service";
+  createProduct,
+  deleteProduct,
+  fetchProductsByBusinessId,
+  getCurrentUserBusiness,
+  isBusinessSubscriptionActive,
+  reorderProducts,
+  setProductActiveStatus,
+  updateBusinessProfile,
+  updateProduct,
+  uploadBusinessImage,
+  uploadProductImage,
+  type BusinessPanelBusiness,
+  type BusinessProduct,
+  type BusinessProfileInput,
+  type ProductInput,
+} from "../../lib/supabase-business";
+import {
+  fetchBusinessOrders,
+  updateBusinessOrderStatus,
+  type BusinessOrder,
+  type OrderStatus,
+} from "../../lib/supabase-orders";
 
-type BusinessForm = {
-  name: string;
-  whatsappOrderNumber: string;
-  description: string;
-  logoText: string;
-  coverImage: string;
+const sessionKey = "yerel-siparis-business-session";
+const renewalIban = "TR41 0006 2000 4320 0006 2872 06";
+const renewalRecipient = "Barış Yerlikaya";
+const renewalDescription = "sipariş web sitesi üyelik yenileme ücreti";
+const renewalSupportWhatsapp = "https://wa.me/905365857147";
+
+const orderStatusLabels: Record<OrderStatus, string> = {
+  new: "Yeni",
+  preparing: "Hazırlanıyor",
+  ready: "Hazır",
+  delivered: "Teslim edildi",
+  cancelled: "İptal edildi",
 };
+
+const orderStatusOptions = Object.entries(orderStatusLabels) as [
+  OrderStatus,
+  string,
+][];
 
 type ProductForm = {
   name: string;
   price: string;
-  category: string;
   description: string;
+  category: string;
   imageLabel: string;
+  imageUrl: string;
+  sortOrder: string;
   isActive: boolean;
 };
 
-type ProductWithCategory = Product & { category: string };
+type ProfileForm = {
+  name: string;
+  description: string;
+  whatsappOrderNumber: string;
+  city: string;
+  district: string;
+  neighborhood: string;
+  address: string;
+  deliveryStatus: string;
+  minimumOrderAmount: string;
+  preparationTimeMinutes: string;
+  isOpen: boolean;
+  orderNote: string;
+  serviceRadiusKm: string;
+  logoUrl: string;
+  coverImageUrl: string;
+};
 
-const emptyProductForm: ProductForm = {
+type PanelSection =
+  | "overview"
+  | "products"
+  | "orders"
+  | "create"
+  | "profile"
+  | "renewal";
+
+const emptyForm: ProductForm = {
   name: "",
   price: "",
-  category: "",
   description: "",
+  category: "",
   imageLabel: "",
+  imageUrl: "",
+  sortOrder: "",
   isActive: true,
 };
+
+const emptyProfileForm: ProfileForm = {
+  name: "",
+  description: "",
+  whatsappOrderNumber: "",
+  city: "",
+  district: "",
+  neighborhood: "",
+  address: "",
+  deliveryStatus: "",
+  minimumOrderAmount: "",
+  preparationTimeMinutes: "",
+  isOpen: true,
+  orderNote: "",
+  serviceRadiusKm: "",
+  logoUrl: "",
+  coverImageUrl: "",
+};
+
+function getSupabaseConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error(
+      ".env.local icinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_ANON_KEY eksik.",
+    );
+  }
+
+  return { url, anonKey };
+}
+
+function getBusinessAuthConfig() {
+  const { url, anonKey } = getSupabaseConfig();
+  return { url, anonKey, sessionKey };
+}
 
 function formatPrice(price: number) {
   return `${price.toLocaleString("tr-TR")} TL`;
 }
 
-function flattenProducts(business?: Business): ProductWithCategory[] {
-  if (!business) return [];
-  return business.productCategories.flatMap((category) =>
-    category.products.map((product) => ({
-      ...product,
-      category: category.name,
-      isActive: product.isActive !== false,
-    })),
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "-";
+  return date.toLocaleString("tr-TR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function getProductCategory(product: BusinessProduct) {
+  return product.category?.trim() || "Genel";
+}
+
+function sortProducts(products: BusinessProduct[]) {
+  return [...products].sort((first, second) => {
+    const sortDifference = first.sortOrder - second.sortOrder;
+    if (sortDifference !== 0) return sortDifference;
+
+    const firstDate = new Date(first.createdAt).getTime();
+    const secondDate = new Date(second.createdAt).getTime();
+    if (Number.isFinite(firstDate) && Number.isFinite(secondDate)) {
+      const dateDifference = firstDate - secondDate;
+      if (dateDifference !== 0) return dateDifference;
+    }
+
+    return first.name.localeCompare(second.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function getNextSortOrder(products: BusinessProduct[]) {
+  return (
+    products.reduce((maxOrder, product) => {
+      const sortOrder = Number(product.sortOrder);
+      return Number.isFinite(sortOrder) ? Math.max(maxOrder, sortOrder) : maxOrder;
+    }, 0) + 1
   );
 }
 
-function removeProduct(business: Business, productId: string): Business {
+function toForm(product: BusinessProduct): ProductForm {
   return {
-    ...business,
-    productCategories: business.productCategories
-      .map((category) => ({
-        ...category,
-        products: category.products.filter((product) => product.id !== productId),
-      }))
-      .filter((category) => category.products.length > 0),
+    name: product.name,
+    price: String(product.price),
+    description: product.description ?? "",
+    category: product.category ?? "",
+    imageLabel: product.imageLabel ?? "",
+    imageUrl: product.imageUrl ?? "",
+    sortOrder: String(product.sortOrder),
+    isActive: product.isActive,
   };
 }
 
-function upsertProduct(
-  business: Business,
-  product: Product,
-  categoryName: string,
-): Business {
-  const cleanedBusiness = removeProduct(business, product.id);
-  const existingCategory = cleanedBusiness.productCategories.find(
-    (category) =>
-      category.name.toLocaleLowerCase("tr-TR") ===
-      categoryName.toLocaleLowerCase("tr-TR"),
-  );
+function toProductInput(form: ProductForm, fallbackSortOrder = 0): ProductInput {
+  const sortOrder = form.sortOrder.trim()
+    ? Number(form.sortOrder)
+    : fallbackSortOrder;
 
-  if (existingCategory) {
-    return {
-      ...cleanedBusiness,
-      productCategories: cleanedBusiness.productCategories.map((category) =>
-        category.id === existingCategory.id
-          ? { ...category, products: [product, ...category.products] }
-          : category,
-      ),
-    };
+  return {
+    name: form.name.trim(),
+    price: Number(form.price),
+    description: form.description.trim(),
+    category: form.category.trim() || null,
+    imageLabel: form.imageLabel.trim() || null,
+    imageUrl: form.imageUrl.trim() || null,
+    sortOrder,
+    isActive: form.isActive,
+  };
+}
+
+function toProfileForm(business: BusinessPanelBusiness): ProfileForm {
+  return {
+    name: business.name,
+    description: business.description,
+    whatsappOrderNumber: business.whatsappOrderNumber,
+    city: business.city ?? "",
+    district: business.district,
+    neighborhood: business.neighborhood,
+    address: business.address,
+    deliveryStatus: business.deliveryStatus ?? "",
+    minimumOrderAmount:
+      typeof business.minimumOrderAmount === "number"
+        ? String(business.minimumOrderAmount)
+        : "",
+    preparationTimeMinutes:
+      typeof business.preparationTimeMinutes === "number"
+        ? String(business.preparationTimeMinutes)
+        : "",
+    isOpen: business.isOpen ?? true,
+    orderNote: business.orderNote ?? "",
+    serviceRadiusKm:
+      typeof business.serviceRadiusKm === "number"
+        ? String(business.serviceRadiusKm)
+        : "",
+    logoUrl: business.logoUrl ?? "",
+    coverImageUrl: business.coverImageUrl ?? "",
+  };
+}
+
+function toProfileInput(form: ProfileForm): BusinessProfileInput {
+  const radius = form.serviceRadiusKm.trim()
+    ? Number(form.serviceRadiusKm)
+    : null;
+  const minimumOrderAmount = form.minimumOrderAmount.trim()
+    ? Number(form.minimumOrderAmount)
+    : null;
+  const preparationTimeMinutes = form.preparationTimeMinutes.trim()
+    ? Number(form.preparationTimeMinutes)
+    : null;
+
+  return {
+    name: form.name.trim(),
+    description: form.description.trim() || null,
+    whatsappOrderNumber: form.whatsappOrderNumber.trim() || null,
+    city: form.city.trim() || null,
+    district: form.district.trim() || null,
+    neighborhood: form.neighborhood.trim() || null,
+    address: form.address.trim() || null,
+    deliveryStatus: form.deliveryStatus.trim() || null,
+    minimumOrderAmount,
+    preparationTimeMinutes,
+    isOpen: form.isOpen,
+    orderNote: form.orderNote.trim() || null,
+    serviceRadiusKm: radius,
+    logoUrl: form.logoUrl.trim() || null,
+    coverImageUrl: form.coverImageUrl.trim() || null,
+  };
+}
+
+export default function PanelPage() {
+  const router = useRouter();
+  const [, setAccessToken] = useState("");
+  const [business, setBusiness] = useState<BusinessPanelBusiness | null>(null);
+  const [products, setProducts] = useState<BusinessProduct[]>([]);
+  const [orders, setOrders] = useState<BusinessOrder[]>([]);
+  const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
+  const [editingProductId, setEditingProductId] = useState("");
+  const [expandedProductId, setExpandedProductId] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileUploadStatus, setProfileUploadStatus] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("Tüm ürünler");
+  const [selectedOrderStatusFilter, setSelectedOrderStatusFilter] =
+    useState<OrderStatus | "all">("all");
+  const [expandedOrderId, setExpandedOrderId] = useState("");
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
+  const [showRenewalInfo, setShowRenewalInfo] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [activePanelSection, setActivePanelSection] =
+    useState<PanelSection>("overview");
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+
+  function endBusinessSession() {
+    clearBrowserAuthSession(sessionKey);
+    setAccessToken("");
+    router.replace("/giris");
   }
 
-  return {
-    ...cleanedBusiness,
-    productCategories: [
-      { id: createSlug(categoryName), name: categoryName, products: [product] },
-      ...cleanedBusiness.productCategories,
-    ],
-  };
-}
+  async function getFreshAccessToken() {
+    const token = await getValidAccessToken(getBusinessAuthConfig());
+    if (!token) {
+      endBusinessSession();
+      return "";
+    }
+    setAccessToken(token);
+    return token;
+  }
 
-export default function OwnerPanelPage() {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [activeSlug, setActiveSlug] = useState("");
-  const [businessForm, setBusinessForm] = useState<BusinessForm>({
-    name: "",
-    whatsappOrderNumber: "",
-    description: "",
-    logoText: "",
-    coverImage: "",
-  });
-  const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [qrOpen, setQrOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const canManageProducts = useMemo(
+    () => (business ? isBusinessSubscriptionActive(business) : false),
+    [business],
+  );
+  const subscriptionLabel = canManageProducts
+    ? "Abonelik aktif"
+    : business?.subscriptionStatus === "blocked"
+      ? "Erişim kapalı"
+      : "Abonelik pasif";
+  const isSavingBusinessProfile = isSavingProfile || Boolean(profileUploadStatus);
+  const sortedProducts = useMemo(() => sortProducts(products), [products]);
+  const categorySummaries = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    sortedProducts.forEach((product) => {
+      const category = getProductCategory(product);
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((first, second) =>
+        first.name.localeCompare(second.name, "tr", { sensitivity: "base" }),
+      );
+  }, [sortedProducts]);
+  const filteredProducts = useMemo(() => {
+    if (selectedCategoryFilter === "Tüm ürünler") return sortedProducts;
+    return sortedProducts.filter(
+      (product) => getProductCategory(product) === selectedCategoryFilter,
+    );
+  }, [sortedProducts, selectedCategoryFilter]);
+  const activeProductCount = products.filter((product) => product.isActive).length;
+  const passiveProductCount = products.length - activeProductCount;
 
   useEffect(() => {
-    let isMounted = true;
+    let isCancelled = false;
 
-    async function loadPanelBusiness() {
+    async function loadPanel() {
       try {
-        const supabaseBusiness = await getCurrentBusinessFromSupabaseSession();
+        const token = await getFreshAccessToken();
+        if (!token || isCancelled) return;
 
-        if (!isMounted) return;
-
-        if (!supabaseBusiness) {
-          clearActiveBusinessSlug();
-          setBusinesses([]);
-          setActiveSlug("");
-          setMessage("Supabase oturumu var ancak bu kullanıcıya bağlı işletme bulunamadı.");
+        const foundBusiness = await getCurrentUserBusiness(token);
+        if (!foundBusiness) {
+          setBusiness(null);
+          setProducts([]);
+          setError("Giriş yapan kullanıcıya ait işletme bulunamadı.");
           return;
         }
 
-        const nextBusinesses = mergeBusinessIntoStorage(supabaseBusiness);
-        setBusinesses(nextBusinesses);
-        setActiveSlug(supabaseBusiness.slug);
-        setBusinessForm({
-          name: supabaseBusiness.name,
-          whatsappOrderNumber: supabaseBusiness.whatsappOrderNumber,
-          description: supabaseBusiness.description,
-          logoText: supabaseBusiness.logoText,
-          coverImage: supabaseBusiness.coverImage ?? "",
-        });
-      } catch (error) {
-        if (!isMounted) return;
-
-        clearActiveBusinessSlug();
-        setBusinesses(readBusinessesFromStorage());
-        setActiveSlug("");
-        setMessage(
-          error instanceof Error
-            ? `Supabase oturumu okunamadı: ${error.message}`
-            : "Supabase oturumu okunamadı.",
+        setBusiness(foundBusiness);
+        setProfileForm(toProfileForm(foundBusiness));
+        const foundProducts = await fetchProductsByBusinessId(
+          foundBusiness.id,
+          token,
         );
+        setProducts(foundProducts);
+      } catch {
+        setError("Panel verileri yüklenirken bir hata oluştu.");
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (!isCancelled) setIsLoading(false);
       }
     }
 
-    loadPanelBusiness();
+    loadPanel();
 
     return () => {
-      isMounted = false;
+      isCancelled = true;
     };
-  }, []);
+  }, [router]);
 
-  const business = useMemo(
-    () => businesses.find((item) => item.slug === activeSlug),
-    [businesses, activeSlug],
-  );
-
-  const products = useMemo(() => flattenProducts(business), [business]);
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((product) => product.category))),
-    [products],
-  );
-
-  const qrLink = business ? `http://localhost:3000/isletme/${business.slug}` : "";
-  const qrImageUrl = qrLink
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrLink)}`
-    : "";
-
-  function saveToLocalCache(nextBusinesses: Business[]) {
-    setBusinesses(nextBusinesses);
-    writeBusinessesToStorage(nextBusinesses);
-  }
-
-  function updateBusinessForm(field: keyof BusinessForm, value: string) {
-    setMessage("");
-    setBusinessForm((current) => ({ ...current, [field]: value }));
-  }
-
-  function updateProductForm(field: keyof ProductForm, value: string | boolean) {
-    setMessage("");
-    setProductForm((current) => ({ ...current, [field]: value }));
-  }
-
-  async function handleLogout() {
-    try {
-      await signOutFromSupabase();
-    } finally {
-      clearActiveBusinessSlug();
-      window.location.href = "/giris";
-    }
-  }
-
-  async function handleBusinessSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function refreshProducts() {
     if (!business) return;
+    const token = await getFreshAccessToken();
+    if (!token) return;
+    const freshProducts = await fetchProductsByBusinessId(business.id, token);
+    setProducts(freshProducts);
+  }
 
-    if (!businessForm.name.trim() || !businessForm.whatsappOrderNumber.trim()) {
-      setMessage("İşletme adı ve WhatsApp sipariş numarası zorunludur.");
-      return;
-    }
+  async function refreshOrders(statusFilter = selectedOrderStatusFilter) {
+    const token = await getFreshAccessToken();
+    if (!token) return;
 
-    const nextBusiness: Business = { ...business, ...businessForm };
-    const nextBusinesses = businesses.map((item) =>
-      item.slug === business.slug ? nextBusiness : item,
-    );
-
+    setIsLoadingOrders(true);
     try {
-      setIsSaving(true);
-      const supabaseBusiness = await saveBusinessDetailsToSupabase(nextBusiness);
-      saveToLocalCache(
-        supabaseBusiness
-          ? businesses.map((item) =>
-              item.slug === business.slug ? supabaseBusiness : item,
-            )
-          : nextBusinesses,
+      const freshOrders = await fetchBusinessOrders(
+        token,
+        statusFilter === "all" ? undefined : statusFilter,
       );
-      setMessage("İşletme bilgileri Supabase'e kaydedildi.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? `Supabase kaydı başarısız: ${error.message}`
-          : "Supabase kaydı başarısız.",
+      setOrders(freshOrders);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Siparişler yüklenirken bir hata oluştu.",
       );
     } finally {
-      setIsSaving(false);
+      setIsLoadingOrders(false);
     }
   }
 
-  function startProductEdit(product: ProductWithCategory) {
-    setEditingProductId(product.id);
-    setProductForm({
-      name: product.name,
-      price: String(product.price),
-      category: product.category,
-      description: product.description,
-      imageLabel: product.imageLabel,
-      isActive: product.isActive !== false,
-    });
+  async function changeOrderStatus(orderId: string, status: OrderStatus) {
+    const token = await getFreshAccessToken();
+    if (!token) return;
+
+    setUpdatingOrderId(orderId);
+    setError("");
     setMessage("");
+    try {
+      await updateBusinessOrderStatus(orderId, status, token);
+      setMessage("Sipariş durumu güncellendi.");
+      await refreshOrders();
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Sipariş durumu güncellenirken bir hata oluştu.",
+      );
+    } finally {
+      setUpdatingOrderId("");
+    }
   }
 
-  function resetProductForm() {
-    setEditingProductId(null);
-    setProductForm(emptyProductForm);
+  function changeOrderStatusFilter(statusFilter: OrderStatus | "all") {
+    setSelectedOrderStatusFilter(statusFilter);
+    setExpandedOrderId("");
+    if (activePanelSection === "orders") {
+      void refreshOrders(statusFilter);
+    }
   }
 
-  async function handleProductSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!business) return;
+  function updateForm(field: keyof ProductForm, value: string | boolean) {
+    setError("");
+    setMessage("");
+    setForm((current) => ({ ...current, [field]: value }));
+  }
 
-    const price = Number(productForm.price);
+  function updateProfileForm(
+    field: keyof ProfileForm,
+    value: ProfileForm[keyof ProfileForm],
+  ) {
+    setError("");
+    setMessage("");
+    setProfileForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function copyRenewalText(label: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setError("");
+      setMessage(`${label} kopyalandı.`);
+    } catch {
+      setError(`${label} kopyalanamadı. Manuel olarak seçip kopyalayabilirsiniz.`);
+    }
+  }
+
+  function resetForm() {
+    setForm(emptyForm);
+    setEditingProductId("");
+    setSelectedImageFile(null);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  }
+
+  function chooseCategory(category: string) {
+    if (!canManageProducts || isSaving || isUploadingImage) return;
+    updateForm("category", category);
+  }
+
+  function clearProductEditingState() {
+    setExpandedProductId("");
+    if (editingProductId) resetForm();
+  }
+
+  function switchPanelSection(section: PanelSection) {
+    if (section !== activePanelSection) {
+      clearProductEditingState();
+    }
+    setActivePanelSection(section);
+    setError("");
+    setMessage("");
+    if (section === "orders") {
+      void refreshOrders();
+    }
+  }
+
+  function validateForm() {
+    const price = Number(form.price);
+    const sortOrder = Number(form.sortOrder || 0);
+
+    if (!form.name.trim()) return "Ürün adı boş olamaz.";
+    if (!Number.isFinite(price) || price < 0) return "Fiyat geçerli bir sayı olmalıdır.";
+    if (!Number.isFinite(sortOrder)) return "Sıralama geçerli bir sayı olmalıdır.";
+    return "";
+  }
+
+  function validateProfileForm() {
+    const radius = profileForm.serviceRadiusKm.trim()
+      ? Number(profileForm.serviceRadiusKm)
+      : null;
+    const minimumOrderAmount = profileForm.minimumOrderAmount.trim()
+      ? Number(profileForm.minimumOrderAmount)
+      : null;
+    const preparationTimeMinutes = profileForm.preparationTimeMinutes.trim()
+      ? Number(profileForm.preparationTimeMinutes)
+      : null;
+
+    if (!profileForm.name.trim()) return "İşletme adı boş olamaz.";
+    if (radius !== null && (!Number.isFinite(radius) || radius < 0)) {
+      return "Servis yarıçapı geçerli bir sayı olmalıdır.";
+    }
     if (
-      !productForm.name.trim() ||
-      !productForm.category.trim() ||
-      !Number.isFinite(price) ||
-      price <= 0
+      minimumOrderAmount !== null &&
+      (!Number.isFinite(minimumOrderAmount) || minimumOrderAmount < 0)
     ) {
-      setMessage("Ürün adı, geçerli fiyat ve kategori zorunludur.");
+      return "Minimum sipariş tutarı 0 veya daha büyük bir sayı olmalıdır.";
+    }
+    if (
+      preparationTimeMinutes !== null &&
+      (!Number.isInteger(preparationTimeMinutes) ||
+        preparationTimeMinutes < 1 ||
+        preparationTimeMinutes > 720)
+    ) {
+      return "Tahmini hazırlık süresi 1 ile 720 dakika arasında tam sayı olmalıdır.";
+    }
+    if (profileForm.deliveryStatus.trim().length > 120) {
+      return "Teslimat / gel-al bilgisi en fazla 120 karakter olabilir.";
+    }
+    if (profileForm.orderNote.trim().length > 300) {
+      return "Kısa sipariş notu en fazla 300 karakter olabilir.";
+    }
+    return "";
+  }
+
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (!business) {
+      setError("İşletme oturumu bulunamadı.");
       return;
     }
 
-    const product: Product = {
-      id: editingProductId ?? createSlug(productForm.name),
-      name: productForm.name.trim(),
-      price,
-      description: productForm.description.trim(),
-      imageLabel: productForm.imageLabel.trim() || productForm.name.trim(),
-      isActive: productForm.isActive,
-    };
+    const token = await getFreshAccessToken();
+    if (!token) return;
 
-    const nextBusiness = upsertProduct(
-      business,
-      product,
-      productForm.category.trim(),
-    );
+    const validationError = validateProfileForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSavingProfile(true);
 
     try {
-      setIsSaving(true);
-      const supabaseBusiness = await upsertProductInSupabase(
-        nextBusiness,
-        product,
-        productForm.category.trim(),
+      const profilePayload = toProfileInput(profileForm);
+      if (selectedLogoFile) {
+        setProfileUploadStatus("Logo yükleniyor...");
+        const uploadedLogoUrl = await uploadBusinessImage(
+          business.id,
+          selectedLogoFile,
+          "logo",
+          token,
+        );
+        profilePayload.logoUrl = uploadedLogoUrl;
+        setProfileForm((current) => ({ ...current, logoUrl: uploadedLogoUrl }));
+      }
+      if (selectedCoverFile) {
+        setProfileUploadStatus("Kapak görseli yükleniyor...");
+        const uploadedCoverUrl = await uploadBusinessImage(
+          business.id,
+          selectedCoverFile,
+          "cover",
+          token,
+        );
+        profilePayload.coverImageUrl = uploadedCoverUrl;
+        setProfileForm((current) => ({
+          ...current,
+          coverImageUrl: uploadedCoverUrl,
+        }));
+      }
+      const updatedBusiness = await updateBusinessProfile(
+        business.id,
+        profilePayload,
+        token,
       );
-      const cachedBusiness = supabaseBusiness ?? nextBusiness;
-      saveToLocalCache(
-        businesses.map((item) =>
-          item.slug === business.slug ? cachedBusiness : item,
-        ),
+      if (updatedBusiness) {
+        setBusiness(updatedBusiness);
+        setProfileForm(toProfileForm(updatedBusiness));
+      }
+      setSelectedLogoFile(null);
+      setSelectedCoverFile(null);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+      if (coverInputRef.current) coverInputRef.current.value = "";
+      setMessage("İşletme bilgileri kaydedildi.");
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "İşletme bilgileri kaydedilirken bir hata oluştu.",
       );
-      setMessage(
-        editingProductId
-          ? "Ürün Supabase products tablosunda güncellendi."
-          : "Ürün Supabase products tablosuna eklendi.",
+    } finally {
+      setProfileUploadStatus("");
+      setIsSavingProfile(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (!business) {
+      setError("İşletme oturumu bulunamadı.");
+      return;
+    }
+
+    const token = await getFreshAccessToken();
+    if (!token) return;
+
+    if (!canManageProducts) {
+      setError("Aboneliğiniz aktif olmadığı için ürün işlemi yapamazsınız.");
+      return;
+    }
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const payload = toProductInput(
+        form,
+        editingProductId ? 0 : getNextSortOrder(products),
       );
-      resetProductForm();
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? `Supabase ürün kaydı başarısız: ${error.message}`
-          : "Supabase ürün kaydı başarısız.",
+      if (selectedImageFile) {
+        setIsUploadingImage(true);
+        const uploadedImageUrl = await uploadProductImage(
+          business.id,
+          selectedImageFile,
+          token,
+        );
+        payload.imageUrl = uploadedImageUrl;
+        setForm((current) => ({ ...current, imageUrl: uploadedImageUrl }));
+      }
+      if (editingProductId) {
+        await updateProduct(editingProductId, payload, token);
+        setMessage("Ürün güncellendi.");
+      } else {
+        const createdProduct = await createProduct(payload, token);
+        setSelectedCategoryFilter(getProductCategory(createdProduct));
+        setMessage("Ürün eklendi.");
+      }
+      resetForm();
+      await refreshProducts();
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Ürün kaydedilirken bir hata oluştu.",
       );
+    } finally {
+      setIsUploadingImage(false);
+      setIsSaving(false);
+    }
+  }
+
+  function startEdit(product: BusinessProduct) {
+    if (!canManageProducts) return;
+    setActivePanelSection("products");
+    setExpandedProductId(product.id);
+    setEditingProductId(product.id);
+    setForm(toForm(product));
+    setSelectedImageFile(null);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    setError("");
+    setMessage("");
+  }
+
+  async function removeProduct(product: BusinessProduct) {
+    if (!canManageProducts) return;
+    if (!window.confirm(`${product.name} silinsin mi?`)) return;
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const token = await getFreshAccessToken();
+      if (!token) return;
+
+      await deleteProduct(product.id, token);
+      setMessage("Ürün silindi.");
+      if (editingProductId === product.id) resetForm();
+      if (expandedProductId === product.id) setExpandedProductId("");
+      await refreshProducts();
+    } catch {
+      setError("Ürün silinirken bir hata oluştu.");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function deleteProduct(productId: string) {
-    if (!business) return;
+  async function toggleProduct(product: BusinessProduct) {
+    if (!canManageProducts) return;
 
-    const nextBusiness = removeProduct(business, productId);
+    setIsSaving(true);
+    setError("");
+    setMessage("");
 
     try {
-      setIsSaving(true);
-      const supabaseBusiness = await deleteProductFromSupabase(business, productId);
-      saveToLocalCache(
-        businesses.map((item) =>
-          item.slug === business.slug ? supabaseBusiness ?? nextBusiness : item,
-        ),
-      );
-      setMessage("Ürün Supabase products tablosundan silindi.");
-      if (editingProductId === productId) resetProductForm();
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? `Supabase ürün silme başarısız: ${error.message}`
-          : "Supabase ürün silme başarısız.",
-      );
+      const token = await getFreshAccessToken();
+      if (!token) return;
+
+      await setProductActiveStatus(product.id, !product.isActive, token);
+      setMessage(product.isActive ? "Ürün pasife alındı." : "Ürün aktif edildi.");
+      await refreshProducts();
+    } catch {
+      setError("Ürün durumu güncellenirken bir hata oluştu.");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function toggleProduct(product: ProductWithCategory) {
-    if (!business) return;
-    const nextProduct: Product = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      description: product.description,
-      imageLabel: product.imageLabel,
-      isActive: product.isActive === false,
-    };
+  async function moveProduct(product: BusinessProduct, direction: "up" | "down") {
+    if (!canManageProducts) return;
 
-    const nextBusiness = upsertProduct(business, nextProduct, product.category);
+    const currentIndex = filteredProducts.findIndex((item) => item.id === product.id);
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= filteredProducts.length) {
+      return;
+    }
+
+    const orderSlots = filteredProducts.map((item) => {
+      const globalIndex = sortedProducts.findIndex(
+        (sortedProduct) => sortedProduct.id === item.id,
+      );
+      return globalIndex >= 0 ? globalIndex + 1 : item.sortOrder;
+    });
+    const reorderedProducts = [...filteredProducts];
+    const movedProduct = reorderedProducts[currentIndex];
+    reorderedProducts[currentIndex] = reorderedProducts[targetIndex];
+    reorderedProducts[targetIndex] = movedProduct;
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
 
     try {
-      setIsSaving(true);
-      const supabaseBusiness = await upsertProductInSupabase(
-        nextBusiness,
-        nextProduct,
-        product.category,
-      );
-      saveToLocalCache(
-        businesses.map((item) =>
-          item.slug === business.slug ? supabaseBusiness ?? nextBusiness : item,
-        ),
+      const token = await getFreshAccessToken();
+      if (!token) return;
+
+      await reorderProducts(
+        reorderedProducts.map((item, index) => ({
+          productId: item.id,
+          sortOrder: orderSlots[index],
+        })),
+        token,
       );
       setMessage(
-        nextProduct.isActive
-          ? "Ürün Supabase'de aktif edildi."
-          : "Ürün Supabase'de pasif edildi.",
+        direction === "up" ? "Ürün yukarı taşındı." : "Ürün aşağı taşındı.",
       );
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? `Supabase aktif/pasif kaydı başarısız: ${error.message}`
-          : "Supabase aktif/pasif kaydı başarısız.",
-      );
+      await refreshProducts();
+    } catch {
+      setError("Ürün sırası güncellenirken bir hata oluştu.");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function copyQrLink() {
-    if (!qrLink) return;
-    await navigator.clipboard.writeText(qrLink);
-    setMessage("İşletme linki kopyalandı.");
+  function logout() {
+    clearBrowserAuthSession(sessionKey);
+    router.replace("/giris");
+  }
+
+  function toggleProductDetails(productId: string) {
+    const isClosingCurrentProduct = expandedProductId === productId;
+
+    if (
+      editingProductId &&
+      (isClosingCurrentProduct || editingProductId !== productId)
+    ) {
+      resetForm();
+    }
+
+    setExpandedProductId(isClosingCurrentProduct ? "" : productId);
   }
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#F5F7FA] px-4 py-10 text-[#333333]">
-        <div className="mx-auto max-w-md rounded-[28px] bg-white p-6 text-center shadow-[0_12px_30px_rgba(45,42,116,0.08)]">
-          <h1 className="text-3xl font-black text-[#2D2A74]">
-            Panel yükleniyor
-          </h1>
-          <p className="mt-3 leading-7">
-            Supabase oturumu kontrol ediliyor.
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!business) {
-    return (
-      <main className="min-h-screen bg-[#F5F7FA] px-4 py-10 text-[#333333]">
-        <div className="mx-auto max-w-md rounded-[28px] bg-white p-6 text-center shadow-[0_12px_30px_rgba(45,42,116,0.08)]">
-          <h1 className="text-3xl font-black text-[#2D2A74]">
-            Giriş gerekli
-          </h1>
-          <p className="mt-3 leading-7">
-            İşletme panelini kullanmak için önce işletme hesabıyla giriş yapın.
-          </p>
-          {message ? (
-            <p className="mt-4 rounded-2xl bg-[#F5F7FA] p-3 text-sm font-bold text-[#2D2A74]">
-              {message}
-            </p>
-          ) : null}
-          <Link
-            className="mt-5 flex min-h-12 items-center justify-center rounded-2xl bg-[#0D7CC2] px-4 font-black text-white"
-            href="/giris"
-          >
-            Giriş Yap
-          </Link>
+      <main className="page">
+        <div className="shell section">
+          <p>Panel yükleniyor...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F5F7FA] px-3 py-4 text-[#333333] sm:px-5 sm:py-8">
-      <div className="mx-auto w-full max-w-7xl">
-        <header className="rounded-[28px] bg-white p-5 shadow-[0_12px_30px_rgba(45,42,116,0.08)] sm:p-8">
-          <p className="text-sm font-black uppercase tracking-wide text-[#0D7CC2]">
-            İşletme Paneli
-          </p>
-          <h1 className="mt-2 text-4xl font-black text-[#2D2A74]">
-            {business.name}
-          </h1>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <button
-              className="min-h-12 rounded-2xl bg-[#0D7CC2] px-4 font-black text-white"
-              type="button"
-              onClick={() => setQrOpen(true)}
-            >
-              QR Kod Oluştur
-            </button>
-            <Link
-              className="flex min-h-12 items-center justify-center rounded-2xl bg-[#F5F7FA] px-4 font-black text-[#2D2A74]"
-              href={`/isletme/${business.slug}`}
-            >
-              Sayfayı Aç
-            </Link>
-            <button
-              className="min-h-12 rounded-2xl bg-[#F5F7FA] px-4 font-black text-[#2D2A74]"
-              type="button"
-              onClick={handleLogout}
-            >
-              Çıkış Yap
-            </button>
+    <main className="page">
+      <div className="shell">
+        <header className="hero panel-hero">
+          <div className="hero-content panel-hero-content">
+            <div className="panel-hero-top">
+              <span className="eyebrow">İşletme Paneli</span>
+              <button className="panel-logout-button" type="button" onClick={logout}>
+                Çıkış Yap
+              </button>
+            </div>
+            <div className="panel-heading">
+              <div>
+                <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
+                <p>Ürünlerinizi, işletme bilgilerinizi ve sipariş sayfanızı buradan yönetin.</p>
+              </div>
+              {business ? (
+                <span
+                  className={`panel-subscription-badge ${
+                    canManageProducts ? "active" : "inactive"
+                  }`}
+                >
+                  {subscriptionLabel}
+                </span>
+              ) : null}
+            </div>
+            {business ? (
+              <div className="panel-summary">
+                <span>{business.email || "E-posta eklenmedi"}</span>
+                <span>{business.whatsappOrderNumber || "WhatsApp numarasi yok"}</span>
+                <span>{business.district || "İlçe yok"} / {business.neighborhood || "Mahalle yok"}</span>
+              </div>
+            ) : null}
           </div>
         </header>
 
-        {message ? (
-          <p className="mt-5 rounded-2xl bg-white p-4 font-bold text-[#2D2A74] shadow-sm">
-            {message}
-          </p>
-        ) : null}
+        {error ? <p className="alert">{error}</p> : null}
+        {message ? <p className="alert success">{message}</p> : null}
 
-        {isSaving ? (
-          <p className="mt-3 rounded-2xl bg-white p-4 font-bold text-[#0D7CC2] shadow-sm">
-            Supabase kaydı yapılıyor...
-          </p>
-        ) : null}
-
-        <div className="mt-5 grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)] xl:items-start">
-          <section className="rounded-[28px] bg-white p-4 shadow-[0_12px_30px_rgba(45,42,116,0.08)] sm:p-5 xl:sticky xl:top-5">
-            <h2 className="text-2xl font-black text-[#2D2A74]">
-              İşletme Bilgileri
-            </h2>
-            <form className="mt-5 space-y-4" onSubmit={handleBusinessSubmit}>
-              <input
-                className="min-h-12 w-full rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                value={businessForm.name}
-                onChange={(event) => updateBusinessForm("name", event.target.value)}
-                placeholder="İşletme adı"
-              />
-              <input
-                className="min-h-12 w-full rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                value={businessForm.whatsappOrderNumber}
-                onChange={(event) =>
-                  updateBusinessForm("whatsappOrderNumber", event.target.value)
-                }
-                placeholder="WhatsApp sipariş numarası"
-              />
-              <textarea
-                className="min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0D7CC2]"
-                value={businessForm.description}
-                onChange={(event) =>
-                  updateBusinessForm("description", event.target.value)
-                }
-                placeholder="Açıklama"
-              />
-              <input
-                className="min-h-12 w-full rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                value={businessForm.logoText}
-                onChange={(event) =>
-                  updateBusinessForm("logoText", event.target.value)
-                }
-                placeholder="Logo"
-              />
-              <input
-                className="min-h-12 w-full rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                value={businessForm.coverImage}
-                onChange={(event) =>
-                  updateBusinessForm("coverImage", event.target.value)
-                }
-                placeholder="Kapak görseli"
-              />
-              <button
-                className="min-h-14 w-full rounded-2xl bg-[#0D7CC2] px-5 text-lg font-black text-white"
-                disabled={isSaving}
-                type="submit"
-              >
-                Bilgileri Güncelle
-              </button>
-            </form>
+        {!business ? (
+          <section className="section">
+            <h2>İşletme bulunamadı</h2>
+            <p>Bu kullanıcıya bağlı bir işletme kaydı bulunamadı.</p>
           </section>
-
-          <section className="rounded-[28px] bg-white p-4 shadow-[0_12px_30px_rgba(45,42,116,0.08)] sm:p-5">
-            <h2 className="text-2xl font-black text-[#2D2A74]">
-              Ürün Yönetimi
-            </h2>
-            <form
-              className="mt-5 grid gap-4 lg:grid-cols-2"
-              onSubmit={handleProductSubmit}
-            >
-              <input
-                className="min-h-12 rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                value={productForm.name}
-                onChange={(event) => updateProductForm("name", event.target.value)}
-                placeholder="Ürün adı"
-              />
-              <input
-                className="min-h-12 rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                inputMode="decimal"
-                value={productForm.price}
-                onChange={(event) => updateProductForm("price", event.target.value)}
-                placeholder="Fiyat"
-              />
-              <input
-                className="min-h-12 rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                list="owner-product-categories"
-                value={productForm.category}
-                onChange={(event) =>
-                  updateProductForm("category", event.target.value)
-                }
-                placeholder="Kategori"
-              />
-              <datalist id="owner-product-categories">
-                {categories.map((category) => (
-                  <option key={category} value={category} />
-                ))}
-              </datalist>
-              <input
-                className="min-h-12 rounded-2xl border border-slate-200 px-4 outline-none focus:border-[#0D7CC2]"
-                value={productForm.imageLabel}
-                onChange={(event) =>
-                  updateProductForm("imageLabel", event.target.value)
-                }
-                placeholder="Ürün görseli"
-              />
-              <textarea
-                className="min-h-24 rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0D7CC2] lg:col-span-2"
-                value={productForm.description}
-                onChange={(event) =>
-                  updateProductForm("description", event.target.value)
-                }
-                placeholder="Açıklama"
-              />
-              <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#F5F7FA] px-4 font-bold text-[#2D2A74] lg:col-span-2">
-                <input
-                  checked={productForm.isActive}
-                  className="h-5 w-5 accent-[#0D7CC2]"
-                  type="checkbox"
-                  onChange={(event) =>
-                    updateProductForm("isActive", event.target.checked)
-                  }
-                />
-                Aktif ürün olarak göster
-              </label>
+        ) : (
+          <>
+            <nav className="panel-section-tabs" aria-label="Panel bolumleri">
               <button
-                className="min-h-14 rounded-2xl bg-[#0D7CC2] px-5 text-lg font-black text-white lg:col-span-2"
-                disabled={isSaving}
-                type="submit"
-              >
-                {editingProductId ? "Ürünü Güncelle" : "Ürün Ekle"}
-              </button>
-            </form>
-
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              {products.map((product) => (
-                <article
-                  className="rounded-3xl border border-slate-100 p-4 shadow-[0_8px_24px_rgba(45,42,116,0.08)]"
-                  key={product.id}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-[#0D7CC2]">
-                        {product.category}
-                      </p>
-                      <h3 className="text-xl font-black text-[#2D2A74]">
-                        {product.name}
-                      </h3>
-                      <p className="mt-1 font-black">{formatPrice(product.price)}</p>
-                    </div>
-                    <span className="rounded-full bg-[#F5F7FA] px-3 py-1 text-xs font-black text-[#2D2A74]">
-                      {product.isActive !== false ? "Aktif" : "Pasif"}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6">{product.description}</p>
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <button
-                      className="min-h-11 rounded-2xl bg-[#0D7CC2] px-3 text-sm font-black text-white"
-                      disabled={isSaving}
-                      type="button"
-                      onClick={() => startProductEdit(product)}
-                    >
-                      Düzenle
-                    </button>
-                    <button
-                      className="min-h-11 rounded-2xl bg-[#F5F7FA] px-3 text-sm font-black text-[#2D2A74]"
-                      disabled={isSaving}
-                      type="button"
-                      onClick={() => toggleProduct(product)}
-                    >
-                      {product.isActive !== false ? "Pasif Yap" : "Aktif Yap"}
-                    </button>
-                    <button
-                      className="min-h-11 rounded-2xl bg-[#F5F7FA] px-3 text-sm font-black text-[#2D2A74]"
-                      disabled={isSaving}
-                      type="button"
-                      onClick={() => deleteProduct(product.id)}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
-
-      {qrOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 sm:items-center sm:justify-center">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-5">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="text-2xl font-black text-[#2D2A74]">
-                {business.name} QR kodu
-              </h2>
-              <button
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F5F7FA] text-xl font-black text-[#2D2A74]"
+                className={activePanelSection === "overview" ? "active" : ""}
                 type="button"
-                onClick={() => setQrOpen(false)}
+                onClick={() => switchPanelSection("overview")}
               >
-                ×
+                Genel Bakış
               </button>
-            </div>
-            <div className="mt-5 flex justify-center rounded-3xl bg-[#F5F7FA] p-4">
-              <img
-                alt={`${business.name} sipariş sayfası QR kodu`}
-                className="h-64 w-64 max-w-full rounded-2xl bg-white p-3"
-                src={qrImageUrl}
-              />
-            </div>
-            <p className="mt-4 break-all rounded-2xl bg-[#F5F7FA] p-3 text-sm font-bold text-[#2D2A74]">
-              {qrLink}
-            </p>
-            <button
-              className="mt-4 min-h-14 w-full rounded-2xl bg-[#0D7CC2] px-5 text-lg font-black text-white"
-              type="button"
-              onClick={copyQrLink}
+              <button
+                className={activePanelSection === "products" ? "active" : ""}
+                type="button"
+                onClick={() => switchPanelSection("products")}
+              >
+                Ürünler
+              </button>
+              <button
+                className={activePanelSection === "orders" ? "active" : ""}
+                type="button"
+                onClick={() => switchPanelSection("orders")}
+              >
+                Siparişler
+              </button>
+              <button
+                className={activePanelSection === "create" ? "active" : ""}
+                type="button"
+                onClick={() => switchPanelSection("create")}
+              >
+                Yeni Ürün Ekle
+              </button>
+              <button
+                className={activePanelSection === "profile" ? "active" : ""}
+                type="button"
+                onClick={() => switchPanelSection("profile")}
+              >
+                İşletme Bilgileri
+              </button>
+              <button
+                className={activePanelSection === "renewal" ? "active" : ""}
+                type="button"
+                onClick={() => switchPanelSection("renewal")}
+              >
+                Üyelik / Ödeme
+              </button>
+            </nav>
+
+            {activePanelSection === "overview" ? (
+              <section className="section panel-section panel-overview-section">
+                <div className="section-title">
+                  <h2>Genel Bakış</h2>
+                  <span>{subscriptionLabel}</span>
+                </div>
+                <div className="panel-overview-grid">
+                  <div className="panel-overview-card">
+                    <strong>{business.name}</strong>
+                    <span>İşletme adı</span>
+                  </div>
+                  <div className="panel-overview-card">
+                    <strong>{products.length}</strong>
+                    <span>Toplam ürün</span>
+                  </div>
+                  <div className="panel-overview-card">
+                    <strong>{activeProductCount}</strong>
+                    <span>Aktif ürün</span>
+                  </div>
+                  <div className="panel-overview-card">
+                    <strong>{passiveProductCount}</strong>
+                    <span>Pasif ürün</span>
+                  </div>
+                  <div className="panel-overview-card">
+                    <strong>{categorySummaries.length}</strong>
+                    <span>Kategori</span>
+                  </div>
+                </div>
+                <div className="panel-overview-actions">
+                  <button type="button" onClick={() => switchPanelSection("products")}>
+                    Ürünleri Yönet
+                  </button>
+                  <button type="button" onClick={() => switchPanelSection("orders")}>
+                    Siparişleri Yönet
+                  </button>
+                  <button type="button" onClick={() => switchPanelSection("create")}>
+                    Yeni Ürün Ekle
+                  </button>
+                  <button type="button" onClick={() => switchPanelSection("profile")}>
+                    İşletme Bilgilerini Düzenle
+                  </button>
+                  <button type="button" onClick={() => switchPanelSection("renewal")}>
+                    Üyelik Bilgileri
+                  </button>
+                </div>
+              </section>
+            ) : null}
+
+            {activePanelSection === "orders" ? (
+              <section className="section panel-section panel-orders-section">
+                <div className="section-title">
+                  <h2>Siparişler</h2>
+                  <span>{orders.length} kayıt</span>
+                </div>
+
+                <div className="panel-order-toolbar">
+                  <label className="field">
+                    <span>Durum filtresi</span>
+                    <select
+                      value={selectedOrderStatusFilter}
+                      onChange={(event) =>
+                        changeOrderStatusFilter(
+                          event.target.value as OrderStatus | "all",
+                        )
+                      }
+                    >
+                      <option value="all">Tüm siparişler</option>
+                      {orderStatusOptions.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="submit-button panel-secondary-action panel-order-refresh"
+                    disabled={isLoadingOrders}
+                    type="button"
+                    onClick={() => refreshOrders()}
+                  >
+                    {isLoadingOrders ? "Yükleniyor..." : "Listeyi Yenile"}
+                  </button>
+                </div>
+
+                {isLoadingOrders ? (
+                  <p className="empty-cart">Siparişler yükleniyor...</p>
+                ) : orders.length === 0 ? (
+                  <p className="empty-cart">Henüz sipariş yok.</p>
+                ) : (
+                  <div className="panel-order-list">
+                    {orders.map((order) => {
+                      const isExpanded = expandedOrderId === order.id;
+                      const orderTypeLabel =
+                        order.orderType === "delivery" ? "Teslimat" : "Gel-al";
+
+                      return (
+                        <article className="panel-order-card" key={order.id}>
+                          <button
+                            aria-expanded={isExpanded}
+                            className="panel-order-row"
+                            type="button"
+                            onClick={() =>
+                              setExpandedOrderId(isExpanded ? "" : order.id)
+                            }
+                          >
+                            <span className="panel-order-main">
+                              <strong>#{order.orderNumber}</strong>
+                              <span>{order.customerName}</span>
+                            </span>
+                            <span className="panel-order-meta">
+                              <strong>{formatPrice(order.totalAmount)}</strong>
+                              <span>{formatDateTime(order.createdAt)}</span>
+                            </span>
+                            <span
+                              className={`order-status-badge order-status-${order.status}`}
+                            >
+                              {orderStatusLabels[order.status]}
+                            </span>
+                            <span className="panel-order-toggle">
+                              {isExpanded ? "Kapat" : "Detay"}
+                            </span>
+                          </button>
+
+                          {isExpanded ? (
+                            <div className="panel-order-detail">
+                              <div className="panel-order-detail-grid">
+                                <p>
+                                  <strong>Telefon</strong>
+                                  <span>{order.customerPhone}</span>
+                                </p>
+                                <p>
+                                  <strong>Sipariş türü</strong>
+                                  <span>{orderTypeLabel}</span>
+                                </p>
+                                <p>
+                                  <strong>Durum</strong>
+                                  <select
+                                    disabled={updatingOrderId === order.id}
+                                    value={order.status}
+                                    onChange={(event) =>
+                                      changeOrderStatus(
+                                        order.id,
+                                        event.target.value as OrderStatus,
+                                      )
+                                    }
+                                  >
+                                    {orderStatusOptions.map(([value, label]) => (
+                                      <option key={value} value={value}>
+                                        {label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </p>
+                              </div>
+
+                              <div className="panel-order-address">
+                                <strong>
+                                  {order.orderType === "delivery"
+                                    ? "Teslimat adresi"
+                                    : "Gel-al siparişi"}
+                                </strong>
+                                <span>
+                                  {order.orderType === "delivery"
+                                    ? order.customerAddress || "Adres belirtilmedi."
+                                    : "Müşteri siparişi işletmeden teslim alacak."}
+                                </span>
+                              </div>
+
+                              {order.customerNote ? (
+                                <div className="panel-order-note">
+                                  <strong>Müşteri notu</strong>
+                                  <span>{order.customerNote}</span>
+                                </div>
+                              ) : null}
+
+                              <div className="panel-order-items">
+                                {order.items.map((item) => (
+                                  <div className="panel-order-item" key={item.id}>
+                                    <span>
+                                      <strong>{item.productName}</strong>
+                                      <small>
+                                        {item.quantity} x {formatPrice(item.unitPrice)}
+                                      </small>
+                                    </span>
+                                    <b>{formatPrice(item.lineTotal)}</b>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            ) : null}
+
+            {activePanelSection === "renewal" ? (
+            <section
+              className={`section panel-section renewal-section ${
+                canManageProducts ? "" : "renewal-section-highlight"
+              }`}
             >
-              Linki Kopyala
-            </button>
-          </div>
-        </div>
-      ) : null}
+              <div className="section-title">
+                <h2>{canManageProducts ? "Üyeliği Yenile" : "Üyeliği Aktif Et"}</h2>
+                <span>{subscriptionLabel}</span>
+              </div>
+              <p>
+                Üyelik ödemesi manuel banka havalesi ile alınır. Ödeme sonrası destek
+                hattından bilgi verdiğinizde abonelik admin panelinden manuel uzatılır.
+              </p>
+              {!canManageProducts ? (
+                <p className="alert panel-warning">
+                  Aboneliğiniz aktif değil. Ürün işlemleri kapalıdır; ödeme sonrası
+                  admin tarafından tekrar aktif edilir.
+                </p>
+              ) : null}
+              <button
+                className="submit-button panel-secondary-action renewal-toggle"
+                type="button"
+                onClick={() => setShowRenewalInfo((current) => !current)}
+              >
+                {showRenewalInfo ? "Banka Bilgilerini Gizle" : "Banka Bilgilerini Göster"}
+              </button>
+
+              {showRenewalInfo ? (
+                <div className="renewal-card">
+                  <div className="renewal-row">
+                    <strong>Banka adı:</strong>
+                    <span>Garanti Bankası</span>
+                  </div>
+                  <div className="renewal-copy-row renewal-copy-row-compact">
+                    <div>
+                      <strong>Alıcı adı:</strong>
+                      <span>{renewalRecipient}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyRenewalText("Alıcı adı", renewalRecipient)}
+                    >
+                      Kopyala
+                    </button>
+                  </div>
+                  <div className="renewal-copy-row renewal-copy-row-featured">
+                    <div>
+                      <strong>IBAN</strong>
+                      <span>{renewalIban}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyRenewalText("IBAN", renewalIban)}
+                    >
+                      Kopyala
+                    </button>
+                  </div>
+                  <div className="renewal-copy-row renewal-copy-row-featured">
+                    <div>
+                      <strong>Ödeme açıklaması</strong>
+                      <span>{renewalDescription}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyRenewalText("Ödeme açıklaması", renewalDescription)
+                      }
+                    >
+                      Kopyala
+                    </button>
+                  </div>
+                  <p className="renewal-note">
+                    Ödeme yaptıktan sonra WhatsApp destek hattından bilgi veriniz.
+                  </p>
+                  <a
+                    className="submit-button renewal-whatsapp"
+                    href={renewalSupportWhatsapp}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    WhatsApp Destek: 0536 585 71 47
+                  </a>
+                </div>
+              ) : null}
+            </section>
+            ) : null}
+
+            {activePanelSection === "profile" ? (
+            <section className="section panel-section">
+              <div className="section-title">
+                <h2>İşletme Bilgileri</h2>
+                <span>Profil ve adres</span>
+              </div>
+
+              <form className="customer-form panel-form" onSubmit={handleProfileSubmit}>
+                <div className="field">
+                  <label htmlFor="businessName">İşletme adı</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessName"
+                    value={profileForm.name}
+                    onChange={(event) =>
+                      updateProfileForm("name", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessDescription">Açıklama</label>
+                  <textarea
+                    disabled={isSavingProfile}
+                    id="businessDescription"
+                    value={profileForm.description}
+                    onChange={(event) =>
+                      updateProfileForm("description", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessWhatsapp">WhatsApp sipariş numarası</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessWhatsapp"
+                    inputMode="tel"
+                    value={profileForm.whatsappOrderNumber}
+                    onChange={(event) =>
+                      updateProfileForm("whatsappOrderNumber", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessCity">İl</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessCity"
+                    value={profileForm.city}
+                    onChange={(event) =>
+                      updateProfileForm("city", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessDistrict">İlçe</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessDistrict"
+                    value={profileForm.district}
+                    onChange={(event) =>
+                      updateProfileForm("district", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessNeighborhood">Mahalle</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessNeighborhood"
+                    value={profileForm.neighborhood}
+                    onChange={(event) =>
+                      updateProfileForm("neighborhood", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessAddress">Açık adres</label>
+                  <textarea
+                    disabled={isSavingProfile}
+                    id="businessAddress"
+                    value={profileForm.address}
+                    onChange={(event) =>
+                      updateProfileForm("address", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessRadius">Servis yarıçapı (km)</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessRadius"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.1"
+                    type="number"
+                    value={profileForm.serviceRadiusKm}
+                    onChange={(event) =>
+                      updateProfileForm("serviceRadiusKm", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="section-title panel-form-subtitle">
+                  <h3>Sipariş Bilgileri</h3>
+                  <span>Müşteri sayfasında kullanılacak ayarlar</span>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessDeliveryStatus">Teslimat / Gel-al Bilgisi</label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessDeliveryStatus"
+                    maxLength={120}
+                    placeholder="Örn: Paket servis ve gel-al mevcut"
+                    value={profileForm.deliveryStatus}
+                    onChange={(event) =>
+                      updateProfileForm("deliveryStatus", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessMinimumOrder">
+                    Minimum Sipariş Tutarı (TL)
+                  </label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessMinimumOrder"
+                    inputMode="decimal"
+                    min="0"
+                    placeholder="Örn: 150"
+                    step="0.01"
+                    type="number"
+                    value={profileForm.minimumOrderAmount}
+                    onChange={(event) =>
+                      updateProfileForm("minimumOrderAmount", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessPreparationTime">
+                    Tahmini Hazırlık Süresi (dakika)
+                  </label>
+                  <input
+                    disabled={isSavingProfile}
+                    id="businessPreparationTime"
+                    inputMode="numeric"
+                    max="720"
+                    min="1"
+                    placeholder="Örn: 20"
+                    step="1"
+                    type="number"
+                    value={profileForm.preparationTimeMinutes}
+                    onChange={(event) =>
+                      updateProfileForm("preparationTimeMinutes", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessIsOpen">Sipariş Durumu</label>
+                  <select
+                    disabled={isSavingProfile}
+                    id="businessIsOpen"
+                    value={profileForm.isOpen ? "open" : "closed"}
+                    onChange={(event) =>
+                      updateProfileForm("isOpen", event.target.value === "open")
+                    }
+                  >
+                    <option value="open">Açık</option>
+                    <option value="closed">Kapalı</option>
+                  </select>
+                  <span className="field-help">
+                    Bu ayar abonelik veya sistem aktifliğini değiştirmez.
+                  </span>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessOrderNote">Kısa Sipariş Notu</label>
+                  <textarea
+                    disabled={isSavingProfile}
+                    id="businessOrderNote"
+                    maxLength={300}
+                    placeholder="Örn: Yoğun saatlerde hazırlık süresi uzayabilir."
+                    value={profileForm.orderNote}
+                    onChange={(event) =>
+                      updateProfileForm("orderNote", event.target.value)
+                    }
+                  />
+                  <span className="field-help">
+                    {profileForm.orderNote.trim().length}/300 karakter
+                  </span>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessLogoUrl">Logo URL</label>
+                  {profileForm.logoUrl ? (
+                    <img
+                      alt="İşletme logosu"
+                      className="business-logo-preview"
+                      src={profileForm.logoUrl}
+                    />
+                  ) : null}
+                  <input
+                    disabled={isSavingBusinessProfile}
+                    id="businessLogoUrl"
+                    value={profileForm.logoUrl}
+                    onChange={(event) =>
+                      updateProfileForm("logoUrl", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessLogoFile">Logo görseli yükle</label>
+                  <input
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={isSavingBusinessProfile}
+                    id="businessLogoFile"
+                    ref={logoInputRef}
+                    type="file"
+                    onChange={(event) => {
+                      setError("");
+                      setMessage("");
+                      setSelectedLogoFile(event.target.files?.[0] ?? null);
+                    }}
+                  />
+                  {selectedLogoFile ? (
+                    <span className="field-help">{selectedLogoFile.name}</span>
+                  ) : (
+                    <span className="field-help">JPG, PNG veya WEBP logo seçin.</span>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessCoverUrl">Kapak g?rseli URL</label>
+                  {profileForm.coverImageUrl ? (
+                    <img
+                      alt="İşletme kapak görseli"
+                      className="business-cover-preview"
+                      src={profileForm.coverImageUrl}
+                    />
+                  ) : null}
+                  <input
+                    disabled={isSavingBusinessProfile}
+                    id="businessCoverUrl"
+                    value={profileForm.coverImageUrl}
+                    onChange={(event) =>
+                      updateProfileForm("coverImageUrl", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessCoverFile">Kapak görseli yükle</label>
+                  <input
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={isSavingBusinessProfile}
+                    id="businessCoverFile"
+                    ref={coverInputRef}
+                    type="file"
+                    onChange={(event) => {
+                      setError("");
+                      setMessage("");
+                      setSelectedCoverFile(event.target.files?.[0] ?? null);
+                    }}
+                  />
+                  {selectedCoverFile ? (
+                    <span className="field-help">{selectedCoverFile.name}</span>
+                  ) : (
+                    <span className="field-help">JPG, PNG veya WEBP kapak görseli seçin.</span>
+                  )}
+                </div>
+
+                {profileUploadStatus ? (
+                  <p className="alert success panel-upload-status">
+                    {profileUploadStatus}
+                  </p>
+                ) : null}
+
+                <button
+                  className="submit-button panel-primary-action"
+                  disabled={isSavingBusinessProfile}
+                  type="submit"
+                >
+                  {profileUploadStatus
+                    ? profileUploadStatus
+                    : isSavingProfile
+                    ? "Kaydediliyor..."
+                    : "İşletme Bilgilerini Kaydet"}
+                </button>
+              </form>
+            </section>
+            ) : null}
+
+            {(activePanelSection === "create" ||
+              activePanelSection === "products") ? (
+            <div className="layout panel-layout">
+            {(activePanelSection === "create" || editingProductId) ? (
+            <section className="section panel-section">
+              <div className="section-title">
+                <h2>Ürün Formu</h2>
+                <span>{editingProductId ? "Düzenleme" : "Yeni ürün"}</span>
+              </div>
+
+              {!canManageProducts ? (
+                <p className="alert panel-warning">
+                  Aboneli?iniz aktif de?il. ?r?n ekleme ve d?zenleme i?lemleri kapal?..
+                </p>
+              ) : null}
+
+              <form className="customer-form panel-form" onSubmit={handleSubmit}>
+                <div className="field">
+                  <label htmlFor="name">Ürün adı</label>
+                  <input
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="name"
+                    value={form.name}
+                    onChange={(event) => updateForm("name", event.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="price">Fiyat</label>
+                  <input
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="price"
+                    inputMode="decimal"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(event) => updateForm("price", event.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="category">Kategori</label>
+                  <input
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="category"
+                    value={form.category}
+                    onChange={(event) => updateForm("category", event.target.value)}
+                  />
+                  {categorySummaries.length > 0 ? (
+                    <div className="panel-category-picker" aria-label="Mevcut kategoriler">
+                      <span>Mevcut kategoriler</span>
+                      <div className="panel-category-chips">
+                        {categorySummaries.map((category) => (
+                          <button
+                            className="panel-category-chip"
+                            disabled={!canManageProducts || isSaving || isUploadingImage}
+                            key={category.name}
+                            type="button"
+                            onClick={() => chooseCategory(category.name)}
+                          >
+                            {category.name} ({category.count})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="field-help">
+                      Yeni kategori yazabilir veya ürün ekledikçe buradan hızlı seçim yapabilirsiniz.
+                    </span>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="description">Açıklama</label>
+                  <textarea
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="description"
+                    value={form.description}
+                    onChange={(event) =>
+                      updateForm("description", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="imageLabel">Görsel etiketi</label>
+                  <input
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="imageLabel"
+                    value={form.imageLabel}
+                    onChange={(event) =>
+                      updateForm("imageLabel", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="imageUrl">Görsel URL</label>
+                  <input
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="imageUrl"
+                    value={form.imageUrl}
+                    onChange={(event) => updateForm("imageUrl", event.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="imageFile">Ürün görseli yükle</label>
+                  <input
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="imageFile"
+                    ref={imageInputRef}
+                    type="file"
+                    onChange={(event) => {
+                      setError("");
+                      setMessage("");
+                      setSelectedImageFile(event.target.files?.[0] ?? null);
+                    }}
+                  />
+                  {selectedImageFile ? (
+                    <span className="field-help">{selectedImageFile.name}</span>
+                  ) : (
+                    <span className="field-help">JPG, PNG veya WEBP dosyası seçin.</span>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="sortOrder">Sıralama</label>
+                  <input
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    id="sortOrder"
+                    inputMode="numeric"
+                    type="number"
+                    value={form.sortOrder}
+                    onChange={(event) =>
+                      updateForm("sortOrder", event.target.value)
+                    }
+                  />
+                </div>
+
+                <label className="field">
+                  <span>Aktif ürün</span>
+                  <input
+                    checked={form.isActive}
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    type="checkbox"
+                    onChange={(event) =>
+                      updateForm("isActive", event.target.checked)
+                    }
+                  />
+                </label>
+
+                <button
+                  className="submit-button panel-primary-action"
+                  disabled={!canManageProducts || isSaving || isUploadingImage}
+                  type="submit"
+                >
+                  {isUploadingImage
+                    ? "Görsel yükleniyor..."
+                    : isSaving
+                    ? "Kaydediliyor..."
+                    : editingProductId
+                      ? "Ürünü Güncelle"
+                      : "Ürün Ekle"}
+                </button>
+
+                {editingProductId ? (
+                  <button
+                    className="submit-button panel-secondary-action"
+                    disabled={isSaving || isUploadingImage}
+                    type="button"
+                    onClick={resetForm}
+                  >
+                    Vazgec
+                  </button>
+                ) : null}
+              </form>
+            </section>
+            ) : null}
+
+            {activePanelSection === "products" ? (
+            <section className="section panel-section">
+              <div className="section-title">
+                <h2>Ürünler</h2>
+                <span>
+                  {filteredProducts.length} / {products.length} kayit
+                </span>
+              </div>
+
+              {categorySummaries.length > 0 ? (
+                <div className="panel-category-filter" aria-label="Kategori filtresi">
+                  <button
+                    className={`panel-category-chip ${
+                      selectedCategoryFilter === "Tüm ürünler" ? "selected" : ""
+                    }`}
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter("Tüm ürünler")}
+                  >
+                    Tüm ürünler ({products.length})
+                  </button>
+                  {categorySummaries.map((category) => (
+                    <button
+                      className={`panel-category-chip ${
+                        selectedCategoryFilter === category.name ? "selected" : ""
+                      }`}
+                      key={category.name}
+                      type="button"
+                      onClick={() => setSelectedCategoryFilter(category.name)}
+                    >
+                      {category.name} ({category.count})
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="cart panel-product-list">
+                {products.length === 0 ? (
+                  <p className="empty-cart">Henüz ürün yok.</p>
+                ) : filteredProducts.length === 0 ? (
+                  <p className="empty-cart">Bu kategoride ürün yok.</p>
+                ) : (
+                  filteredProducts.map((product, index) => {
+                    const isExpanded = expandedProductId === product.id;
+
+                    return (
+                      <article
+                        className={`cart-item panel-product-card panel-compact-card ${
+                          isExpanded ? "expanded" : ""
+                        }`}
+                        key={product.id}
+                      >
+                        <button
+                          aria-expanded={isExpanded}
+                          className="panel-compact-row"
+                          type="button"
+                          onClick={() => toggleProductDetails(product.id)}
+                        >
+                          {product.imageUrl ? (
+                            <img
+                              alt={product.name}
+                              className="panel-product-thumb panel-compact-thumb"
+                              src={product.imageUrl}
+                            />
+                          ) : (
+                            <span className="panel-compact-thumb panel-compact-thumb-empty">
+                              Görsel
+                            </span>
+                          )}
+                          <span className="panel-compact-main">
+                            <strong>{product.name}</strong>
+                            <span>{getProductCategory(product)}</span>
+                          </span>
+                          <span className="panel-compact-meta">
+                            <strong>{formatPrice(product.price)}</strong>
+                            <span
+                              className={`panel-product-status ${
+                                product.isActive ? "active" : "passive"
+                              }`}
+                            >
+                              {product.isActive ? "Aktif" : "Pasif"}
+                            </span>
+                          </span>
+                          <span className="panel-compact-toggle">
+                            {isExpanded ? "Kapat" : "Detay"}
+                          </span>
+                        </button>
+
+                        {isExpanded ? (
+                          <div className="panel-compact-detail">
+                            <p>{product.description || "Açıklama yok."}</p>
+                            <div className="info-grid">
+                              <p>
+                                <strong>Kategori</strong>
+                                <span className="panel-category-badge">
+                                  {getProductCategory(product)}
+                                </span>
+                              </p>
+                              <p>
+                                <strong>Durum</strong>
+                                <span>{product.isActive ? "Aktif" : "Pasif"}</span>
+                              </p>
+                              <p>
+                                <strong>Sıra</strong>
+                                <span>{index + 1}</span>
+                              </p>
+                            </div>
+                            <div className="admin-actions panel-product-actions">
+                              <button
+                                disabled={!canManageProducts || isSaving || index === 0}
+                                type="button"
+                                onClick={() => moveProduct(product, "up")}
+                              >
+                                Yukarı Taşı
+                              </button>
+                              <button
+                                disabled={
+                                  !canManageProducts ||
+                                  isSaving ||
+                                  index === filteredProducts.length - 1
+                                }
+                                type="button"
+                                onClick={() => moveProduct(product, "down")}
+                              >
+                                Aşağı Taşı
+                              </button>
+                              <button
+                                disabled={!canManageProducts || isSaving}
+                                type="button"
+                                onClick={() => startEdit(product)}
+                              >
+                                Düzenle
+                              </button>
+                              <button
+                                disabled={!canManageProducts || isSaving}
+                                type="button"
+                                onClick={() => toggleProduct(product)}
+                              >
+                                {product.isActive ? "Pasife Al" : "Aktif Et"}
+                              </button>
+                              <button
+                                className="danger-button"
+                                disabled={!canManageProducts || isSaving}
+                                type="button"
+                                onClick={() => removeProduct(product)}
+                              >
+                                Sil
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+            ) : null}
+            </div>
+            ) : null}
+          </>
+        )}
+      </div>
     </main>
   );
 }
