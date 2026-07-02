@@ -213,12 +213,23 @@ export async function fetchBusinessesForUser(
       headers: serviceHeaders(serviceRoleKey),
     },
   );
-  const body = await readJson(response);
-
   if (!response.ok) {
-    throw new Error("Isletme bilgisi alinamadi.");
+    const error = new Error("Isletme bilgisi alinamadi.");
+
+    if (response.status === 401 || response.status === 403) {
+      error.name = "BusinessLookupAuthError";
+    } else if (response.status === 404) {
+      error.name = "BusinessLookupNotFoundError";
+    } else if (response.status >= 500 && response.status <= 599) {
+      error.name = "BusinessLookupServerError";
+    } else {
+      error.name = "BusinessLookupHttpError";
+    }
+
+    throw error;
   }
 
+  const body = await readJson(response);
   return Array.isArray(body) ? (body as BusinessAccessRow[]) : [];
 }
 
