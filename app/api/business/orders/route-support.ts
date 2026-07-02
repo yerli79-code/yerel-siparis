@@ -13,8 +13,18 @@ import {
 } from "./_utils";
 
 export async function fetchBusinessOrdersForUser(request: Request) {
+  let stage:
+    | "config"
+    | "auth"
+    | "business_lookup"
+    | "business_cardinality"
+    | "orders"
+    | "order_items" = "config";
+
   try {
     const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+
+    stage = "auth";
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
@@ -38,14 +48,24 @@ export async function fetchBusinessOrdersForUser(request: Request) {
       return { response: jsonError("Siparis durumu gecersiz.", 400) };
     }
 
-    const business = getSingleUserBusiness(
-      await fetchBusinessesForUser(url, serviceRoleKey, user.id),
+    stage = "business_lookup";
+    const businesses = await fetchBusinessesForUser(
+      url,
+      serviceRoleKey,
+      user.id,
     );
+
+    stage = "business_cardinality";
+    const business = getSingleUserBusiness(businesses);
     const orderStatus = status ? (status as OrderStatus) : undefined;
+
+    stage = "orders";
     const orders = await fetchOrdersForBusiness(url, serviceRoleKey, business.id, {
       status: orderStatus,
       limit,
     });
+
+    stage = "order_items";
     const orderItems = await fetchOrderItemsForOrders(
       url,
       serviceRoleKey,
@@ -64,7 +84,11 @@ export async function fetchBusinessOrdersForUser(request: Request) {
         mapOrder(order, itemsByOrderId.get(order.id) ?? []),
       ),
     };
-  } catch {
+  } catch (error) {
+    console.error("business_orders_read_failed", {
+      stage,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     return { response: jsonError("Siparisler alinamadi.", 400) };
   }
 }
