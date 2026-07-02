@@ -128,8 +128,14 @@ export function getBearerToken(request: Request) {
 function serviceHeaders(serviceRoleKey: string, contentType = false) {
   return {
     apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
     ...(contentType ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
+function serviceRpcHeaders(serviceRoleKey: string) {
+  return {
+    ...serviceHeaders(serviceRoleKey, true),
+    Authorization: `Bearer ${serviceRoleKey}`,
   };
 }
 
@@ -253,7 +259,7 @@ export async function createOrderWithItemsRpc(
     `${url}/rest/v1/rpc/create_order_with_items`,
     {
     method: "POST",
-    headers: serviceHeaders(serviceRoleKey, true),
+    headers: serviceRpcHeaders(serviceRoleKey),
     body: JSON.stringify(payload),
     },
   );
