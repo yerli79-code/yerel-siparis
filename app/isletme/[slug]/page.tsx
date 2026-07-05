@@ -250,6 +250,8 @@ export default function BusinessPage({
   const [showCartOnMobile, setShowCartOnMobile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(allCategoriesFilter);
   const cartSectionRef = useRef<HTMLElement | null>(null);
+  const cartCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const cartTriggerRef = useRef<HTMLButtonElement | null>(null);
   const pendingOrderAttemptRef = useRef<PendingOrderAttempt | null>(null);
   const activeOrderRequestRef = useRef<PendingOrderAttempt | null>(null);
   const isRecordingOrderRef = useRef(false);
@@ -318,6 +320,55 @@ export default function BusinessPage({
     if (cart.length === 0) setShowCartOnMobile(false);
   }, [cart.length]);
 
+  useEffect(() => {
+    if (!showCartOnMobile) return;
+
+    const mobileViewport = window.matchMedia("(max-width: 759px)");
+    if (!mobileViewport.matches) {
+      setShowCartOnMobile(false);
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    cartCloseButtonRef.current?.focus();
+
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      if (!event.matches) setShowCartOnMobile(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeCartOnMobile();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusableElements = cartSectionRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href]',
+      );
+      if (!focusableElements?.length) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    mobileViewport.addEventListener("change", handleViewportChange);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      mobileViewport.removeEventListener("change", handleViewportChange);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showCartOnMobile]);
+
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [cart],
@@ -327,13 +378,14 @@ export default function BusinessPage({
     [cart],
   );
 
-  function scrollToCart() {
+  function openCartOnMobile() {
     setShowCartOnMobile(true);
+  }
+
+  function closeCartOnMobile() {
+    setShowCartOnMobile(false);
     window.setTimeout(() => {
-      cartSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      cartTriggerRef.current?.focus();
     }, 0);
   }
 
@@ -847,33 +899,35 @@ export default function BusinessPage({
   }
 
   return (
-    <main className="page">
-      <div className="shell">
-        <header className="hero business-hero" style={heroStyle}>
-          <div className="hero-content business-hero-content">
-            <div className="business-topline">
+    <main className="page public-order-page">
+      <div className="shell public-order-shell">
+        <header className="hero business-hero public-order-hero" style={heroStyle}>
+          <div className="hero-content business-hero-content public-order-hero-content">
+            <div className="business-topline public-order-topline">
               <Link className="eyebrow business-back-link" href="/">
                 ← İşletmeler
               </Link>
             </div>
 
-            <div className="business-identity">
+            <div className="business-identity public-order-identity">
               {displayBusiness.logoUrl ? (
                 <img
                   alt={currentBusiness.name}
-                  className="business-logo"
+                  className="business-logo public-order-logo"
                   src={displayBusiness.logoUrl}
                 />
               ) : (
-                <span className="business-logo-text">{getLogoText(currentBusiness)}</span>
+                <span className="business-logo-text public-order-logo">
+                  {getLogoText(currentBusiness)}
+                </span>
               )}
-              <div>
+              <div className="public-order-identity-copy">
                 <h1>{currentBusiness.name}</h1>
                 <p>{currentBusiness.description}</p>
               </div>
             </div>
 
-            <div className="business-meta">
+            <div className="business-meta public-order-location">
               {addressText ? <span>{addressText}</span> : null}
               {currentBusiness.address ? <span>{currentBusiness.address}</span> : null}
             </div>
@@ -881,12 +935,15 @@ export default function BusinessPage({
         </header>
 
         {orderInfoItems.length > 0 || orderNote ? (
-          <section className="business-order-info" aria-label="Sipariş bilgileri">
+          <section
+            className="business-order-info public-order-info"
+            aria-label="Sipariş bilgileri"
+          >
             {orderInfoItems.length > 0 ? (
-              <div className="business-order-badges">
+              <div className="business-order-badges public-order-badges">
                 {orderInfoItems.map((item) => (
                   <span
-                    className={`business-order-badge ${
+                    className={`business-order-badge public-order-badge ${
                       item === "Şu an kapalı" ? "closed" : ""
                     }`}
                     key={item}
@@ -897,7 +954,7 @@ export default function BusinessPage({
               </div>
             ) : null}
             {orderNote ? (
-              <p className="business-order-note">
+              <p className="business-order-note public-order-note">
                 <strong>Sipariş notu:</strong> {orderNote}
               </p>
             ) : null}
@@ -905,19 +962,19 @@ export default function BusinessPage({
         ) : null}
 
         {accessMessage ? (
-          <section className="section access-message">
+          <section className="section access-message public-order-access-message">
             <h2>Sipariş alınamıyor</h2>
             <p>{accessMessage}</p>
           </section>
         ) : (
-          <div className="layout">
-            <section className="section menu-section">
+          <div className="layout public-order-layout">
+            <section className="section menu-section public-order-menu">
               {!isOrderingOpen ? (
-                <p className="manual-order-warning">
+                <p className="manual-order-warning public-order-rule-warning">
                   Bu işletme şu an sipariş almıyor.
                 </p>
               ) : null}
-              <div className="menu-heading">
+              <div className="menu-heading public-order-menu-heading">
                 <div>
                   <span className="menu-kicker">Menü</span>
                   <h2>Ürünler</h2>
@@ -925,9 +982,12 @@ export default function BusinessPage({
                 <span>{categories.length} kategori</span>
               </div>
               {hasAnyProducts ? (
-                <div className="menu-category-tabs" aria-label="Kategori menüsü">
+                <div
+                  className="menu-category-tabs public-order-category-tabs"
+                  aria-label="Kategori menüsü"
+                >
                   <button
-                    className={`menu-category-tab ${
+                    className={`menu-category-tab public-order-category-tab ${
                       effectiveSelectedCategory === allCategoriesFilter ? "selected" : ""
                     }`}
                     type="button"
@@ -937,7 +997,7 @@ export default function BusinessPage({
                   </button>
                   {categories.map((category) => (
                     <button
-                      className={`menu-category-tab ${
+                      className={`menu-category-tab public-order-category-tab ${
                         effectiveSelectedCategory === category.name ? "selected" : ""
                       }`}
                       key={category.id}
@@ -950,35 +1010,40 @@ export default function BusinessPage({
                 </div>
               ) : null}
               {!hasAnyProducts ? (
-                <div className="menu-empty-state">
+                <div className="menu-empty-state public-order-empty-state">
                   <strong>Menü henüz hazır değil.</strong>
                   <p>Bu işletme ürünlerini eklediğinde burada görünecek.</p>
                 </div>
               ) : visibleCategories.length === 0 ? (
-                <div className="menu-empty-state">
+                <div className="menu-empty-state public-order-empty-state">
                   <strong>Bu kategoride ürün yok.</strong>
                   <p>Başka bir kategori seçerek menüye göz atabilirsiniz.</p>
                 </div>
               ) : null}
               {visibleCategories.map((category) => (
-                <div className="category" key={category.id}>
-                  <h3 className="category-title">{category.name}</h3>
-                  <div className="products">
+                <div className="category public-order-category" key={category.id}>
+                  <h3 className="category-title public-order-category-title">
+                    {category.name}
+                  </h3>
+                  <div className="products public-order-products">
                     {category.products.map((product) => (
-                      <article className="product-card menu-product-card" key={product.id}>
-                        <div className="product-card-body">
+                      <article
+                        className="product-card menu-product-card public-order-product"
+                        key={product.id}
+                      >
+                        <div className="product-card-body public-order-product-body">
                           {product.imageUrl ? (
                             <img
                               alt={product.name}
-                              className="product-card-image"
+                              className="product-card-image public-order-product-image"
                               src={product.imageUrl}
                             />
                           ) : (
-                            <span className="product-image-placeholder">
+                            <span className="product-image-placeholder public-order-product-image">
                               {product.imageLabel || category.name}
                             </span>
                           )}
-                          <div className="product-copy">
+                          <div className="product-copy public-order-product-copy">
                             <p className="product-name">{product.name}</p>
                             {product.description ? (
                               <p className="product-description">{product.description}</p>
@@ -987,12 +1052,12 @@ export default function BusinessPage({
                           </div>
                         </div>
                         <button
-                          className="add-button"
+                          className="add-button public-order-add-button"
                           disabled={!isOrderingOpen || isRecordingOrder}
                           type="button"
                           onClick={() => addToCart(product)}
                         >
-                          {isOrderingOpen ? "Sepete Ekle" : "Kapalı"}
+                          {isOrderingOpen ? "+ Ekle" : "Kapalı"}
                         </button>
                       </article>
                     ))}
@@ -1001,70 +1066,69 @@ export default function BusinessPage({
               ))}
             </section>
 
+            {cart.length > 0 && showCartOnMobile ? (
+              <button
+                aria-hidden="true"
+                className="public-order-cart-backdrop"
+                tabIndex={-1}
+                type="button"
+                onClick={closeCartOnMobile}
+              />
+            ) : null}
             <aside
-              className={`order-panel ${
+              aria-labelledby="public-order-cart-title"
+              aria-modal={showCartOnMobile ? true : undefined}
+              className={`order-panel public-order-cart-panel ${
+                showCartOnMobile ? "public-order-cart-panel-open" : ""
+              } ${
                 cart.length > 0 && showCartOnMobile ? "" : "mobile-cart-hidden"
               }`}
+              id="public-order-cart-panel"
               ref={cartSectionRef}
+              role={showCartOnMobile ? "dialog" : undefined}
             >
-              <div className="order-inner section order-card">
-                <div className="section-title">
-                  <h2>Sepetim</h2>
-                  <span>{cartItemCount} adet</span>
+              <div className="order-inner section order-card public-order-cart-sheet">
+                <div className="section-title public-order-cart-header">
+                  <div>
+                    <span className="public-order-cart-grip" aria-hidden="true" />
+                    <h2 id="public-order-cart-title">Sepetim</h2>
+                    <span>{cartItemCount} adet ürün</span>
+                  </div>
+                  <button
+                    aria-label="Sepeti kapat"
+                    className="public-order-cart-close"
+                    ref={cartCloseButtonRef}
+                    type="button"
+                    onClick={closeCartOnMobile}
+                  >
+                    ×
+                  </button>
                 </div>
-                <div className="cart">
-                  {cart.length === 0 ? (
-                    <p className="empty-cart">Sepetiniz boş.</p>
-                  ) : (
-                    cart.map((item) => (
-                      <div className="cart-item" key={item.id}>
-                        <div className="cart-line">
-                          <strong>{item.name}</strong>
-                          <span>{formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                        <div className="cart-actions">
-                          <div className="quantity">
-                            <button
-                              className="quantity-button"
-                              disabled={!isOrderingOpen || isRecordingOrder}
-                              type="button"
-                              onClick={() => decrease(item.id)}
-                            >
-                              -
-                            </button>
-                            <strong>{item.quantity}</strong>
-                            <button
-                              className="quantity-button"
-                              disabled={!isOrderingOpen || isRecordingOrder}
-                              type="button"
-                              onClick={() => increase(item.id)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="cart-total">
-                  <span>Genel Toplam</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-                <form className="customer-form" onSubmit={submitOrder}>
+
+                <form
+                  className="customer-form public-order-checkout-form"
+                  onSubmit={submitOrder}
+                >
                   {!isOrderingOpen ? (
-                    <p className="order-rule-warning">
+                    <p className="order-rule-warning public-order-rule-warning">
                       Bu işletme şu an sipariş almıyor.
                     </p>
                   ) : minimumOrderWarning ? (
-                    <p className="order-rule-warning">{minimumOrderWarning}</p>
+                    <p className="order-rule-warning public-order-rule-warning">
+                      {minimumOrderWarning}
+                    </p>
                   ) : null}
-                  <div className="field">
+
+                  <div className="field public-order-type-field">
                     <span className="order-type-label">Sipariş Türü</span>
-                    <div className="order-type-toggle" role="group" aria-label="Sipariş türü">
+                    <div
+                      className="order-type-toggle public-order-type-toggle"
+                      role="group"
+                      aria-label="Sipariş türü"
+                    >
                       <button
                         aria-pressed={orderType === "delivery"}
-                        className={`order-type-button ${
+                        className={`order-type-button public-order-type-button ${
                           orderType === "delivery" ? "selected" : ""
                         }`}
                         disabled={isRecordingOrder}
@@ -1079,7 +1143,7 @@ export default function BusinessPage({
                       </button>
                       <button
                         aria-pressed={orderType === "pickup"}
-                        className={`order-type-button ${
+                        className={`order-type-button public-order-type-button ${
                           orderType === "pickup" ? "selected" : ""
                         }`}
                         disabled={isRecordingOrder}
@@ -1094,26 +1158,94 @@ export default function BusinessPage({
                       </button>
                     </div>
                   </div>
-                  <div className="field">
-                    <label htmlFor="fullName">Ad Soyad *</label>
-                    <input disabled={isRecordingOrder} id="fullName" value={customer.fullName} onChange={(event) => updateCustomer("fullName", event.target.value)} />
+
+                  <div className="cart public-order-cart-items">
+                    {cart.length === 0 ? (
+                      <p className="empty-cart">Sepetiniz boş.</p>
+                    ) : (
+                      cart.map((item) => (
+                        <div className="cart-item public-order-cart-item" key={item.id}>
+                          <div className="cart-line public-order-cart-line">
+                            <strong>{item.name}</strong>
+                            <span>{formatPrice(item.price * item.quantity)}</span>
+                          </div>
+                          <div className="cart-actions">
+                            <div className="quantity public-order-quantity">
+                              <button
+                                aria-label={`${item.name} adedini azalt`}
+                                className="quantity-button public-order-quantity-button"
+                                disabled={!isOrderingOpen || isRecordingOrder}
+                                type="button"
+                                onClick={() => decrease(item.id)}
+                              >
+                                −
+                              </button>
+                              <strong aria-label={`${item.quantity} adet`}>
+                                {item.quantity}
+                              </strong>
+                              <button
+                                aria-label={`${item.name} adedini artır`}
+                                className="quantity-button public-order-quantity-button"
+                                disabled={!isOrderingOpen || isRecordingOrder}
+                                type="button"
+                                onClick={() => increase(item.id)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <div className="field">
+                  <div className="cart-total public-order-cart-total">
+                    <span>Genel Toplam</span>
+                    <strong>{formatPrice(total)}</strong>
+                  </div>
+
+                  <div className="public-order-form-heading">
+                    <span>Siparişi tamamla</span>
+                    <p>Bilgilerinizi girin, siparişinizi güvenle oluşturalım.</p>
+                  </div>
+                  <div className="field public-order-field">
+                    <label htmlFor="fullName">Ad Soyad *</label>
+                    <input
+                      autoComplete="name"
+                      disabled={isRecordingOrder}
+                      id="fullName"
+                      value={customer.fullName}
+                      onChange={(event) => updateCustomer("fullName", event.target.value)}
+                    />
+                  </div>
+                  <div className="field public-order-field">
                     <label htmlFor="phone">Telefon *</label>
-                    <input disabled={isRecordingOrder} id="phone" inputMode="tel" value={customer.phone} onChange={(event) => updateCustomer("phone", event.target.value)} />
+                    <input
+                      autoComplete="tel"
+                      disabled={isRecordingOrder}
+                      id="phone"
+                      inputMode="tel"
+                      value={customer.phone}
+                      onChange={(event) => updateCustomer("phone", event.target.value)}
+                    />
                   </div>
                   {orderType === "delivery" ? (
-                    <div className="field">
+                    <div className="field public-order-field">
                       <label htmlFor="address">Teslimat Adresi *</label>
-                      <textarea disabled={isRecordingOrder} id="address" value={customer.address} onChange={(event) => updateCustomer("address", event.target.value)} />
+                      <textarea
+                        autoComplete="street-address"
+                        disabled={isRecordingOrder}
+                        id="address"
+                        value={customer.address}
+                        onChange={(event) => updateCustomer("address", event.target.value)}
+                      />
                     </div>
                   ) : (
-                    <p className="pickup-address-hint">
+                    <p className="pickup-address-hint public-order-pickup-hint">
                       Gel-al siparişlerinde adres gerekmez.
                     </p>
                   )}
-                  <div className="customer-remember-panel">
-                    <label className="customer-remember-option">
+                  <div className="customer-remember-panel public-order-remember-panel">
+                    <label className="customer-remember-option public-order-remember-option">
                       <input
                         checked={rememberCustomerDetails}
                         className="customer-remember-checkbox"
@@ -1137,20 +1269,29 @@ export default function BusinessPage({
                       </button>
                     ) : null}
                   </div>
-                  <p className="order-data-note">
+                  <p className="order-data-note public-order-data-note">
                     Siparişinizi hazırlamak ve takip etmek için adınız, telefonunuz,
                     teslimat adresiniz ve sipariş notunuz işletmenin sipariş panelinde
                     siparişin oluşturulmasından 180 gün sonra periyodik olarak silinir.
                     Gel-al siparişlerinde adres kaydedilmez.
                   </p>
-                  <div className="field">
+                  <div className="field public-order-field">
                     <label htmlFor="note">Sipariş Notu</label>
-                    <textarea disabled={isRecordingOrder} id="note" value={customer.note} onChange={(event) => updateCustomer("note", event.target.value)} />
+                    <textarea
+                      disabled={isRecordingOrder}
+                      id="note"
+                      value={customer.note}
+                      onChange={(event) => updateCustomer("note", event.target.value)}
+                    />
                   </div>
-                  {warning ? <p className="alert">{warning}</p> : null}
+                  {warning ? (
+                    <p className="alert public-order-alert" role="alert">
+                      {warning}
+                    </p>
+                  ) : null}
                   {orderRecordWarning ? (
                     <div
-                      className={`order-record-fallback${
+                      className={`order-record-fallback public-order-recovery${
                         orderRecoveryMode === "uncertain"
                           ? " order-record-uncertain"
                           : ""
@@ -1159,7 +1300,7 @@ export default function BusinessPage({
                       <p>{orderRecordWarning}</p>
                       {orderRecoveryMode === "uncertain" ? (
                         <button
-                          className="submit-button order-retry-button"
+                          className="submit-button order-retry-button public-order-retry-button"
                           disabled={isRecordingOrder}
                           type="button"
                           onClick={retryPendingOrder}
@@ -1172,7 +1313,7 @@ export default function BusinessPage({
                       {orderRecoveryMode !== "conflict" &&
                       fallbackWhatsAppMessage ? (
                         <button
-                          className="submit-button secondary-whatsapp-button"
+                          className="submit-button secondary-whatsapp-button public-order-secondary-button"
                           disabled={isRecordingOrder}
                           type="button"
                           onClick={() => {
@@ -1190,7 +1331,7 @@ export default function BusinessPage({
                     </div>
                   ) : null}
                   <button
-                    className="submit-button"
+                    className="submit-button public-order-submit-button"
                     disabled={isOrderSubmitDisabled}
                     type="submit"
                   >
@@ -1203,15 +1344,18 @@ export default function BusinessPage({
             </aside>
             {cart.length > 0 && !showCartOnMobile && isOrderingOpen ? (
               <button
-                className="mobile-cart-shortcut"
+                aria-controls="public-order-cart-panel"
+                aria-expanded={showCartOnMobile}
+                className="mobile-cart-shortcut public-order-cart-bar"
+                ref={cartTriggerRef}
                 type="button"
-                onClick={scrollToCart}
+                onClick={openCartOnMobile}
               >
                 <span>
                   <strong>Sepette {cartItemCount} ürün</strong>
                   <small>Toplam: {formatPrice(total)}</small>
                 </span>
-                <b>Sepete Git</b>
+                <b>Sepeti Gör</b>
               </button>
             ) : null}
           </div>
