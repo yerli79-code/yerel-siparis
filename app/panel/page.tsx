@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import QRCode from "qrcode";
 import {
   clearBrowserAuthSession,
   getValidAccessToken,
@@ -146,6 +147,16 @@ function formatDateTime(value: string) {
   });
 }
 
+function safeQrFileSlug(slug: string) {
+  return (
+    slug
+      .trim()
+      .toLocaleLowerCase("tr-TR")
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "isletme"
+  );
+}
+
 function getProductCategory(product: BusinessProduct) {
   return product.category?.trim() || "Genel";
 }
@@ -288,6 +299,9 @@ export default function PanelPage() {
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [showRenewalInfo, setShowRenewalInfo] = useState(false);
+  const [customerOrderUrl, setCustomerOrderUrl] = useState("");
+  const [qrError, setQrError] = useState("");
+  const [isQrReady, setIsQrReady] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
@@ -296,6 +310,7 @@ export default function PanelPage() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   function endBusinessSession() {
     clearBrowserAuthSession(sessionKey);
@@ -384,6 +399,57 @@ export default function PanelPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!business?.slug) {
+      setCustomerOrderUrl("");
+      setQrError("");
+      setIsQrReady(false);
+      return;
+    }
+
+    const nextCustomerOrderUrl = `${window.location.origin}/isletme/${encodeURIComponent(
+      business.slug,
+    )}`;
+    setCustomerOrderUrl(nextCustomerOrderUrl);
+
+    if (isLoading || activePanelSection !== "overview") {
+      setIsQrReady(false);
+      return;
+    }
+
+    const canvas = qrCanvasRef.current;
+    if (!canvas) {
+      setIsQrReady(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setQrError("");
+    setIsQrReady(false);
+
+    void QRCode.toCanvas(canvas, nextCustomerOrderUrl, {
+      width: 280,
+      margin: 4,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#14231a",
+        light: "#ffffff",
+      },
+    })
+      .then(() => {
+        if (!isCancelled) setIsQrReady(true);
+      })
+      .catch(() => {
+        if (isCancelled) return;
+        setIsQrReady(false);
+        setQrError("QR kod hazırlanamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activePanelSection, business?.slug, isLoading]);
+
   async function refreshProducts() {
     if (!business) return;
     const token = await getFreshAccessToken();
@@ -467,6 +533,38 @@ export default function PanelPage() {
     } catch {
       setError(`${label} kopyalanamadı. Manuel olarak seçip kopyalayabilirsiniz.`);
     }
+  }
+
+  async function copyCustomerOrderLink() {
+    if (!customerOrderUrl) return;
+    try {
+      await navigator.clipboard.writeText(customerOrderUrl);
+      setError("");
+      setMessage("Sipariş bağlantısı kopyalandı.");
+    } catch {
+      setMessage("");
+      setError("Sipariş bağlantısı kopyalanamadı. Manuel olarak seçebilirsiniz.");
+    }
+  }
+
+  function downloadCustomerQrCode() {
+    if (!business?.slug || !qrCanvasRef.current || !isQrReady) return;
+    try {
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `siparis-qr-${safeQrFileSlug(business.slug)}.png`;
+      downloadLink.href = qrCanvasRef.current.toDataURL("image/png");
+      downloadLink.click();
+      setError("");
+      setMessage("QR kod PNG olarak indirildi.");
+    } catch {
+      setMessage("");
+      setError("QR kod indirilemedi. Lütfen tekrar deneyin.");
+    }
+  }
+
+  function printCustomerQrCode() {
+    if (!isQrReady) return;
+    window.print();
   }
 
   function resetForm() {
@@ -816,7 +914,7 @@ export default function PanelPage() {
   }
 
   return (
-    <main className="page">
+    <main className="page panel-qr-print-root">
       <div className="shell">
         <header className="hero panel-hero">
           <div className="hero-content panel-hero-content">
@@ -934,6 +1032,93 @@ export default function PanelPage() {
                     <span>Kategori</span>
                   </div>
                 </div>
+
+                <section
+                  className="panel-qr-card panel-qr-print-target"
+                  aria-labelledby="panel-qr-title"
+                >
+                  <div className="panel-qr-copy">
+                    <span className="panel-qr-kicker">Müşteri sipariş sayfası</span>
+                    <h3 id="panel-qr-title">Müşteri QR Kodu</h3>
+                    <p>
+                      Müşteriler bu kodu okutarak doğrudan sipariş sayfanıza ulaşır.
+                    </p>
+                    <strong className="panel-qr-print-business-name">
+                      {business.name}
+                    </strong>
+                    <p className="panel-qr-print-instruction">
+                      Sipariş için QR kodu okutun
+                    </p>
+                  </div>
+
+                  {business.slug ? (
+                    <>
+                      <div className="panel-qr-canvas-wrap">
+                        <canvas
+                          aria-label="Müşteri sipariş sayfası QR kodu"
+                          className={`panel-qr-canvas ${
+                            isQrReady ? "panel-qr-canvas-ready" : ""
+                          }`}
+                          ref={qrCanvasRef}
+                          role="img"
+                        />
+                        {!isQrReady && !qrError ? (
+                          <p className="panel-qr-status" aria-live="polite">
+                            QR kod hazırlanıyor...
+                          </p>
+                        ) : null}
+                      </div>
+
+                      {qrError ? (
+                        <p className="panel-qr-error" role="alert">
+                          {qrError}
+                        </p>
+                      ) : null}
+
+                      {customerOrderUrl ? (
+                        <a
+                          className="panel-qr-link"
+                          href={customerOrderUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {customerOrderUrl}
+                        </a>
+                      ) : (
+                        <p className="panel-qr-status">Sipariş bağlantısı hazırlanıyor...</p>
+                      )}
+
+                      <div className="panel-qr-actions panel-qr-screen-only">
+                        <button
+                          disabled={!customerOrderUrl}
+                          type="button"
+                          onClick={copyCustomerOrderLink}
+                        >
+                          Bağlantıyı Kopyala
+                        </button>
+                        <button
+                          disabled={!isQrReady}
+                          type="button"
+                          onClick={downloadCustomerQrCode}
+                        >
+                          PNG İndir
+                        </button>
+                        <button
+                          disabled={!isQrReady}
+                          type="button"
+                          onClick={printCustomerQrCode}
+                        >
+                          Yazdır
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="panel-qr-error">
+                      QR kod için işletme bağlantısı bulunamadı.
+                    </p>
+                  )}
+                </section>
+
                 <div className="panel-overview-actions">
                   <button type="button" onClick={() => switchPanelSection("products")}>
                     Ürünleri Yönet
