@@ -1808,6 +1808,22 @@ h1 {
   font-size: 15px;
 }
 
+.admin-control-help {
+  margin: -4px 0 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-critical-control-group {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.admin-critical-control-group h3 {
+  color: #991b1b;
+}
+
 .admin-extension-actions,
 .admin-business-actions {
   display: grid;
@@ -1830,8 +1846,92 @@ h1 {
   color: #991b1b;
 }
 
+.admin-routine-actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .admin-extension-actions button:disabled,
 .admin-business-actions button:disabled {
+  opacity: 0.55;
+}
+
+.admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgb(15 23 42 / 0.42);
+}
+
+.admin-confirm-dialog {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d8e8dd;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgb(15 23 42 / 0.22);
+  padding: 20px;
+}
+
+.admin-confirm-dialog.critical {
+  border-color: #fecaca;
+}
+
+.admin-confirm-dialog h2,
+.admin-confirm-dialog p {
+  margin: 0;
+}
+
+.admin-confirm-dialog h2 {
+  color: #14532d;
+  font-size: 24px;
+}
+
+.admin-confirm-dialog.critical h2 {
+  color: #991b1b;
+}
+
+.admin-confirm-dialog p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.admin-confirm-dialog strong {
+  color: var(--text);
+}
+
+.admin-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.admin-confirm-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.admin-confirm-actions button:first-child {
+  background: var(--green);
+  color: #fff;
+}
+
+.admin-confirm-dialog.critical .admin-confirm-actions button:first-child {
+  background: #991b1b;
+}
+
+.admin-confirm-actions button:last-child {
+  background: #eef8f0;
+  color: #14532d;
+}
+
+.admin-confirm-actions button:disabled {
   opacity: 0.55;
 }
 
@@ -2166,6 +2266,14 @@ h1 {
 
   .admin-business-actions {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .admin-routine-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-critical-control-group .admin-business-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .admin-create-form,

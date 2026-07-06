@@ -111,6 +111,13 @@ type AdminSubscriptionFilter =
   | "ending7"
   | "ending30";
 type AdminSection = "overview" | "businesses" | "create" | "subscriptions";
+type AdminConfirmAction = {
+  businessName: string;
+  actionName: string;
+  description: string;
+  isCritical?: boolean;
+  onConfirm: () => void | Promise<void>;
+};
 
 function dateInputValue(value: string | null | undefined) {
   if (!value) return "";
@@ -275,6 +282,10 @@ export default function AdminPage() {
   const [activeAdminSection, setActiveAdminSection] =
     useState<AdminSection>("overview");
   const [expandedBusinessId, setExpandedBusinessId] = useState("");
+  const [confirmAction, setConfirmAction] = useState<AdminConfirmAction | null>(
+    null,
+  );
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const activeBusinessCount = businesses.filter(
     (business) => hasActiveSubscription(business),
   ).length;
@@ -551,6 +562,24 @@ export default function AdminPage() {
     setExpandedBusinessId("");
     setMessage("");
     setErrorDetail("");
+  }
+
+  function requestAdminActionConfirmation(action: AdminConfirmAction) {
+    setMessage("");
+    setErrorDetail("");
+    setConfirmAction(action);
+  }
+
+  async function confirmPendingAdminAction() {
+    if (!confirmAction || isConfirmingAction) return;
+
+    setIsConfirmingAction(true);
+    try {
+      await confirmAction.onConfirm();
+      setConfirmAction(null);
+    } finally {
+      setIsConfirmingAction(false);
+    }
   }
 
   async function refreshBusinessesFromSupabase() {
@@ -891,10 +920,6 @@ export default function AdminPage() {
   }
 
   function resetSubscription(business: Business) {
-    if (!window.confirm(`${business.name} aboneliğini sıfırlamak istiyor musunuz?`)) {
-      return;
-    }
-
     commit(
       {
         ...business,
@@ -908,7 +933,6 @@ export default function AdminPage() {
   }
 
   function setPassive(business: Business) {
-    if (!window.confirm(`${business.name} pasife alınsın mı?`)) return;
     commit(
       { ...business, subscriptionStatus: "expired", isActive: false },
       `${business.name} pasife alındı.`,
@@ -923,7 +947,6 @@ export default function AdminPage() {
   }
 
   function blockBusiness(business: Business) {
-    if (!window.confirm(`${business.name} engellensin mi?`)) return;
     commit(
       { ...business, subscriptionStatus: "blocked", isActive: false },
       `${business.name} engellendi.`,
@@ -931,14 +954,6 @@ export default function AdminPage() {
   }
 
   async function deleteBusiness(business: Business) {
-    if (
-      !window.confirm(
-        "Bu işletme ve ürünleri kalıcı olarak silinecek. Emin misiniz?",
-      )
-    ) {
-      return;
-    }
-
     const currentAdminAccessToken = await getFreshAdminAccessToken();
     if (!currentAdminAccessToken) {
       setMessage(adminSessionExpiredMessage);
@@ -1097,6 +1112,44 @@ export default function AdminPage() {
 
         {message ? <p className="alert success">{message}</p> : null}
         {errorDetail ? <pre className="error-detail">{errorDetail}</pre> : null}
+        {confirmAction ? (
+          <div className="admin-confirm-backdrop" role="presentation">
+            <div
+              aria-labelledby="admin-confirm-title"
+              aria-modal="true"
+              className={`admin-confirm-dialog ${
+                confirmAction.isCritical ? "critical" : ""
+              }`}
+              role="dialog"
+            >
+              <span className="eyebrow">
+                {confirmAction.isCritical ? "Kritik işlem" : "İşlem onayı"}
+              </span>
+              <h2 id="admin-confirm-title">{confirmAction.actionName}</h2>
+              <p>
+                <strong>{confirmAction.businessName}</strong> işletmesi için bu
+                işlem uygulanacak.
+              </p>
+              <p>{confirmAction.description}</p>
+              <div className="admin-confirm-actions">
+                <button
+                  disabled={isConfirmingAction || Boolean(savingSlug)}
+                  type="button"
+                  onClick={confirmPendingAdminAction}
+                >
+                  {isConfirmingAction || savingSlug ? "İşlem sürüyor..." : "Onayla"}
+                </button>
+                <button
+                  disabled={isConfirmingAction || Boolean(savingSlug)}
+                  type="button"
+                  onClick={() => setConfirmAction(null)}
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <nav className="admin-section-tabs" aria-label="Admin bölümleri">
           <button
@@ -1727,14 +1780,24 @@ export default function AdminPage() {
 
                 {activeAdminSection === "subscriptions" ? (
                 <div className="admin-control-group">
-                  <h3>Abonelik süresi</h3>
+                  <h3>Rutin abonelik işlemleri</h3>
+                  <p className="admin-control-help">
+                    Süre uzatma, manuel tarih ve aktif etme işlemleri.
+                  </p>
                   <div className="admin-extension-actions">
                     {extensionDays.map((days) => (
                       <button
                         disabled={isSaving}
                         key={days}
                         type="button"
-                        onClick={() => extendSubscription(business, days)}
+                        onClick={() =>
+                          requestAdminActionConfirmation({
+                            businessName: business.name,
+                            actionName: `+${days} gün abonelik`,
+                            description: `Abonelik bugünden itibaren ${days} gün aktif olacak ve işletme sipariş almaya açık kalacak.`,
+                            onConfirm: () => extendSubscription(business, days),
+                          })
+                        }
                       >
                         +{days} Gün
                       </button>
@@ -1757,34 +1820,113 @@ export default function AdminPage() {
                       <button
                         disabled={isSaving}
                         type="button"
-                        onClick={() => saveManualDate(business)}
+                        onClick={() => {
+                          if (!manualDates[business.slug]) {
+                            saveManualDate(business);
+                            return;
+                          }
+                          requestAdminActionConfirmation({
+                            businessName: business.name,
+                            actionName: "Aboneliği düzelt",
+                            description:
+                              "Seçilen tarih abonelik bitiş tarihi olarak kaydedilecek ve işletme aktif duruma alınacak.",
+                            onConfirm: () => saveManualDate(business),
+                          });
+                        }}
                       >
                         Kaydet
                       </button>
                     </div>
                   </div>
+                  <div className="admin-actions admin-business-actions admin-routine-actions">
+                    <button
+                      disabled={isSaving}
+                      type="button"
+                      onClick={() =>
+                        requestAdminActionConfirmation({
+                          businessName: business.name,
+                          actionName: "Aktif et",
+                          description:
+                            "İşletme aktif abonelik durumuna alınacak ve erişimi açılacak.",
+                          onConfirm: () => setActive(business),
+                        })
+                      }
+                    >
+                      Aktif Et
+                    </button>
+                  </div>
                 </div>
                 ) : null}
 
-                <div className="admin-control-group">
+                <div
+                  className={`admin-control-group ${
+                    activeAdminSection === "subscriptions"
+                      ? "admin-critical-control-group"
+                      : ""
+                  }`}
+                >
                   <h3>
                     {activeAdminSection === "subscriptions"
-                      ? "Erişim işlemleri"
+                      ? "Kritik işlemler"
                       : "İşletme işlemleri"}
                   </h3>
+                  {activeAdminSection === "subscriptions" ? (
+                    <p className="admin-control-help">
+                      Bu işlemler işletmenin erişimini veya abonelik kaydını
+                      doğrudan etkiler.
+                    </p>
+                  ) : null}
                   <div className="admin-actions admin-business-actions">
                     {activeAdminSection === "subscriptions" ? (
                       <>
-                        <button disabled={isSaving} type="button" onClick={() => setActive(business)}>
-                          Aktif Et
-                        </button>
-                        <button disabled={isSaving} type="button" onClick={() => setPassive(business)}>
+                        <button
+                          disabled={isSaving}
+                          type="button"
+                          onClick={() =>
+                            requestAdminActionConfirmation({
+                              businessName: business.name,
+                              actionName: "Pasife al",
+                              description:
+                                "İşletme pasif duruma alınacak ve aktif abonelik erişimi kapanacak.",
+                              isCritical: true,
+                              onConfirm: () => setPassive(business),
+                            })
+                          }
+                        >
                           Pasife Al
                         </button>
-                        <button disabled={isSaving} className="danger-button" type="button" onClick={() => blockBusiness(business)}>
+                        <button
+                          disabled={isSaving}
+                          className="danger-button"
+                          type="button"
+                          onClick={() =>
+                            requestAdminActionConfirmation({
+                              businessName: business.name,
+                              actionName: "Engelle",
+                              description:
+                                "İşletme engellenecek ve erişimi kapatılacak.",
+                              isCritical: true,
+                              onConfirm: () => blockBusiness(business),
+                            })
+                          }
+                        >
                           Engelle
                         </button>
-                        <button disabled={isSaving} className="danger-button" type="button" onClick={() => resetSubscription(business)}>
+                        <button
+                          disabled={isSaving}
+                          className="danger-button"
+                          type="button"
+                          onClick={() =>
+                            requestAdminActionConfirmation({
+                              businessName: business.name,
+                              actionName: "Aboneliği sıfırla",
+                              description:
+                                "Abonelik tarihi temizlenecek, durum süresi dolmuş olarak kaydedilecek ve işletme pasife alınacak.",
+                              isCritical: true,
+                              onConfirm: () => resetSubscription(business),
+                            })
+                          }
+                        >
                           Aboneliği Sıfırla
                         </button>
                       </>
@@ -1793,7 +1935,21 @@ export default function AdminPage() {
                         <button disabled={isSaving} type="button" onClick={() => startEditingBusiness(business)}>
                           Düzenle
                         </button>
-                        <button disabled={isSaving} className="danger-button" type="button" onClick={() => deleteBusiness(business)}>
+                        <button
+                          disabled={isSaving}
+                          className="danger-button"
+                          type="button"
+                          onClick={() =>
+                            requestAdminActionConfirmation({
+                              businessName: business.name,
+                              actionName: "Kalıcı sil",
+                              description:
+                                "Bu işlem işletme ve ürün kayıtlarını geri alınamaz şekilde kaldıracak.",
+                              isCritical: true,
+                              onConfirm: () => deleteBusiness(business),
+                            })
+                          }
+                        >
                           Kalıcı Sil
                         </button>
                       </>
