@@ -281,6 +281,7 @@ export default function PanelPage() {
   const [business, setBusiness] = useState<BusinessPanelBusiness | null>(null);
   const [products, setProducts] = useState<BusinessProduct[]>([]);
   const [orders, setOrders] = useState<BusinessOrder[]>([]);
+  const [overviewOrders, setOverviewOrders] = useState<BusinessOrder[]>([]);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
   const [editingProductId, setEditingProductId] = useState("");
@@ -293,10 +294,13 @@ export default function PanelPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileUploadStatus, setProfileUploadStatus] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("Tüm ürünler");
+  const [productSearch, setProductSearch] = useState("");
   const [selectedOrderStatusFilter, setSelectedOrderStatusFilter] =
     useState<OrderStatus | "all">("all");
   const [expandedOrderId, setExpandedOrderId] = useState("");
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [isLoadingOverviewOrders, setIsLoadingOverviewOrders] = useState(false);
+  const [overviewOrdersError, setOverviewOrdersError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [showRenewalInfo, setShowRenewalInfo] = useState(false);
   const [customerOrderUrl, setCustomerOrderUrl] = useState("");
@@ -354,13 +358,28 @@ export default function PanelPage() {
       );
   }, [sortedProducts]);
   const filteredProducts = useMemo(() => {
-    if (selectedCategoryFilter === "Tüm ürünler") return sortedProducts;
-    return sortedProducts.filter(
-      (product) => getProductCategory(product) === selectedCategoryFilter,
-    );
-  }, [sortedProducts, selectedCategoryFilter]);
+    const normalizedSearch = productSearch.trim().toLocaleLowerCase("tr-TR");
+
+    return sortedProducts.filter((product) => {
+      const matchesCategory =
+        selectedCategoryFilter === "Tüm ürünler" ||
+        getProductCategory(product) === selectedCategoryFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        product.name.toLocaleLowerCase("tr-TR").includes(normalizedSearch);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [productSearch, sortedProducts, selectedCategoryFilter]);
   const activeProductCount = products.filter((product) => product.isActive).length;
   const passiveProductCount = products.length - activeProductCount;
+  const isProductOrderingFiltered =
+    Boolean(productSearch.trim()) || selectedCategoryFilter !== "Tüm ürünler";
+  const newOrderCount = overviewOrders.filter((order) => order.status === "new").length;
+  const activeOrderCount = overviewOrders.filter(
+    (order) => order.status === "preparing" || order.status === "ready",
+  ).length;
+  const recentOrders = overviewOrders.slice(0, 3);
 
   useEffect(() => {
     let isCancelled = false;
@@ -450,6 +469,36 @@ export default function PanelPage() {
     };
   }, [activePanelSection, business?.slug, isLoading]);
 
+  useEffect(() => {
+    if (isLoading || !business) return;
+
+    let isCancelled = false;
+
+    async function loadOverviewOrders() {
+      const token = await getFreshAccessToken();
+      if (!token || isCancelled) return;
+
+      setIsLoadingOverviewOrders(true);
+      setOverviewOrdersError("");
+      try {
+        const freshOrders = await fetchBusinessOrders(token);
+        if (!isCancelled) setOverviewOrders(freshOrders);
+      } catch {
+        if (!isCancelled) {
+          setOverviewOrdersError("Sipariş özeti şu anda alınamıyor.");
+        }
+      } finally {
+        if (!isCancelled) setIsLoadingOverviewOrders(false);
+      }
+    }
+
+    void loadOverviewOrders();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [business?.id, isLoading]);
+
   async function refreshProducts() {
     if (!business) return;
     const token = await getFreshAccessToken();
@@ -469,6 +518,10 @@ export default function PanelPage() {
         statusFilter === "all" ? undefined : statusFilter,
       );
       setOrders(freshOrders);
+      if (statusFilter === "all") {
+        setOverviewOrders(freshOrders);
+        setOverviewOrdersError("");
+      }
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -488,7 +541,10 @@ export default function PanelPage() {
     setError("");
     setMessage("");
     try {
-      await updateBusinessOrderStatus(orderId, status, token);
+      const updatedOrder = await updateBusinessOrderStatus(orderId, status, token);
+      setOverviewOrders((current) =>
+        current.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
+      );
       setMessage("Sipariş durumu güncellendi.");
       await refreshOrders();
     } catch (caughtError) {
@@ -594,6 +650,16 @@ export default function PanelPage() {
     if (section === "orders") {
       void refreshOrders();
     }
+  }
+
+  function openOrdersFromOverview(orderId = "") {
+    clearProductEditingState();
+    setSelectedOrderStatusFilter("all");
+    setExpandedOrderId(orderId);
+    setActivePanelSection("orders");
+    setError("");
+    setMessage("");
+    void refreshOrders("all");
   }
 
   function validateForm() {
@@ -914,39 +980,35 @@ export default function PanelPage() {
   }
 
   return (
-    <main className="page panel-qr-print-root">
-      <div className="shell">
-        <header className="hero panel-hero">
-          <div className="hero-content panel-hero-content">
-            <div className="panel-hero-top">
-              <span className="eyebrow">İşletme Paneli</span>
-              <button className="panel-logout-button" type="button" onClick={logout}>
-                Çıkış Yap
-              </button>
-            </div>
-            <div className="panel-heading">
-              <div>
-                <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
-                <p>Ürünlerinizi, işletme bilgilerinizi ve sipariş sayfanızı buradan yönetin.</p>
-              </div>
-              {business ? (
-                <span
-                  className={`panel-subscription-badge ${
-                    canManageProducts ? "active" : "inactive"
-                  }`}
-                >
-                  {subscriptionLabel}
-                </span>
-              ) : null}
-            </div>
-            {business ? (
-              <div className="panel-summary">
-                <span>{business.email || "E-posta eklenmedi"}</span>
-                <span>{business.whatsappOrderNumber || "WhatsApp numarasi yok"}</span>
-                <span>{business.district || "İlçe yok"} / {business.neighborhood || "Mahalle yok"}</span>
-              </div>
-            ) : null}
+    <main className="page panel-qr-print-root business-panel-page">
+      <div className="shell business-panel-shell">
+        <header className="business-panel-header">
+          <div className="business-panel-header-copy">
+            <span className="business-panel-eyebrow">İşletme Paneli</span>
+            <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
+            <p>Günlük siparişlerinizi ve işletmenizi tek ekrandan yönetin.</p>
           </div>
+          {business ? (
+            <div className="business-panel-header-status">
+              <span
+                className={`business-panel-status-chip ${
+                  business.isOpen ? "open" : "closed"
+                }`}
+              >
+                {business.isOpen ? "Siparişe açık" : "Siparişe kapalı"}
+              </span>
+              <span
+                className={`business-panel-status-chip ${
+                  canManageProducts ? "active" : "inactive"
+                }`}
+              >
+                {subscriptionLabel}
+              </span>
+            </div>
+          ) : null}
+          <button className="business-panel-logout" type="button" onClick={logout}>
+            Çıkış Yap
+          </button>
         </header>
 
         {error ? <p className="alert">{error}</p> : null}
@@ -958,21 +1020,16 @@ export default function PanelPage() {
             <p>Bu kullanıcıya bağlı bir işletme kaydı bulunamadı.</p>
           </section>
         ) : (
-          <>
-            <nav className="panel-section-tabs" aria-label="Panel bolumleri">
+          <div className="business-panel-workspace">
+            <aside className="business-panel-sidebar">
+            <nav className="business-panel-nav" aria-label="Panel bölümleri">
               <button
                 className={activePanelSection === "overview" ? "active" : ""}
                 type="button"
                 onClick={() => switchPanelSection("overview")}
               >
-                Genel Bakış
-              </button>
-              <button
-                className={activePanelSection === "products" ? "active" : ""}
-                type="button"
-                onClick={() => switchPanelSection("products")}
-              >
-                Ürünler
+                <span className="business-panel-nav-short">Genel</span>
+                <span className="business-panel-nav-long">Genel Bakış</span>
               </button>
               <button
                 className={activePanelSection === "orders" ? "active" : ""}
@@ -980,191 +1037,283 @@ export default function PanelPage() {
                 onClick={() => switchPanelSection("orders")}
               >
                 Siparişler
+                {newOrderCount > 0 ? (
+                  <span className="business-panel-nav-badge">{newOrderCount}</span>
+                ) : null}
               </button>
               <button
-                className={activePanelSection === "create" ? "active" : ""}
+                className={
+                  activePanelSection === "products" || activePanelSection === "create"
+                    ? "active"
+                    : ""
+                }
                 type="button"
-                onClick={() => switchPanelSection("create")}
+                onClick={() => switchPanelSection("products")}
               >
-                Yeni Ürün Ekle
+                Ürünler
               </button>
               <button
-                className={activePanelSection === "profile" ? "active" : ""}
+                className={
+                  activePanelSection === "profile" || activePanelSection === "renewal"
+                    ? "active"
+                    : ""
+                }
                 type="button"
                 onClick={() => switchPanelSection("profile")}
               >
-                İşletme Bilgileri
-              </button>
-              <button
-                className={activePanelSection === "renewal" ? "active" : ""}
-                type="button"
-                onClick={() => switchPanelSection("renewal")}
-              >
-                Üyelik / Ödeme
+                İşletme
               </button>
             </nav>
+              <div className="business-panel-sidebar-membership">
+                <span>Üyelik durumu</span>
+                <strong>{subscriptionLabel}</strong>
+                <button type="button" onClick={() => switchPanelSection("renewal")}>
+                  Üyelik ayrıntıları
+                </button>
+              </div>
+            </aside>
+
+            <div className="business-panel-content">
 
             {activePanelSection === "overview" ? (
-              <section className="section panel-section panel-overview-section">
-                <div className="section-title">
-                  <h2>Genel Bakış</h2>
-                  <span>{subscriptionLabel}</span>
+              <section className="section panel-section panel-overview-section business-panel-section">
+                <div className="business-panel-section-heading">
+                  <div>
+                    <span className="business-panel-section-kicker">Bugünün görünümü</span>
+                    <h2>Genel Bakış</h2>
+                  </div>
+                  <span
+                    className={`business-panel-status-chip ${
+                      business.isOpen ? "open" : "closed"
+                    }`}
+                  >
+                    {business.isOpen ? "Siparişe açık" : "Siparişe kapalı"}
+                  </span>
                 </div>
-                <div className="panel-overview-grid">
-                  <div className="panel-overview-card">
-                    <strong>{business.name}</strong>
-                    <span>İşletme adı</span>
+
+                <div className="business-panel-operations">
+                  <div className="business-panel-operation-card priority">
+                    <span>Yeni sipariş</span>
+                    <strong>{newOrderCount}</strong>
+                    <button type="button" onClick={() => openOrdersFromOverview()}>
+                      Siparişleri aç
+                    </button>
                   </div>
-                  <div className="panel-overview-card">
-                    <strong>{products.length}</strong>
-                    <span>Toplam ürün</span>
+                  <div className="business-panel-operation-card">
+                    <span>Hazırlanan / hazır</span>
+                    <strong>{activeOrderCount}</strong>
+                    <small>Aktif sipariş akışı</small>
                   </div>
-                  <div className="panel-overview-card">
-                    <strong>{activeProductCount}</strong>
+                  <div className="business-panel-operation-card">
                     <span>Aktif ürün</span>
-                  </div>
-                  <div className="panel-overview-card">
-                    <strong>{passiveProductCount}</strong>
-                    <span>Pasif ürün</span>
-                  </div>
-                  <div className="panel-overview-card">
-                    <strong>{categorySummaries.length}</strong>
-                    <span>Kategori</span>
+                    <strong>{activeProductCount}</strong>
+                    <small>{products.length} toplam ürün</small>
                   </div>
                 </div>
 
-                <section
-                  className="panel-qr-card panel-qr-print-target"
-                  aria-labelledby="panel-qr-title"
-                >
-                  <div className="panel-qr-copy">
-                    <span className="panel-qr-kicker">Müşteri sipariş sayfası</span>
-                    <h3 id="panel-qr-title">Müşteri QR Kodu</h3>
-                    <p>
-                      Müşteriler bu kodu okutarak doğrudan sipariş sayfanıza ulaşır.
-                    </p>
-                    <strong className="panel-qr-print-business-name">
-                      {business.name}
-                    </strong>
-                    <p className="panel-qr-print-instruction">
-                      Sipariş için QR kodu okutun
-                    </p>
+                <section className="business-panel-recent-orders">
+                  <div className="business-panel-card-heading">
+                    <div>
+                      <h3>Son siparişler</h3>
+                      <p>En güncel üç siparişin kısa özeti</p>
+                    </div>
+                    <button type="button" onClick={() => openOrdersFromOverview()}>
+                      Tüm siparişleri gör
+                    </button>
                   </div>
 
-                  {business.slug ? (
-                    <>
-                      <div className="panel-qr-canvas-wrap">
-                        <canvas
-                          aria-label="Müşteri sipariş sayfası QR kodu"
-                          className={`panel-qr-canvas ${
-                            isQrReady ? "panel-qr-canvas-ready" : ""
-                          }`}
-                          ref={qrCanvasRef}
-                          role="img"
-                        />
-                        {!isQrReady && !qrError ? (
-                          <p className="panel-qr-status" aria-live="polite">
-                            QR kod hazırlanıyor...
-                          </p>
-                        ) : null}
-                      </div>
-
-                      {qrError ? (
-                        <p className="panel-qr-error" role="alert">
-                          {qrError}
-                        </p>
-                      ) : null}
-
-                      {customerOrderUrl ? (
-                        <a
-                          className="panel-qr-link"
-                          href={customerOrderUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          {customerOrderUrl}
-                        </a>
-                      ) : (
-                        <p className="panel-qr-status">Sipariş bağlantısı hazırlanıyor...</p>
-                      )}
-
-                      <div className="panel-qr-actions panel-qr-screen-only">
-                        <button
-                          disabled={!customerOrderUrl}
-                          type="button"
-                          onClick={copyCustomerOrderLink}
-                        >
-                          Bağlantıyı Kopyala
-                        </button>
-                        <button
-                          disabled={!isQrReady}
-                          type="button"
-                          onClick={downloadCustomerQrCode}
-                        >
-                          PNG İndir
-                        </button>
-                        <button
-                          disabled={!isQrReady}
-                          type="button"
-                          onClick={printCustomerQrCode}
-                        >
-                          Yazdır
-                        </button>
-                      </div>
-                    </>
+                  {isLoadingOverviewOrders ? (
+                    <p className="business-panel-inline-state">Sipariş özeti yükleniyor...</p>
+                  ) : overviewOrdersError ? (
+                    <p className="business-panel-inline-state error">{overviewOrdersError}</p>
+                  ) : recentOrders.length === 0 ? (
+                    <p className="business-panel-inline-state">Henüz sipariş bulunmuyor.</p>
                   ) : (
-                    <p className="panel-qr-error">
-                      QR kod için işletme bağlantısı bulunamadı.
-                    </p>
+                    <div className="business-panel-recent-list">
+                      {recentOrders.map((order) => (
+                        <button
+                          className={`business-panel-recent-order ${
+                            order.status === "new" ? "new" : ""
+                          }`}
+                          key={order.id}
+                          type="button"
+                          onClick={() => openOrdersFromOverview(order.id)}
+                        >
+                          <span>
+                            <strong>#{order.orderNumber}</strong>
+                            <small>
+                              {order.orderType === "delivery" ? "Teslimat" : "Gel-al"} ·{" "}
+                              {formatDateTime(order.createdAt)}
+                            </small>
+                          </span>
+                          <span
+                            className={`order-status-badge order-status-${order.status}`}
+                          >
+                            {orderStatusLabels[order.status]}
+                          </span>
+                          <b>{formatPrice(order.totalAmount)}</b>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </section>
 
-                <div className="panel-overview-actions">
-                  <button type="button" onClick={() => switchPanelSection("products")}>
-                    Ürünleri Yönet
-                  </button>
-                  <button type="button" onClick={() => switchPanelSection("orders")}>
-                    Siparişleri Yönet
-                  </button>
+                <div className="business-panel-quick-actions">
                   <button type="button" onClick={() => switchPanelSection("create")}>
-                    Yeni Ürün Ekle
+                    <strong>Yeni Ürün Ekle</strong>
+                    <span>Menüye yeni bir ürün ekleyin</span>
+                  </button>
+                  <button type="button" onClick={() => openOrdersFromOverview()}>
+                    <strong>Siparişlere Git</strong>
+                    <span>Yeni ve devam eden siparişleri yönetin</span>
                   </button>
                   <button type="button" onClick={() => switchPanelSection("profile")}>
-                    İşletme Bilgilerini Düzenle
-                  </button>
-                  <button type="button" onClick={() => switchPanelSection("renewal")}>
-                    Üyelik Bilgileri
+                    <strong>İşletme Bilgileri</strong>
+                    <span>Profil ve sipariş ayarlarını düzenleyin</span>
                   </button>
                 </div>
+
+                <section
+                  className="panel-qr-card panel-qr-print-target business-panel-qr-card"
+                  aria-labelledby="panel-qr-title"
+                >
+                  <div className="business-panel-qr-layout">
+                    <div className="panel-qr-copy">
+                      <span className="panel-qr-kicker">Müşteri sipariş sayfası</span>
+                      <h3 id="panel-qr-title">Müşteri QR Kodu</h3>
+                      <p>
+                        QR kodu masanızda veya paketlerinizde kullanarak müşterileri
+                        doğrudan sipariş sayfanıza yönlendirin.
+                      </p>
+                      <strong className="panel-qr-print-business-name">
+                        {business.name}
+                      </strong>
+                      <p className="panel-qr-print-instruction">
+                        Sipariş için QR kodu okutun
+                      </p>
+                    </div>
+
+                    {business.slug ? (
+                      <div className="business-panel-qr-tools">
+                        <div className="panel-qr-canvas-wrap">
+                          <canvas
+                            aria-label="Müşteri sipariş sayfası QR kodu"
+                            className={`panel-qr-canvas ${
+                              isQrReady ? "panel-qr-canvas-ready" : ""
+                            }`}
+                            ref={qrCanvasRef}
+                            role="img"
+                          />
+                          {!isQrReady && !qrError ? (
+                            <p className="panel-qr-status" aria-live="polite">
+                              QR kod hazırlanıyor...
+                            </p>
+                          ) : null}
+                        </div>
+
+                        {qrError ? (
+                          <p className="panel-qr-error" role="alert">
+                            {qrError}
+                          </p>
+                        ) : null}
+
+                        {customerOrderUrl ? (
+                          <a
+                            className="panel-qr-link"
+                            href={customerOrderUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {customerOrderUrl}
+                          </a>
+                        ) : (
+                          <p className="panel-qr-status">
+                            Sipariş bağlantısı hazırlanıyor...
+                          </p>
+                        )}
+
+                        <div className="panel-qr-actions panel-qr-screen-only">
+                          <button
+                            disabled={!customerOrderUrl}
+                            type="button"
+                            onClick={copyCustomerOrderLink}
+                          >
+                            Bağlantıyı Kopyala
+                          </button>
+                          <button
+                            disabled={!isQrReady}
+                            type="button"
+                            onClick={downloadCustomerQrCode}
+                          >
+                            PNG İndir
+                          </button>
+                          <button
+                            disabled={!isQrReady}
+                            type="button"
+                            onClick={printCustomerQrCode}
+                          >
+                            Yazdır
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="panel-qr-error">
+                        QR kod için işletme bağlantısı bulunamadı.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="business-panel-membership-card">
+                  <div>
+                    <span>Üyelik durumu</span>
+                    <strong>{subscriptionLabel}</strong>
+                    <p>
+                      Ürün ve profil işlemleriniz mevcut abonelik kurallarıyla korunur.
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => switchPanelSection("renewal")}>
+                    Üyelik ayrıntıları
+                  </button>
+                </section>
               </section>
             ) : null}
 
             {activePanelSection === "orders" ? (
-              <section className="section panel-section panel-orders-section">
-                <div className="section-title">
-                  <h2>Siparişler</h2>
+              <section className="section panel-section panel-orders-section business-panel-section">
+                <div className="business-panel-section-heading">
+                  <div>
+                    <span className="business-panel-section-kicker">Günlük operasyon</span>
+                    <h2>Siparişler</h2>
+                  </div>
                   <span>{orders.length} kayıt</span>
                 </div>
 
                 <div className="panel-order-toolbar">
-                  <label className="field">
-                    <span>Durum filtresi</span>
-                    <select
-                      value={selectedOrderStatusFilter}
-                      onChange={(event) =>
-                        changeOrderStatusFilter(
-                          event.target.value as OrderStatus | "all",
-                        )
-                      }
+                  <div
+                    className="business-panel-order-filters"
+                    aria-label="Sipariş durum filtresi"
+                  >
+                    <button
+                      aria-pressed={selectedOrderStatusFilter === "all"}
+                      className={selectedOrderStatusFilter === "all" ? "active" : ""}
+                      type="button"
+                      onClick={() => changeOrderStatusFilter("all")}
                     >
-                      <option value="all">Tüm siparişler</option>
-                      {orderStatusOptions.map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      Tümü
+                    </button>
+                    {orderStatusOptions.map(([value, label]) => (
+                      <button
+                        aria-pressed={selectedOrderStatusFilter === value}
+                        className={selectedOrderStatusFilter === value ? "active" : ""}
+                        key={value}
+                        type="button"
+                        onClick={() => changeOrderStatusFilter(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     className="submit-button panel-secondary-action panel-order-refresh"
                     disabled={isLoadingOrders}
@@ -1187,7 +1336,12 @@ export default function PanelPage() {
                         order.orderType === "delivery" ? "Teslimat" : "Gel-al";
 
                       return (
-                        <article className="panel-order-card" key={order.id}>
+                        <article
+                          className={`panel-order-card ${
+                            order.status === "new" ? "business-panel-order-new" : ""
+                          }`}
+                          key={order.id}
+                        >
                           <button
                             aria-expanded={isExpanded}
                             className="panel-order-row"
@@ -1198,7 +1352,7 @@ export default function PanelPage() {
                           >
                             <span className="panel-order-main">
                               <strong>#{order.orderNumber}</strong>
-                              <span>{order.customerName}</span>
+                              <span>{orderTypeLabel} · {order.customerName}</span>
                             </span>
                             <span className="panel-order-meta">
                               <strong>{formatPrice(order.totalAmount)}</strong>
@@ -1291,7 +1445,7 @@ export default function PanelPage() {
 
             {activePanelSection === "renewal" ? (
             <section
-              className={`section panel-section renewal-section ${
+              className={`section panel-section renewal-section business-panel-section ${
                 canManageProducts ? "" : "renewal-section-highlight"
               }`}
             >
@@ -1378,13 +1532,27 @@ export default function PanelPage() {
             ) : null}
 
             {activePanelSection === "profile" ? (
-            <section className="section panel-section">
-              <div className="section-title">
-                <h2>İşletme Bilgileri</h2>
-                <span>Profil ve adres</span>
+            <section className="section panel-section business-panel-section">
+              <div className="business-panel-section-heading">
+                <div>
+                  <span className="business-panel-section-kicker">İşletme ayarları</span>
+                  <h2>İşletme Bilgileri</h2>
+                </div>
+                <button
+                  className="business-panel-secondary-command"
+                  type="button"
+                  onClick={() => switchPanelSection("renewal")}
+                >
+                  {subscriptionLabel}
+                </button>
               </div>
 
               <form className="customer-form panel-form" onSubmit={handleProfileSubmit}>
+                <section className="business-panel-form-group">
+                  <div className="business-panel-form-group-heading">
+                    <h3>Temel Bilgiler</h3>
+                    <p>İşletme adı, açıklaması ve sipariş iletişim numarası</p>
+                  </div>
                 <div className="field">
                   <label htmlFor="businessName">İşletme adı</label>
                   <input
@@ -1421,7 +1589,13 @@ export default function PanelPage() {
                     }
                   />
                 </div>
+                </section>
 
+                <section className="business-panel-form-group">
+                  <div className="business-panel-form-group-heading">
+                    <h3>Konum</h3>
+                    <p>Müşterilere gösterilen adres ve servis alanı bilgileri</p>
+                  </div>
                 <div className="field">
                   <label htmlFor="businessCity">İl</label>
                   <input
@@ -1485,12 +1659,13 @@ export default function PanelPage() {
                     }
                   />
                 </div>
+                </section>
 
-                <div className="section-title panel-form-subtitle">
-                  <h3>Sipariş Bilgileri</h3>
-                  <span>Müşteri sayfasında kullanılacak ayarlar</span>
-                </div>
-
+                <section className="business-panel-form-group">
+                  <div className="business-panel-form-group-heading">
+                    <h3>Sipariş Kuralları</h3>
+                    <p>Müşteri sipariş sayfasında kullanılan çalışma ayarları</p>
+                  </div>
                 <div className="field">
                   <label htmlFor="businessDeliveryStatus">Teslimat / Gel-al Bilgisi</label>
                   <input
@@ -1578,7 +1753,13 @@ export default function PanelPage() {
                     {profileForm.orderNote.trim().length}/300 karakter
                   </span>
                 </div>
+                </section>
 
+                <section className="business-panel-form-group">
+                  <div className="business-panel-form-group-heading">
+                    <h3>Görseller</h3>
+                    <p>İşletme logosu ve müşteri sayfası kapak görseli</p>
+                  </div>
                 <div className="field">
                   <label htmlFor="businessLogoUrl">Logo URL</label>
                   {profileForm.logoUrl ? (
@@ -1658,7 +1839,9 @@ export default function PanelPage() {
                     <span className="field-help">JPG, PNG veya WEBP kapak görseli seçin.</span>
                   )}
                 </div>
+                </section>
 
+                <div className="business-panel-save-bar">
                 {profileUploadStatus ? (
                   <p className="alert success panel-upload-status">
                     {profileUploadStatus}
@@ -1676,18 +1859,36 @@ export default function PanelPage() {
                     ? "Kaydediliyor..."
                     : "İşletme Bilgilerini Kaydet"}
                 </button>
+                </div>
               </form>
             </section>
             ) : null}
 
             {(activePanelSection === "create" ||
               activePanelSection === "products") ? (
-            <div className="layout panel-layout">
+            <div
+              className={`layout panel-layout ${
+                activePanelSection === "create" ? "business-panel-create-layout" : ""
+              }`}
+            >
             {(activePanelSection === "create" || editingProductId) ? (
-            <section className="section panel-section">
-              <div className="section-title">
-                <h2>Ürün Formu</h2>
-                <span>{editingProductId ? "Düzenleme" : "Yeni ürün"}</span>
+            <section className="section panel-section business-panel-section">
+              <div className="business-panel-section-heading">
+                <div>
+                  <span className="business-panel-section-kicker">
+                    {editingProductId ? "Ürün düzenleme" : "Yeni kayıt"}
+                  </span>
+                  <h2>{editingProductId ? "Ürünü Düzenle" : "Yeni Ürün Ekle"}</h2>
+                </div>
+                {activePanelSection === "create" ? (
+                  <button
+                    className="business-panel-secondary-command"
+                    type="button"
+                    onClick={() => switchPanelSection("products")}
+                  >
+                    Ürün listesine dön
+                  </button>
+                ) : null}
               </div>
 
               {!canManageProducts ? (
@@ -1863,13 +2064,34 @@ export default function PanelPage() {
             ) : null}
 
             {activePanelSection === "products" ? (
-            <section className="section panel-section">
-              <div className="section-title">
-                <h2>Ürünler</h2>
-                <span>
-                  {filteredProducts.length} / {products.length} kayit
-                </span>
+            <section className="section panel-section business-panel-section">
+              <div className="business-panel-section-heading">
+                <div>
+                  <span className="business-panel-section-kicker">Menü yönetimi</span>
+                  <h2>Ürünler</h2>
+                  <small>
+                    {filteredProducts.length} / {products.length} kayıt
+                  </small>
+                </div>
+                <button
+                  className="business-panel-primary-command"
+                  disabled={!canManageProducts}
+                  type="button"
+                  onClick={() => switchPanelSection("create")}
+                >
+                  Yeni Ürün Ekle
+                </button>
               </div>
+
+              <label className="business-panel-product-search">
+                <span>Ürün ara</span>
+                <input
+                  placeholder="Ürün adına göre ara"
+                  type="search"
+                  value={productSearch}
+                  onChange={(event) => setProductSearch(event.target.value)}
+                />
+              </label>
 
               {categorySummaries.length > 0 ? (
                 <div className="panel-category-filter" aria-label="Kategori filtresi">
@@ -1895,6 +2117,12 @@ export default function PanelPage() {
                     </button>
                   ))}
                 </div>
+              ) : null}
+
+              {isProductOrderingFiltered ? (
+                <p className="business-panel-inline-state">
+                  Ürün sıralamak için arama ve kategori filtresini temizleyin.
+                </p>
               ) : null}
 
               <div className="cart panel-product-list">
@@ -1970,7 +2198,12 @@ export default function PanelPage() {
                             </div>
                             <div className="admin-actions panel-product-actions">
                               <button
-                                disabled={!canManageProducts || isSaving || index === 0}
+                                disabled={
+                                  !canManageProducts ||
+                                  isSaving ||
+                                  isProductOrderingFiltered ||
+                                  index === 0
+                                }
                                 type="button"
                                 onClick={() => moveProduct(product, "up")}
                               >
@@ -1980,6 +2213,7 @@ export default function PanelPage() {
                                 disabled={
                                   !canManageProducts ||
                                   isSaving ||
+                                  isProductOrderingFiltered ||
                                   index === filteredProducts.length - 1
                                 }
                                 type="button"
@@ -2021,7 +2255,8 @@ export default function PanelPage() {
             ) : null}
             </div>
             ) : null}
-          </>
+            </div>
+          </div>
         )}
       </div>
     </main>
