@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import LocationSelector from "../../components/LocationSelector";
 import {
   readBusinesses,
   updateBusiness,
@@ -26,6 +27,12 @@ import {
   getValidAccessToken,
   signInWithPassword,
 } from "../../lib/browser-auth-session";
+import {
+  findProvinceByName,
+  getDistricts,
+  getProvinces,
+  normalizeLocationLabel,
+} from "../../lib/locations";
 
 const extensionDays = [30, 60, 90, 180, 365];
 const adminSessionKey = "yerel-siparis-admin-auth-session";
@@ -162,10 +169,14 @@ function normalizeSearch(value: string | null | undefined) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function uniqueSorted(values: Array<string | null | undefined>) {
-  return Array.from(
-    new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]),
-  ).sort((first, second) => first.localeCompare(second, "tr"));
+function sameLocationLabel(
+  first: string | null | undefined,
+  second: string | null | undefined,
+) {
+  return (
+    normalizeLocationLabel(first).toLocaleLowerCase("tr-TR") ===
+    normalizeLocationLabel(second).toLocaleLowerCase("tr-TR")
+  );
 }
 
 function hasActiveSubscription(business: Business) {
@@ -305,12 +316,11 @@ export default function AdminPage() {
         business.subscriptionStatus === "blocked",
     )
     .slice(0, 5);
-  const cityOptions = uniqueSorted(businesses.map((business) => business.city));
-  const districtOptions = uniqueSorted(
-    businesses
-      .filter((business) => !cityFilter || business.city === cityFilter)
-      .map((business) => business.district),
-  );
+  const cityOptions = getProvinces();
+  const selectedFilterProvince = findProvinceByName(cityFilter);
+  const districtOptions = selectedFilterProvince
+    ? getDistricts(selectedFilterProvince.id)
+    : [];
   const trimmedSearchQuery = searchQuery.trim();
   const normalizedSearchQuery = normalizeSearch(trimmedSearchQuery);
   const filteredBusinesses = businesses.filter((business) => {
@@ -342,8 +352,9 @@ export default function AdminPage() {
         business.subscriptionStatus === "blocked") ||
       (subscriptionFilter === "ending7" && isEndingWithinDays(business, 7)) ||
       (subscriptionFilter === "ending30" && isEndingWithinDays(business, 30));
-    const matchesCity = !cityFilter || business.city === cityFilter;
-    const matchesDistrict = !districtFilter || business.district === districtFilter;
+    const matchesCity = !cityFilter || sameLocationLabel(business.city, cityFilter);
+    const matchesDistrict =
+      !districtFilter || sameLocationLabel(business.district, districtFilter);
 
     return (
       matchesSearch &&
@@ -653,6 +664,14 @@ export default function AdminPage() {
     }
     if (!newBusinessForm.whatsappOrderNumber.trim()) {
       setMessage("WhatsApp sipariş numarası zorunludur.");
+      return;
+    }
+    if (
+      !newBusinessForm.city.trim() ||
+      !newBusinessForm.district.trim() ||
+      !newBusinessForm.neighborhood.trim()
+    ) {
+      setMessage("Lütfen geçerli il, ilçe ve Mahalle / Köy seçin.");
       return;
     }
     if (!newBusinessForm.ownerEmail.trim()) {
@@ -1308,8 +1327,8 @@ export default function AdminPage() {
               >
                 <option value="">Tüm şehirler</option>
                 {cityOptions.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
+                  <option key={city.id} value={city.name}>
+                    {city.name}
                   </option>
                 ))}
               </select>
@@ -1317,14 +1336,17 @@ export default function AdminPage() {
             <div className="field">
               <label htmlFor="adminDistrictFilter">İlçe</label>
               <select
+                disabled={!selectedFilterProvince}
                 id="adminDistrictFilter"
                 value={districtFilter}
                 onChange={(event) => setDistrictFilter(event.target.value)}
               >
-                <option value="">Tüm ilçeler</option>
+                <option value="">
+                  {selectedFilterProvince ? "Tüm ilçeler" : "Önce şehir seçin"}
+                </option>
                 {districtOptions.map((district) => (
-                  <option key={district} value={district}>
-                    {district}
+                  <option key={district.id} value={district.name}>
+                    {district.name}
                   </option>
                 ))}
               </select>
@@ -1404,34 +1426,23 @@ export default function AdminPage() {
                 onChange={(event) => updateNewBusinessForm("slug", event.target.value)}
               />
             </div>
-            <div className="field">
-              <label htmlFor="newBusinessCity">Şehir</label>
-              <input
-                id="newBusinessCity"
-                value={newBusinessForm.city}
-                onChange={(event) => updateNewBusinessForm("city", event.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="newBusinessDistrict">İlçe</label>
-              <input
-                id="newBusinessDistrict"
-                value={newBusinessForm.district}
-                onChange={(event) =>
-                  updateNewBusinessForm("district", event.target.value)
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="newBusinessNeighborhood">Mahalle</label>
-              <input
-                id="newBusinessNeighborhood"
-                value={newBusinessForm.neighborhood}
-                onChange={(event) =>
-                  updateNewBusinessForm("neighborhood", event.target.value)
-                }
-              />
-            </div>
+            <LocationSelector
+              idPrefix="newBusinessLocation"
+              required
+              value={{
+                city: newBusinessForm.city,
+                district: newBusinessForm.district,
+                neighborhood: newBusinessForm.neighborhood,
+              }}
+              onChange={(location) =>
+                setNewBusinessForm((current) => ({
+                  ...current,
+                  city: location.city,
+                  district: location.district,
+                  neighborhood: location.neighborhood,
+                }))
+              }
+            />
             <div className="field">
               <label htmlFor="newBusinessAddress">Adres</label>
               <textarea
@@ -1757,36 +1768,26 @@ export default function AdminPage() {
                                 }
                               />
                             </div>
-                            <div className="field">
-                              <label htmlFor={`edit-city-${business.slug}`}>Şehir</label>
-                              <input
-                                id={`edit-city-${business.slug}`}
-                                value={editingBusiness.city}
-                                onChange={(event) =>
-                                  updateEditBusinessForm("city", event.target.value)
-                                }
-                              />
-                            </div>
-                            <div className="field">
-                              <label htmlFor={`edit-district-${business.slug}`}>İlçe</label>
-                              <input
-                                id={`edit-district-${business.slug}`}
-                                value={editingBusiness.district}
-                                onChange={(event) =>
-                                  updateEditBusinessForm("district", event.target.value)
-                                }
-                              />
-                            </div>
-                            <div className="field">
-                              <label htmlFor={`edit-neighborhood-${business.slug}`}>Mahalle</label>
-                              <input
-                                id={`edit-neighborhood-${business.slug}`}
-                                value={editingBusiness.neighborhood}
-                                onChange={(event) =>
-                                  updateEditBusinessForm("neighborhood", event.target.value)
-                                }
-                              />
-                            </div>
+                            <LocationSelector
+                              idPrefix={`edit-location-${business.slug}`}
+                              value={{
+                                city: editingBusiness.city,
+                                district: editingBusiness.district,
+                                neighborhood: editingBusiness.neighborhood,
+                              }}
+                              onChange={(location) =>
+                                setEditingBusiness((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        city: location.city,
+                                        district: location.district,
+                                        neighborhood: location.neighborhood,
+                                      }
+                                    : current,
+                                )
+                              }
+                            />
                             <div className="field">
                               <label htmlFor={`edit-address-${business.slug}`}>Adres</label>
                               <textarea

@@ -8,6 +8,10 @@ const nextConfig = {
     "192.168.68.104",
     "192.168.68.106",
   ],
+  outputFileTracingIncludes: {
+    "/api/admin/create-business": ["./public/locations/neighborhoods/**/*.json"],
+    "/api/admin/update-business": ["./public/locations/neighborhoods/**/*.json"],
+  },
 };
 
 module.exports = nextConfig;

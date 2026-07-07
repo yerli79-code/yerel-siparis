@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isValidStandardBusinessLocation } from "../../../../lib/locations/server";
 
 type CreateBusinessPayload = {
   slug?: string;
@@ -300,6 +301,9 @@ export async function POST(request: Request) {
     }
     if (!payload.whatsappOrderNumber?.trim()) {
       return jsonError("WhatsApp sipariş numarası zorunludur.");
+    }
+    if (!(await isValidStandardBusinessLocation(payload))) {
+      return jsonError("Lütfen geçerli il, ilçe ve Mahalle / Köy seçin.");
     }
     if (!email) {
       return jsonError("İşletme sahibi e-posta alanı zorunludur.");

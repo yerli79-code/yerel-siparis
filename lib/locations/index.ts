@@ -51,6 +51,33 @@ export function getDistricts(provinceId: number | string | null | undefined): re
   return DISTRICTS.filter((district) => district.provinceId === normalizedProvinceId);
 }
 
+export function findProvinceByName(value: string | null | undefined): LocationOption | null {
+  const normalizedValue = normalizeLocationLabel(value).toLocaleLowerCase("tr-TR");
+  if (!normalizedValue) return null;
+  return (
+    PROVINCES.find(
+      (province) =>
+        normalizeLocationLabel(province.name).toLocaleLowerCase("tr-TR") ===
+        normalizedValue,
+    ) ?? null
+  );
+}
+
+export function findDistrictByName(
+  provinceId: number | string | null | undefined,
+  value: string | null | undefined,
+): DistrictOption | null {
+  const normalizedValue = normalizeLocationLabel(value).toLocaleLowerCase("tr-TR");
+  if (!normalizedValue) return null;
+  return (
+    getDistricts(provinceId).find(
+      (district) =>
+        normalizeLocationLabel(district.name).toLocaleLowerCase("tr-TR") ===
+        normalizedValue,
+    ) ?? null
+  );
+}
+
 export async function loadNeighborhoods(
   provinceId: number | string | null | undefined,
   districtId: number | string | null | undefined,

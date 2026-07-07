@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  hasBusinessLocationChanged,
+  isValidStandardBusinessLocation,
+  type BusinessLocationInput,
+} from "../../../../lib/locations/server";
 
 type UpdateBusinessPayload = {
   id?: string;
@@ -95,6 +100,37 @@ async function ensureSlugIsAvailable(
   }
 }
 
+async function fetchCurrentBusinessLocation(
+  url: string,
+  serviceRoleKey: string,
+  businessId: string,
+): Promise<BusinessLocationInput | null> {
+  const response = await fetch(
+    `${url}/rest/v1/businesses?id=eq.${encodeURIComponent(
+      businessId,
+    )}&select=city,district,neighborhood&limit=1`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    },
+  );
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(safeSupabaseError("Isletme konumu kontrol edilemedi", body));
+  }
+
+  const row = Array.isArray(body) ? body[0] : null;
+  if (!row) return null;
+  return {
+    city: row.city ?? "",
+    district: row.district ?? "",
+    neighborhood: row.neighborhood ?? "",
+  };
+}
+
 async function updateBusiness(
   url: string,
   serviceRoleKey: string,
@@ -166,6 +202,23 @@ export async function POST(request: Request) {
     }
     if (!payload.whatsappOrderNumber?.trim()) {
       return jsonError("WhatsApp siparis numarasi zorunludur.");
+    }
+
+    const currentLocation = await fetchCurrentBusinessLocation(
+      url,
+      serviceRoleKey,
+      businessId,
+    );
+    const nextLocation = {
+      city: payload.city ?? "",
+      district: payload.district ?? "",
+      neighborhood: payload.neighborhood ?? "",
+    };
+    if (
+      (!currentLocation || hasBusinessLocationChanged(currentLocation, nextLocation)) &&
+      !(await isValidStandardBusinessLocation(nextLocation))
+    ) {
+      return jsonError("Lütfen geçerli il, ilçe ve Mahalle / Köy seçin.");
     }
 
     await ensureSlugIsAvailable(url, serviceRoleKey, businessId, slug);
