@@ -1103,24 +1103,6 @@ export default function AdminPage() {
                 Listeyi Yenile
               </button>
             </div>
-            <div className="admin-summary-grid">
-              <div className="admin-summary-card">
-                <strong>{businesses.length}</strong>
-                <span>Toplam işletme</span>
-              </div>
-              <div className="admin-summary-card">
-                <strong>{activeBusinessCount}</strong>
-                <span>Aktif işletme</span>
-              </div>
-              <div className="admin-summary-card">
-                <strong>{passiveBusinessCount}</strong>
-                <span>Pasif / süresi bitmiş</span>
-              </div>
-              <div className="admin-summary-card">
-                <strong>{blockedBusinessCount}</strong>
-                <span>Engelli</span>
-              </div>
-            </div>
           </div>
         </header>
 

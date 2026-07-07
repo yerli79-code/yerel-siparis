@@ -1505,35 +1505,6 @@ h1 {
   gap: 10px;
 }
 
-.admin-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.admin-summary-card {
-  display: grid;
-  gap: 4px;
-  min-height: 82px;
-  align-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 12px;
-}
-
-.admin-summary-card strong {
-  color: #fff;
-  font-size: 28px;
-  line-height: 1;
-}
-
-.admin-summary-card span {
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 13px;
-  font-weight: 800;
-}
-
 .admin-auth-shell {
   width: min(720px, 100%);
 }
@@ -2348,10 +2319,6 @@ h1 {
   }
 
   .admin-attention-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .admin-summary-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
