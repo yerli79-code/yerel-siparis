@@ -1710,7 +1710,7 @@ h1 {
 
 .admin-section-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 18px;
 }
@@ -1750,6 +1750,100 @@ h1 {
   gap: 10px;
 }
 
+.admin-attention-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-attention-card,
+.admin-attention-list {
+  border: 1px solid #d7e8da;
+  border-radius: 8px;
+  background: #f8fbf8;
+  padding: 12px;
+}
+
+.admin-attention-card {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-attention-card strong {
+  color: #14532d;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.admin-attention-card span {
+  color: #375141;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-attention-list {
+  display: grid;
+  gap: 10px;
+  background: #fff;
+}
+
+.admin-attention-head,
+.admin-attention-items button {
+  min-width: 0;
+}
+
+.admin-attention-head {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-attention-head strong {
+  color: #14532d;
+}
+
+.admin-attention-head span,
+.admin-attention-empty,
+.admin-attention-items small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-attention-empty {
+  margin: 0;
+}
+
+.admin-attention-items {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-attention-items button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 10px;
+  align-items: center;
+  min-height: 54px;
+  border: 1px solid #e7efe9;
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 10px;
+  text-align: left;
+}
+
+.admin-attention-items button > span:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-attention-items strong,
+.admin-attention-items small {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 .admin-overview-actions button {
   min-height: 48px;
   border: 0;
@@ -1765,7 +1859,7 @@ h1 {
 }
 
 .admin-compact-row {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) max-content;
 }
 
 .admin-compact-main span {
@@ -1773,7 +1867,7 @@ h1 {
 }
 
 .admin-compact-meta {
-  grid-template-columns: repeat(2, minmax(0, max-content));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
 }
 
@@ -1791,6 +1885,11 @@ h1 {
 
 .admin-info-grid {
   margin: 0;
+}
+
+.admin-detail-groups {
+  display: grid;
+  gap: 12px;
 }
 
 .admin-control-group {
@@ -2245,11 +2344,11 @@ h1 {
 
   .admin-section-tabs,
   .admin-overview-actions {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .admin-overview-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .admin-attention-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .admin-summary-grid {
@@ -2273,7 +2372,7 @@ h1 {
   }
 
   .admin-critical-control-group .admin-business-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .admin-create-form,
@@ -2335,7 +2434,8 @@ h1 {
   }
 
   .admin-compact-meta {
-    grid-template-columns: repeat(3, max-content);
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    justify-content: start;
   }
 
   .order-panel {
@@ -4544,6 +4644,14 @@ h1 {
 }
 
 @media (min-width: 1200px) {
+  .admin-compact-row {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr) auto;
+  }
+
+  .admin-compact-meta {
+    grid-template-columns: repeat(4, minmax(0, max-content));
+  }
+
   .business-panel-page
     .panel-layout:not(.business-panel-create-layout):has(.panel-form) {
     grid-template-columns: minmax(280px, 340px) minmax(480px, 1fr);

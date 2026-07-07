@@ -110,7 +110,7 @@ type AdminSubscriptionFilter =
   | "blocked"
   | "ending7"
   | "ending30";
-type AdminSection = "overview" | "businesses" | "create" | "subscriptions";
+type AdminSection = "overview" | "businesses" | "create";
 type AdminConfirmAction = {
   businessName: string;
   actionName: string;
@@ -292,7 +292,19 @@ export default function AdminPage() {
   const blockedBusinessCount = businesses.filter(
     (business) => business.subscriptionStatus === "blocked",
   ).length;
+  const endingSoonBusinessCount = businesses.filter((business) =>
+    isEndingWithinDays(business, 30),
+  ).length;
   const passiveBusinessCount = businesses.length - activeBusinessCount;
+  const attentionBusinesses = businesses
+    .filter(
+      (business) =>
+        isEndingWithinDays(business, 30) ||
+        isSubscriptionExpired(business) ||
+        !business.isActive ||
+        business.subscriptionStatus === "blocked",
+    )
+    .slice(0, 5);
   const cityOptions = uniqueSorted(businesses.map((business) => business.city));
   const districtOptions = uniqueSorted(
     businesses
@@ -368,8 +380,7 @@ export default function AdminPage() {
     cityFilter ? `Şehir: ${cityFilter}` : "",
     districtFilter ? `İlçe: ${districtFilter}` : "",
   ].filter(Boolean);
-  const listedBusinesses =
-    activeAdminSection === "subscriptions" ? businesses : filteredBusinesses;
+  const listedBusinesses = filteredBusinesses;
 
   function endAdminSession(
     message = adminSessionExpiredMessage,
@@ -560,6 +571,14 @@ export default function AdminPage() {
   function switchAdminSection(section: AdminSection) {
     setActiveAdminSection(section);
     setExpandedBusinessId("");
+    setMessage("");
+    setErrorDetail("");
+  }
+
+  function openBusinessDetail(business: Business) {
+    clearAdminFilters();
+    setActiveAdminSection("businesses");
+    setExpandedBusinessId(business.id || business.slug);
     setMessage("");
     setErrorDetail("");
   }
@@ -1168,13 +1187,6 @@ export default function AdminPage() {
           >
             Yeni İşletme Ekle
           </button>
-          <button
-            className={activeAdminSection === "subscriptions" ? "active" : ""}
-            type="button"
-            onClick={() => switchAdminSection("subscriptions")}
-          >
-            Abonelik Yönetimi
-          </button>
         </nav>
 
         {activeAdminSection === "overview" ? (
@@ -1184,18 +1196,65 @@ export default function AdminPage() {
               <span>Hızlı yönetim</span>
             </div>
             <p>
-              İşletme kayıtlarını, abonelik durumlarını ve erişim işlemlerini ayrı
-              bölümlerden daha sade şekilde yönetin.
+              İşletme kayıtlarını, abonelik durumlarını ve dikkat gerektiren
+              erişim konularını tek ekrandan takip edin.
             </p>
+            <div className="admin-attention-grid">
+              <div className="admin-attention-card">
+                <strong>{activeBusinessCount}</strong>
+                <span>Aktif abonelik</span>
+              </div>
+              <div className="admin-attention-card">
+                <strong>{endingSoonBusinessCount}</strong>
+                <span>30 gün içinde bitecek</span>
+              </div>
+              <div className="admin-attention-card">
+                <strong>{passiveBusinessCount}</strong>
+                <span>Pasif veya süresi bitmiş</span>
+              </div>
+              <div className="admin-attention-card">
+                <strong>{blockedBusinessCount}</strong>
+                <span>Engelli işletme</span>
+              </div>
+            </div>
+            <div className="admin-attention-list">
+              <div className="admin-attention-head">
+                <strong>Dikkat Gerektirenler</strong>
+                <span>Yaklaşan, süresi dolan, pasif veya engelli işletmeler</span>
+              </div>
+              {attentionBusinesses.length > 0 ? (
+                <div className="admin-attention-items">
+                  {attentionBusinesses.map((business) => {
+                    const badge = getBadge(business);
+                    return (
+                      <button
+                        key={business.slug}
+                        type="button"
+                        onClick={() => openBusinessDetail(business)}
+                      >
+                        <span>
+                          <strong>{business.name}</strong>
+                          <small>{formatDate(business.subscriptionExpiresAt)}</small>
+                        </span>
+                        <span className={`status admin-status ${badge.toLowerCase().replaceAll(" ", "-")}`}>
+                          {badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="admin-attention-empty">
+                  Şu anda dikkat gerektiren işletme görünmüyor.
+                </p>
+              )}
+            </div>
             <div className="admin-overview-actions">
               <button type="button" onClick={() => switchAdminSection("businesses")}>
                 İşletmeleri Yönet
               </button>
               <button type="button" onClick={() => switchAdminSection("create")}>
                 Yeni İşletme Ekle
-              </button>
-              <button type="button" onClick={() => switchAdminSection("subscriptions")}>
-                Abonelik Yönetimi
               </button>
             </div>
           </section>
@@ -1528,10 +1587,9 @@ export default function AdminPage() {
         </section>
         ) : null}
 
-        {activeAdminSection === "businesses" ||
-        activeAdminSection === "subscriptions" ? (
+        {activeAdminSection === "businesses" ? (
         <section className="admin-list">
-          {activeAdminSection === "businesses" && filteredBusinesses.length === 0 ? (
+          {filteredBusinesses.length === 0 ? (
             <div className="section admin-empty-state">
               <h2>Sonuç bulunamadı</h2>
               <p>Arama veya filtreleri değiştirerek tekrar deneyin.</p>
@@ -1568,7 +1626,6 @@ export default function AdminPage() {
                 >
                   <span className="admin-compact-main">
                     <strong>{business.name}</strong>
-                    <span>/{business.slug}</span>
                   </span>
                   <span className="admin-compact-meta">
                     <span className={`status admin-status ${badge.toLowerCase().replaceAll(" ", "-")}`}>
@@ -1576,6 +1633,7 @@ export default function AdminPage() {
                     </span>
                     <span>{business.subscriptionStatus}</span>
                     <span>{formatDate(business.subscriptionExpiresAt)}</span>
+                    <span>{business.isActive ? "Aktif" : "Pasif"}</span>
                   </span>
                   <span className="admin-compact-toggle">
                     {isExpanded ? "Kapat" : "Detay"}
@@ -1584,373 +1642,370 @@ export default function AdminPage() {
 
                 {isExpanded ? (
                   <div className="admin-compact-detail">
-                    <div className="info-grid admin-info-grid">
-                      <p><strong>Slug</strong><span>/{business.slug}</span></p>
-                      <p><strong>E-posta</strong><span>{business.email}</span></p>
-                      <p><strong>WhatsApp</strong><span>{business.whatsappOrderNumber}</span></p>
-                      <p><strong>Kayıt tarihi</strong><span>{formatDate(business.createdAt)}</span></p>
-                      <p><strong>Başlangıç</strong><span>{formatDate(business.subscriptionStartedAt)}</span></p>
-                      <p><strong>Abonelik bitiş</strong><span>{formatDate(business.subscriptionExpiresAt)}</span></p>
-                      <p><strong>Kalan gün</strong><span>{Math.max(0, remainingDays)}</span></p>
-                      <p><strong>Durum</strong><span>{`${business.subscriptionStatus} / ${business.isActive ? "aktif" : "pasif"}`}</span></p>
-                    </div>
+                    <div className="admin-detail-groups">
+                      <section className="admin-control-group">
+                        <h3>Genel Bilgiler</h3>
+                        <div className="info-grid admin-info-grid">
+                          <p><strong>Slug</strong><span>/{business.slug}</span></p>
+                          <p><strong>E-posta</strong><span>{business.email}</span></p>
+                          <p><strong>WhatsApp</strong><span>{business.whatsappOrderNumber}</span></p>
+                          <p><strong>Şehir</strong><span>{business.city || "-"}</span></p>
+                          <p><strong>İlçe</strong><span>{business.district || "-"}</span></p>
+                          <p><strong>Mahalle</strong><span>{business.neighborhood || "-"}</span></p>
+                          <p><strong>Adres</strong><span>{business.address || "-"}</span></p>
+                          <p><strong>Kayıt tarihi</strong><span>{formatDate(business.createdAt)}</span></p>
+                        </div>
+                      </section>
 
-                {activeAdminSection === "businesses" &&
-                editingBusiness?.originalSlug === business.slug ? (
-                  <form
-                    className="customer-form admin-create-form admin-edit-form"
-                    onSubmit={submitEditBusiness}
-                  >
-                    <div className="section-title admin-inline-title">
-                      <h3>İşletme Bilgilerini Düzenle</h3>
-                      <span>Supabase businesses</span>
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-name-${business.slug}`}>İşletme adı</label>
-                      <input
-                        id={`edit-name-${business.slug}`}
-                        value={editingBusiness.name}
-                        onChange={(event) =>
-                          updateEditBusinessForm("name", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-slug-${business.slug}`}>Slug</label>
-                      <input
-                        id={`edit-slug-${business.slug}`}
-                        value={editingBusiness.slug}
-                        onChange={(event) =>
-                          updateEditBusinessForm("slug", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-city-${business.slug}`}>Şehir</label>
-                      <input
-                        id={`edit-city-${business.slug}`}
-                        value={editingBusiness.city}
-                        onChange={(event) =>
-                          updateEditBusinessForm("city", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-district-${business.slug}`}>İlçe</label>
-                      <input
-                        id={`edit-district-${business.slug}`}
-                        value={editingBusiness.district}
-                        onChange={(event) =>
-                          updateEditBusinessForm("district", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-neighborhood-${business.slug}`}>Mahalle</label>
-                      <input
-                        id={`edit-neighborhood-${business.slug}`}
-                        value={editingBusiness.neighborhood}
-                        onChange={(event) =>
-                          updateEditBusinessForm("neighborhood", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-address-${business.slug}`}>Adres</label>
-                      <textarea
-                        id={`edit-address-${business.slug}`}
-                        value={editingBusiness.address}
-                        onChange={(event) =>
-                          updateEditBusinessForm("address", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-whatsapp-${business.slug}`}>
-                        WhatsApp sipariş numarası
-                      </label>
-                      <input
-                        id={`edit-whatsapp-${business.slug}`}
-                        inputMode="tel"
-                        value={editingBusiness.whatsappOrderNumber}
-                        onChange={(event) =>
-                          updateEditBusinessForm(
-                            "whatsappOrderNumber",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-description-${business.slug}`}>
-                        Açıklama
-                      </label>
-                      <textarea
-                        id={`edit-description-${business.slug}`}
-                        value={editingBusiness.description}
-                        onChange={(event) =>
-                          updateEditBusinessForm("description", event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-status-${business.slug}`}>
-                        Abonelik durumu
-                      </label>
-                      <select
-                        id={`edit-status-${business.slug}`}
-                        value={editingBusiness.subscriptionStatus}
-                        onChange={(event) =>
-                          updateEditBusinessForm(
-                            "subscriptionStatus",
-                            event.target.value as EditBusinessForm["subscriptionStatus"],
-                          )
-                        }
-                      >
-                        <option value="expired">expired</option>
-                        <option value="active">active</option>
-                        <option value="blocked">blocked</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-started-${business.slug}`}>
-                        Abonelik başlangıç tarihi
-                      </label>
-                      <input
-                        id={`edit-started-${business.slug}`}
-                        type="date"
-                        value={editingBusiness.subscriptionStartedAt}
-                        onChange={(event) =>
-                          updateEditBusinessForm(
-                            "subscriptionStartedAt",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`edit-expires-${business.slug}`}>
-                        Abonelik bitiş tarihi
-                      </label>
-                      <input
-                        id={`edit-expires-${business.slug}`}
-                        type="date"
-                        value={editingBusiness.subscriptionExpiresAt}
-                        onChange={(event) =>
-                          updateEditBusinessForm(
-                            "subscriptionExpiresAt",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </div>
-                    <label className="field admin-checkbox-field">
-                      <span>Aktif/pasif</span>
-                      <input
-                        checked={editingBusiness.isActive}
-                        type="checkbox"
-                        onChange={(event) =>
-                          updateEditBusinessForm("isActive", event.target.checked)
-                        }
-                      />
-                    </label>
-                    <div className="admin-actions admin-business-actions">
-                      <button
-                        className="submit-button admin-primary-action"
-                        disabled={isUpdatingBusiness}
-                        type="submit"
-                      >
-                        {isUpdatingBusiness ? "Kaydediliyor..." : "Kaydet"}
-                      </button>
-                      <button
-                        disabled={isUpdatingBusiness}
-                        type="button"
-                        onClick={cancelEditingBusiness}
-                      >
-                        Vazgeç
-                      </button>
-                    </div>
-                  </form>
-                ) : null}
+                      <section className="admin-control-group">
+                        <h3>Abonelik</h3>
+                        <p className="admin-control-help">
+                          Süre uzatma, manuel tarih ve aktif etme işlemleri.
+                        </p>
+                        <div className="info-grid admin-info-grid">
+                          <p><strong>Başlangıç</strong><span>{formatDate(business.subscriptionStartedAt)}</span></p>
+                          <p><strong>Abonelik bitiş</strong><span>{formatDate(business.subscriptionExpiresAt)}</span></p>
+                          <p><strong>Kalan gün</strong><span>{Math.max(0, remainingDays)}</span></p>
+                          <p><strong>Durum</strong><span>{`${business.subscriptionStatus} / ${business.isActive ? "aktif" : "pasif"}`}</span></p>
+                        </div>
+                        <div className="admin-extension-actions">
+                          {extensionDays.map((days) => (
+                            <button
+                              disabled={isSaving}
+                              key={days}
+                              type="button"
+                              onClick={() =>
+                                requestAdminActionConfirmation({
+                                  businessName: business.name,
+                                  actionName: `+${days} gün abonelik`,
+                                  description: `Abonelik bugünden itibaren ${days} gün aktif olacak ve işletme sipariş almaya açık kalacak.`,
+                                  onConfirm: () => extendSubscription(business, days),
+                                })
+                              }
+                            >
+                              +{days} Gün
+                            </button>
+                          ))}
+                        </div>
+                        <div className="manual-subscription">
+                          <label htmlFor={`manual-${business.slug}`}>Aboneliği Düzelt</label>
+                          <div>
+                            <input
+                              id={`manual-${business.slug}`}
+                              type="date"
+                              value={manualDates[business.slug] ?? ""}
+                              onChange={(event) =>
+                                setManualDates((current) => ({
+                                  ...current,
+                                  [business.slug]: event.target.value,
+                                }))
+                              }
+                            />
+                            <button
+                              disabled={isSaving}
+                              type="button"
+                              onClick={() => {
+                                if (!manualDates[business.slug]) {
+                                  saveManualDate(business);
+                                  return;
+                                }
+                                requestAdminActionConfirmation({
+                                  businessName: business.name,
+                                  actionName: "Aboneliği düzelt",
+                                  description:
+                                    "Seçilen tarih abonelik bitiş tarihi olarak kaydedilecek ve işletme aktif duruma alınacak.",
+                                  onConfirm: () => saveManualDate(business),
+                                });
+                              }}
+                            >
+                              Kaydet
+                            </button>
+                          </div>
+                        </div>
+                        <div className="admin-actions admin-business-actions admin-routine-actions">
+                          <button
+                            disabled={isSaving}
+                            type="button"
+                            onClick={() =>
+                              requestAdminActionConfirmation({
+                                businessName: business.name,
+                                actionName: "Aktif et",
+                                description:
+                                  "İşletme aktif abonelik durumuna alınacak ve erişimi açılacak.",
+                                onConfirm: () => setActive(business),
+                              })
+                            }
+                          >
+                            Aktif Et
+                          </button>
+                        </div>
+                      </section>
 
-                {activeAdminSection === "subscriptions" ? (
-                <div className="admin-control-group">
-                  <h3>Rutin abonelik işlemleri</h3>
-                  <p className="admin-control-help">
-                    Süre uzatma, manuel tarih ve aktif etme işlemleri.
-                  </p>
-                  <div className="admin-extension-actions">
-                    {extensionDays.map((days) => (
-                      <button
-                        disabled={isSaving}
-                        key={days}
-                        type="button"
-                        onClick={() =>
-                          requestAdminActionConfirmation({
-                            businessName: business.name,
-                            actionName: `+${days} gün abonelik`,
-                            description: `Abonelik bugünden itibaren ${days} gün aktif olacak ve işletme sipariş almaya açık kalacak.`,
-                            onConfirm: () => extendSubscription(business, days),
-                          })
-                        }
-                      >
-                        +{days} Gün
-                      </button>
-                    ))}
-                  </div>
-                  <div className="manual-subscription">
-                    <label htmlFor={`manual-${business.slug}`}>Aboneliği Düzelt</label>
-                    <div>
-                      <input
-                        id={`manual-${business.slug}`}
-                        type="date"
-                        value={manualDates[business.slug] ?? ""}
-                        onChange={(event) =>
-                          setManualDates((current) => ({
-                            ...current,
-                            [business.slug]: event.target.value,
-                          }))
-                        }
-                      />
-                      <button
-                        disabled={isSaving}
-                        type="button"
-                        onClick={() => {
-                          if (!manualDates[business.slug]) {
-                            saveManualDate(business);
-                            return;
-                          }
-                          requestAdminActionConfirmation({
-                            businessName: business.name,
-                            actionName: "Aboneliği düzelt",
-                            description:
-                              "Seçilen tarih abonelik bitiş tarihi olarak kaydedilecek ve işletme aktif duruma alınacak.",
-                            onConfirm: () => saveManualDate(business),
-                          });
-                        }}
-                      >
-                        Kaydet
-                      </button>
-                    </div>
-                  </div>
-                  <div className="admin-actions admin-business-actions admin-routine-actions">
-                    <button
-                      disabled={isSaving}
-                      type="button"
-                      onClick={() =>
-                        requestAdminActionConfirmation({
-                          businessName: business.name,
-                          actionName: "Aktif et",
-                          description:
-                            "İşletme aktif abonelik durumuna alınacak ve erişimi açılacak.",
-                          onConfirm: () => setActive(business),
-                        })
-                      }
-                    >
-                      Aktif Et
-                    </button>
-                  </div>
-                </div>
-                ) : null}
+                      <section className="admin-control-group">
+                        <h3>İşletme Ayarları</h3>
+                        <p className="admin-control-help">
+                          İşletme bilgilerini gerektiğinde düzenleyin.
+                        </p>
+                        {editingBusiness?.originalSlug === business.slug ? (
+                          <form
+                            className="customer-form admin-create-form admin-edit-form"
+                            onSubmit={submitEditBusiness}
+                          >
+                            <div className="section-title admin-inline-title">
+                              <h3>İşletme Bilgilerini Düzenle</h3>
+                              <span>Supabase businesses</span>
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-name-${business.slug}`}>İşletme adı</label>
+                              <input
+                                id={`edit-name-${business.slug}`}
+                                value={editingBusiness.name}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("name", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-slug-${business.slug}`}>Slug</label>
+                              <input
+                                id={`edit-slug-${business.slug}`}
+                                value={editingBusiness.slug}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("slug", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-city-${business.slug}`}>Şehir</label>
+                              <input
+                                id={`edit-city-${business.slug}`}
+                                value={editingBusiness.city}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("city", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-district-${business.slug}`}>İlçe</label>
+                              <input
+                                id={`edit-district-${business.slug}`}
+                                value={editingBusiness.district}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("district", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-neighborhood-${business.slug}`}>Mahalle</label>
+                              <input
+                                id={`edit-neighborhood-${business.slug}`}
+                                value={editingBusiness.neighborhood}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("neighborhood", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-address-${business.slug}`}>Adres</label>
+                              <textarea
+                                id={`edit-address-${business.slug}`}
+                                value={editingBusiness.address}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("address", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-whatsapp-${business.slug}`}>
+                                WhatsApp sipariş numarası
+                              </label>
+                              <input
+                                id={`edit-whatsapp-${business.slug}`}
+                                inputMode="tel"
+                                value={editingBusiness.whatsappOrderNumber}
+                                onChange={(event) =>
+                                  updateEditBusinessForm(
+                                    "whatsappOrderNumber",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-description-${business.slug}`}>
+                                Açıklama
+                              </label>
+                              <textarea
+                                id={`edit-description-${business.slug}`}
+                                value={editingBusiness.description}
+                                onChange={(event) =>
+                                  updateEditBusinessForm("description", event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-status-${business.slug}`}>
+                                Abonelik durumu
+                              </label>
+                              <select
+                                id={`edit-status-${business.slug}`}
+                                value={editingBusiness.subscriptionStatus}
+                                onChange={(event) =>
+                                  updateEditBusinessForm(
+                                    "subscriptionStatus",
+                                    event.target.value as EditBusinessForm["subscriptionStatus"],
+                                  )
+                                }
+                              >
+                                <option value="expired">expired</option>
+                                <option value="active">active</option>
+                                <option value="blocked">blocked</option>
+                              </select>
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-started-${business.slug}`}>
+                                Abonelik başlangıç tarihi
+                              </label>
+                              <input
+                                id={`edit-started-${business.slug}`}
+                                type="date"
+                                value={editingBusiness.subscriptionStartedAt}
+                                onChange={(event) =>
+                                  updateEditBusinessForm(
+                                    "subscriptionStartedAt",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`edit-expires-${business.slug}`}>
+                                Abonelik bitiş tarihi
+                              </label>
+                              <input
+                                id={`edit-expires-${business.slug}`}
+                                type="date"
+                                value={editingBusiness.subscriptionExpiresAt}
+                                onChange={(event) =>
+                                  updateEditBusinessForm(
+                                    "subscriptionExpiresAt",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <label className="field admin-checkbox-field">
+                              <span>Aktif/pasif</span>
+                              <input
+                                checked={editingBusiness.isActive}
+                                type="checkbox"
+                                onChange={(event) =>
+                                  updateEditBusinessForm("isActive", event.target.checked)
+                                }
+                              />
+                            </label>
+                            <div className="admin-actions admin-business-actions">
+                              <button
+                                className="submit-button admin-primary-action"
+                                disabled={isUpdatingBusiness}
+                                type="submit"
+                              >
+                                {isUpdatingBusiness ? "Kaydediliyor..." : "Kaydet"}
+                              </button>
+                              <button
+                                disabled={isUpdatingBusiness}
+                                type="button"
+                                onClick={cancelEditingBusiness}
+                              >
+                                Vazgeç
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="admin-actions admin-business-actions admin-routine-actions">
+                            <button disabled={isSaving} type="button" onClick={() => startEditingBusiness(business)}>
+                              Düzenle
+                            </button>
+                          </div>
+                        )}
+                      </section>
 
-                <div
-                  className={`admin-control-group ${
-                    activeAdminSection === "subscriptions"
-                      ? "admin-critical-control-group"
-                      : ""
-                  }`}
-                >
-                  <h3>
-                    {activeAdminSection === "subscriptions"
-                      ? "Kritik işlemler"
-                      : "İşletme işlemleri"}
-                  </h3>
-                  {activeAdminSection === "subscriptions" ? (
-                    <p className="admin-control-help">
-                      Bu işlemler işletmenin erişimini veya abonelik kaydını
-                      doğrudan etkiler.
-                    </p>
-                  ) : null}
-                  <div className="admin-actions admin-business-actions">
-                    {activeAdminSection === "subscriptions" ? (
-                      <>
-                        <button
-                          disabled={isSaving}
-                          type="button"
-                          onClick={() =>
-                            requestAdminActionConfirmation({
-                              businessName: business.name,
-                              actionName: "Pasife al",
-                              description:
-                                "İşletme pasif duruma alınacak ve aktif abonelik erişimi kapanacak.",
-                              isCritical: true,
-                              onConfirm: () => setPassive(business),
-                            })
-                          }
-                        >
-                          Pasife Al
-                        </button>
-                        <button
-                          disabled={isSaving}
-                          className="danger-button"
-                          type="button"
-                          onClick={() =>
-                            requestAdminActionConfirmation({
-                              businessName: business.name,
-                              actionName: "Engelle",
-                              description:
-                                "İşletme engellenecek ve erişimi kapatılacak.",
-                              isCritical: true,
-                              onConfirm: () => blockBusiness(business),
-                            })
-                          }
-                        >
-                          Engelle
-                        </button>
-                        <button
-                          disabled={isSaving}
-                          className="danger-button"
-                          type="button"
-                          onClick={() =>
-                            requestAdminActionConfirmation({
-                              businessName: business.name,
-                              actionName: "Aboneliği sıfırla",
-                              description:
-                                "Abonelik tarihi temizlenecek, durum süresi dolmuş olarak kaydedilecek ve işletme pasife alınacak.",
-                              isCritical: true,
-                              onConfirm: () => resetSubscription(business),
-                            })
-                          }
-                        >
-                          Aboneliği Sıfırla
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button disabled={isSaving} type="button" onClick={() => startEditingBusiness(business)}>
-                          Düzenle
-                        </button>
-                        <button
-                          disabled={isSaving}
-                          className="danger-button"
-                          type="button"
-                          onClick={() =>
-                            requestAdminActionConfirmation({
-                              businessName: business.name,
-                              actionName: "Kalıcı sil",
-                              description:
-                                "Bu işlem işletme ve ürün kayıtlarını geri alınamaz şekilde kaldıracak.",
-                              isCritical: true,
-                              onConfirm: () => deleteBusiness(business),
-                            })
-                          }
-                        >
-                          Kalıcı Sil
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                      <section className="admin-control-group admin-critical-control-group">
+                        <h3>Kritik İşlemler</h3>
+                        <p className="admin-control-help">
+                          Bu işlemler işletmenin erişimini veya kayıtlarını doğrudan etkiler.
+                        </p>
+                        <div className="admin-actions admin-business-actions">
+                          <button
+                            disabled={isSaving}
+                            type="button"
+                            onClick={() =>
+                              requestAdminActionConfirmation({
+                                businessName: business.name,
+                                actionName: "Pasife al",
+                                description:
+                                  "İşletme pasif duruma alınacak ve aktif abonelik erişimi kapanacak.",
+                                isCritical: true,
+                                onConfirm: () => setPassive(business),
+                              })
+                            }
+                          >
+                            Pasife Al
+                          </button>
+                          <button
+                            disabled={isSaving}
+                            className="danger-button"
+                            type="button"
+                            onClick={() =>
+                              requestAdminActionConfirmation({
+                                businessName: business.name,
+                                actionName: "Engelle",
+                                description:
+                                  "İşletme engellenecek ve erişimi kapatılacak.",
+                                isCritical: true,
+                                onConfirm: () => blockBusiness(business),
+                              })
+                            }
+                          >
+                            Engelle
+                          </button>
+                          <button
+                            disabled={isSaving}
+                            className="danger-button"
+                            type="button"
+                            onClick={() =>
+                              requestAdminActionConfirmation({
+                                businessName: business.name,
+                                actionName: "Aboneliği sıfırla",
+                                description:
+                                  "Abonelik tarihi temizlenecek, durum süresi dolmuş olarak kaydedilecek ve işletme pasife alınacak.",
+                                isCritical: true,
+                                onConfirm: () => resetSubscription(business),
+                              })
+                            }
+                          >
+                            Aboneliği Sıfırla
+                          </button>
+                          <button
+                            disabled={isSaving}
+                            className="danger-button"
+                            type="button"
+                            onClick={() =>
+                              requestAdminActionConfirmation({
+                                businessName: business.name,
+                                actionName: "Kalıcı sil",
+                                description:
+                                  "Bu işlem işletme ve ürün kayıtlarını geri alınamaz şekilde kaldıracak.",
+                                isCritical: true,
+                                onConfirm: () => deleteBusiness(business),
+                              })
+                            }
+                          >
+                            Kalıcı Sil
+                          </button>
+                        </div>
+                      </section>
+                    </div>
                   </div>
                 ) : null}
               </article>
