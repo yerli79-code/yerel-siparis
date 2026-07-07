@@ -4417,6 +4417,21 @@ h1 {
   min-width: 0;
 }
 
+.business-panel-location-selector {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.business-panel-location-selector .location-selector {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
 .business-panel-save-bar {
   position: sticky;
   z-index: 20;

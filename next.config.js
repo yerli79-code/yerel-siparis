@@ -11,6 +11,7 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/admin/create-business": ["./public/locations/neighborhoods/**/*.json"],
     "/api/admin/update-business": ["./public/locations/neighborhoods/**/*.json"],
+    "/api/business/update-profile": ["./public/locations/neighborhoods/**/*.json"],
   },
 };
 

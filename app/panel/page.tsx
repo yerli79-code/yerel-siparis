@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
+import LocationSelector from "../../components/LocationSelector";
 import {
   clearBrowserAuthSession,
   getValidAccessToken,
@@ -1596,41 +1597,28 @@ export default function PanelPage() {
                     <h3>Konum</h3>
                     <p>Müşterilere gösterilen adres ve servis alanı bilgileri</p>
                   </div>
-                <div className="field">
-                  <label htmlFor="businessCity">İl</label>
-                  <input
-                    disabled={isSavingProfile}
-                    id="businessCity"
-                    value={profileForm.city}
-                    onChange={(event) =>
-                      updateProfileForm("city", event.target.value)
+                <fieldset
+                  className="business-panel-location-selector"
+                  disabled={isSavingProfile}
+                >
+                  <LocationSelector
+                    idPrefix="businessProfileLocation"
+                    required={false}
+                    value={{
+                      city: profileForm.city,
+                      district: profileForm.district,
+                      neighborhood: profileForm.neighborhood,
+                    }}
+                    onChange={(location) =>
+                      setProfileForm((current) => ({
+                        ...current,
+                        city: location.city,
+                        district: location.district,
+                        neighborhood: location.neighborhood,
+                      }))
                     }
                   />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="businessDistrict">İlçe</label>
-                  <input
-                    disabled={isSavingProfile}
-                    id="businessDistrict"
-                    value={profileForm.district}
-                    onChange={(event) =>
-                      updateProfileForm("district", event.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="businessNeighborhood">Mahalle</label>
-                  <input
-                    disabled={isSavingProfile}
-                    id="businessNeighborhood"
-                    value={profileForm.neighborhood}
-                    onChange={(event) =>
-                      updateProfileForm("neighborhood", event.target.value)
-                    }
-                  />
-                </div>
+                </fieldset>
 
                 <div className="field">
                   <label htmlFor="businessAddress">Açık adres</label>

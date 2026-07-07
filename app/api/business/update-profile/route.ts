@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  hasBusinessLocationChanged,
+  isValidStandardBusinessLocation,
+  type BusinessLocationInput,
+} from "../../../../lib/locations/server";
 
 type SupabaseUser = {
   id: string;
@@ -61,6 +66,22 @@ type ProfileUpdatePayload = Partial<
   Record<(typeof allowedProfileFields)[number], boolean | string | number | null>
 >;
 
+type OwnedBusinessRow = BusinessLocationInput & {
+  id: string;
+  owner_id: string;
+};
+
+class PublicRouteError extends Error {
+  constructor(
+    readonly publicMessage: string,
+    readonly status = 400,
+  ) {
+    super(publicMessage);
+  }
+}
+
+class ServerConfigError extends Error {}
+
 function jsonError(message: string, status = 400, detail?: unknown) {
   return NextResponse.json({ error: message, detail }, { status });
 }
@@ -71,10 +92,10 @@ function getSupabaseServerConfig() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !anonKey) {
-    throw new Error("Supabase public ortam degiskenleri eksik.");
+    throw new ServerConfigError();
   }
   if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik.");
+    throw new ServerConfigError();
   }
 
   return { url, anonKey, serviceRoleKey };
@@ -85,23 +106,8 @@ async function readJson(response: Response) {
   return text ? JSON.parse(text) : null;
 }
 
-function safeSupabaseError(prefix: string, body: unknown) {
-  const error = body as {
-    code?: string;
-    message?: string;
-    details?: string;
-    hint?: string;
-    error?: string;
-    error_description?: string;
-  } | null;
-  const parts = [
-    error?.message || error?.error_description || error?.error,
-    error?.code ? `Kod: ${error.code}` : "",
-    error?.details ? `Detay: ${error.details}` : "",
-    error?.hint ? `Ipucu: ${error.hint}` : "",
-  ].filter(Boolean);
-
-  return parts.length > 0 ? `${prefix}: ${parts.join(" | ")}` : prefix;
+function safeSupabaseError(prefix: string) {
+  return prefix;
 }
 
 function getBearerToken(request: Request) {
@@ -135,7 +141,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 function assertNoForbiddenFields(record: Record<string, unknown>) {
   const found = Object.keys(record).filter((key) => forbiddenFields.has(key));
   if (found.length > 0) {
-    throw new Error(`Bu alanlar profil guncellemesinde kullanilamaz: ${found.join(", ")}`);
+    throw new PublicRouteError("Profil bilgileri gecersiz.", 400);
   }
 }
 
@@ -163,7 +169,7 @@ function addNullableStringField(
     return;
   }
   if (typeof value !== "string") {
-    throw new Error(`${key} alani metin olmalidir.`);
+    throw new PublicRouteError("Profil bilgileri gecersiz.", 400);
   }
 
   payload[key] = value.trim();
@@ -184,12 +190,12 @@ function addLimitedStringField(
     return;
   }
   if (typeof value !== "string") {
-    throw new Error(`${label} metin olmalidir.`);
+    throw new PublicRouteError("Profil bilgileri gecersiz.", 400);
   }
 
   const trimmed = value.trim();
   if (trimmed.length > maxLength) {
-    throw new Error(`${label} en fazla ${maxLength} karakter olabilir.`);
+    throw new PublicRouteError(`${label} en fazla ${maxLength} karakter olabilir.`, 400);
   }
   payload[key] = trimmed || null;
 }
@@ -212,7 +218,7 @@ function addNullableNumberField(
     return;
   }
   if (typeof value !== "number" || !Number.isFinite(value) || value < minValue) {
-    throw new Error(`${label} gecerli bir sayi olmalidir.`);
+    throw new PublicRouteError(`${label} gecerli bir sayi olmalidir.`, 400);
   }
   payload[key] = value;
 }
@@ -260,20 +266,23 @@ function buildProfilePayload(input: Record<string, unknown>) {
     ) {
       payload.preparation_time_minutes = value;
     } else {
-      throw new Error("Hazirlik suresi 1 ile 720 dakika arasinda tam sayi olmalidir.");
+      throw new PublicRouteError(
+        "Hazirlik suresi 1 ile 720 dakika arasinda tam sayi olmalidir.",
+        400,
+      );
     }
   }
 
   if ("is_open" in input) {
     const value = input.is_open;
     if (typeof value !== "boolean") {
-      throw new Error("Siparis durumu acik veya kapali olarak secilmelidir.");
+      throw new PublicRouteError("Siparis durumu acik veya kapali olarak secilmelidir.", 400);
     }
     payload.is_open = value;
   }
 
   if (Object.keys(payload).length === 0) {
-    throw new Error("Guncellenecek profil alani bulunamadi.");
+    throw new PublicRouteError("Guncellenecek profil alani bulunamadi.", 400);
   }
 
   return payload;
@@ -283,11 +292,11 @@ async function fetchOwnedBusiness(
   url: string,
   serviceRoleKey: string,
   businessId: string,
-) {
+): Promise<OwnedBusinessRow | null> {
   const response = await fetch(
     `${url}/rest/v1/businesses?id=eq.${encodeURIComponent(
       businessId,
-    )}&select=id,owner_id&limit=1`,
+    )}&select=id,owner_id,city,district,neighborhood&limit=1`,
     {
       headers: {
         apikey: serviceRoleKey,
@@ -298,10 +307,58 @@ async function fetchOwnedBusiness(
   const body = await readJson(response);
 
   if (!response.ok) {
-    throw new Error(safeSupabaseError("Isletme bilgisi alinamadi", body));
+    throw new Error(safeSupabaseError("Isletme bilgisi alinamadi"));
   }
 
   return Array.isArray(body) ? body[0] : null;
+}
+
+function getNextLocation(
+  current: BusinessLocationInput,
+  payload: ProfileUpdatePayload,
+): BusinessLocationInput {
+  return {
+    city: "city" in payload ? (payload.city as string | null) : current.city,
+    district:
+      "district" in payload ? (payload.district as string | null) : current.district,
+    neighborhood:
+      "neighborhood" in payload
+        ? (payload.neighborhood as string | null)
+        : current.neighborhood,
+  };
+}
+
+function hasNoLocation(input: BusinessLocationInput) {
+  return !input.city?.trim() && !input.district?.trim() && !input.neighborhood?.trim();
+}
+
+function hasPartialLocation(input: BusinessLocationInput) {
+  const filledCount = [input.city, input.district, input.neighborhood].filter(
+    (value) => Boolean(value?.trim()),
+  ).length;
+  return filledCount > 0 && filledCount < 3;
+}
+
+async function validateLocationUpdate(
+  current: BusinessLocationInput,
+  payload: ProfileUpdatePayload,
+) {
+  const nextLocation = getNextLocation(current, payload);
+  if (!hasBusinessLocationChanged(current, nextLocation)) return "";
+  if (hasNoLocation(nextLocation)) return "";
+  if (hasPartialLocation(nextLocation)) {
+    return "Konumu güncellemek için il, ilçe ve Mahalle / Köy alanlarını birlikte seçin.";
+  }
+  let isValidLocation = false;
+  try {
+    isValidLocation = await isValidStandardBusinessLocation(nextLocation);
+  } catch {
+    isValidLocation = false;
+  }
+  if (!isValidLocation) {
+    return "Lütfen geçerli il, ilçe ve Mahalle / Köy seçin.";
+  }
+  return "";
 }
 
 async function updateBusinessProfile(
@@ -326,12 +383,12 @@ async function updateBusinessProfile(
   const body = await readJson(response);
 
   if (!response.ok) {
-    throw new Error(safeSupabaseError("Isletme profili guncellenemedi", body));
+    throw new Error(safeSupabaseError("Isletme profili guncellenemedi"));
   }
 
   const business = Array.isArray(body) ? body[0] : body;
   if (!business?.id) {
-    throw new Error("Isletme profili guncellendi ancak guncel kayit donmedi.");
+    throw new Error("Isletme profili guncellenemedi");
   }
 
   return business;
@@ -389,6 +446,10 @@ export async function POST(request: Request) {
     }
 
     const payload = buildProfilePayload(body.input);
+    const locationError = await validateLocationUpdate(business, payload);
+    if (locationError) {
+      return jsonError(locationError, 400);
+    }
     const updatedBusiness = await updateBusinessProfile(
       url,
       serviceRoleKey,
@@ -398,9 +459,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ business: updatedBusiness });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Isletme profili guncellenemedi.";
-    const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    if (error instanceof PublicRouteError) {
+      return jsonError(error.publicMessage, error.status);
+    }
+    const status = error instanceof ServerConfigError ? 500 : 400;
+    return jsonError("Profil güncellenemedi. Lütfen tekrar deneyin.", status);
   }
 }
