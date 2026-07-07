@@ -1,0 +1,212 @@
+[
+  {
+    "type": "village",
+    "id": 8671,
+    "name": "Akgüney",
+    "label": "Akgüney (K?y)",
+    "value": "Akgüney (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8672,
+    "name": "Akseki",
+    "label": "Akseki (K?y)",
+    "value": "Akseki (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8674,
+    "name": "Boğazkaya",
+    "label": "Boğazkaya (K?y)",
+    "value": "Boğazkaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8675,
+    "name": "Çakırbağ",
+    "label": "Çakırbağ (K?y)",
+    "value": "Çakırbağ (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8676,
+    "name": "Çayırcık",
+    "label": "Çayırcık (K?y)",
+    "value": "Çayırcık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8677,
+    "name": "Dalkoz",
+    "label": "Dalkoz (K?y)",
+    "value": "Dalkoz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8678,
+    "name": "Dereköy",
+    "label": "Dereköy (K?y)",
+    "value": "Dereköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8679,
+    "name": "Dolaşlar",
+    "label": "Dolaşlar (K?y)",
+    "value": "Dolaşlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8680,
+    "name": "Erenler",
+    "label": "Erenler (K?y)",
+    "value": "Erenler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8681,
+    "name": "Feriz",
+    "label": "Feriz (K?y)",
+    "value": "Feriz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8682,
+    "name": "Göynükören",
+    "label": "Göynükören (K?y)",
+    "value": "Göynükören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8683,
+    "name": "Harmancık",
+    "label": "Harmancık (K?y)",
+    "value": "Harmancık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8684,
+    "name": "İncekaya",
+    "label": "İncekaya (K?y)",
+    "value": "İncekaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8685,
+    "name": "Karakuzu",
+    "label": "Karakuzu (K?y)",
+    "value": "Karakuzu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8686,
+    "name": "Karataş",
+    "label": "Karataş (K?y)",
+    "value": "Karataş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8687,
+    "name": "Kavakköy",
+    "label": "Kavakköy (K?y)",
+    "value": "Kavakköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8688,
+    "name": "Koçlu",
+    "label": "Koçlu (K?y)",
+    "value": "Koçlu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20237,
+    "name": "Köprülübey",
+    "label": "Köprülübey (Mahalle)",
+    "value": "Köprülübey (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20238,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 8689,
+    "name": "Oluklu",
+    "label": "Oluklu (K?y)",
+    "value": "Oluklu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8690,
+    "name": "Oymaağaç",
+    "label": "Oymaağaç (K?y)",
+    "value": "Oymaağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8691,
+    "name": "Sarıkaya",
+    "label": "Sarıkaya (K?y)",
+    "value": "Sarıkaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8692,
+    "name": "Topçu",
+    "label": "Topçu (K?y)",
+    "value": "Topçu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8673,
+    "name": "Ulumelan",
+    "label": "Ulumelan (K?y)",
+    "value": "Ulumelan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8693,
+    "name": "Üçgazi",
+    "label": "Üçgazi (K?y)",
+    "value": "Üçgazi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8694,
+    "name": "Yaylatepesi",
+    "label": "Yaylatepesi (K?y)",
+    "value": "Yaylatepesi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8695,
+    "name": "Yazıören",
+    "label": "Yazıören (K?y)",
+    "value": "Yazıören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8696,
+    "name": "Yurtpınar",
+    "label": "Yurtpınar (K?y)",
+    "value": "Yurtpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8697,
+    "name": "Yusufoğlu",
+    "label": "Yusufoğlu (K?y)",
+    "value": "Yusufoğlu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20239,
+    "name": "Zübeyde Hanım",
+    "label": "Zübeyde Hanım (Mahalle)",
+    "value": "Zübeyde Hanım (Mahalle)"
+  }
+]

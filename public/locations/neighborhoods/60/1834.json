@@ -1,0 +1,198 @@
+[
+  {
+    "type": "village",
+    "id": 30448,
+    "name": "Bağlarbaşı",
+    "label": "Bağlarbaşı (K?y)",
+    "value": "Bağlarbaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30449,
+    "name": "Ballıca",
+    "label": "Ballıca (K?y)",
+    "value": "Ballıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30450,
+    "name": "Beşevler",
+    "label": "Beşevler (K?y)",
+    "value": "Beşevler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30451,
+    "name": "Çayköy",
+    "label": "Çayköy (K?y)",
+    "value": "Çayköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30452,
+    "name": "Çiftlikköy",
+    "label": "Çiftlikköy (K?y)",
+    "value": "Çiftlikköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30453,
+    "name": "Dereçaylı",
+    "label": "Dereçaylı (K?y)",
+    "value": "Dereçaylı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30454,
+    "name": "Dereköy",
+    "label": "Dereköy (K?y)",
+    "value": "Dereköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30455,
+    "name": "Doğancalı",
+    "label": "Doğancalı (K?y)",
+    "value": "Doğancalı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70921,
+    "name": "Erkilet",
+    "label": "Erkilet (Mahalle)",
+    "value": "Erkilet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70922,
+    "name": "Esentepe",
+    "label": "Esentepe (Mahalle)",
+    "value": "Esentepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99168,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70928,
+    "name": "Gazi Osman Paşa",
+    "label": "Gazi Osman Paşa (Mahalle)",
+    "value": "Gazi Osman Paşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30456,
+    "name": "Kaledere",
+    "label": "Kaledere (K?y)",
+    "value": "Kaledere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70929,
+    "name": "Kazova",
+    "label": "Kazova (Mahalle)",
+    "value": "Kazova (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99167,
+    "name": "Mehmet Akif Ersoy",
+    "label": "Mehmet Akif Ersoy (Mahalle)",
+    "value": "Mehmet Akif Ersoy (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30457,
+    "name": "Menteşe",
+    "label": "Menteşe (K?y)",
+    "value": "Menteşe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70923,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70930,
+    "name": "Mrş.Fevzi Çakmak",
+    "label": "Mrş.Fevzi Çakmak (Mahalle)",
+    "value": "Mrş.Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30458,
+    "name": "Ocaklı",
+    "label": "Ocaklı (K?y)",
+    "value": "Ocaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30459,
+    "name": "Ovacık",
+    "label": "Ovacık (K?y)",
+    "value": "Ovacık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30460,
+    "name": "Ovayurt",
+    "label": "Ovayurt (K?y)",
+    "value": "Ovayurt (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70924,
+    "name": "Seyitali",
+    "label": "Seyitali (Mahalle)",
+    "value": "Seyitali (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70925,
+    "name": "Sinanpaşa",
+    "label": "Sinanpaşa (Mahalle)",
+    "value": "Sinanpaşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30461,
+    "name": "Taşlık",
+    "label": "Taşlık (K?y)",
+    "value": "Taşlık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30462,
+    "name": "Tatarköy",
+    "label": "Tatarköy (K?y)",
+    "value": "Tatarköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70926,
+    "name": "Tekke",
+    "label": "Tekke (Mahalle)",
+    "value": "Tekke (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30463,
+    "name": "Tepeçaylı",
+    "label": "Tepeçaylı (K?y)",
+    "value": "Tepeçaylı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70931,
+    "name": "Yeşildere",
+    "label": "Yeşildere (Mahalle)",
+    "value": "Yeşildere (Mahalle)"
+  }
+]

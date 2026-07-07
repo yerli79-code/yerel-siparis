@@ -1,0 +1,128 @@
+[
+  {
+    "type": "village",
+    "id": 25032,
+    "name": "Ağıllı",
+    "label": "Ağıllı (K?y)",
+    "value": "Ağıllı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25033,
+    "name": "Bağlıca",
+    "label": "Bağlıca (K?y)",
+    "value": "Bağlıca (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60466,
+    "name": "Bahçeli",
+    "label": "Bahçeli (Mahalle)",
+    "value": "Bahçeli (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60472,
+    "name": "Bahçeli Evler",
+    "label": "Bahçeli Evler (Mahalle)",
+    "value": "Bahçeli Evler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60476,
+    "name": "Ballık",
+    "label": "Ballık (Mahalle)",
+    "value": "Ballık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60467,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60468,
+    "name": "Çayırlık",
+    "label": "Çayırlık (Mahalle)",
+    "value": "Çayırlık (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25034,
+    "name": "Çullar",
+    "label": "Çullar (K?y)",
+    "value": "Çullar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25035,
+    "name": "İnallı",
+    "label": "İnallı (K?y)",
+    "value": "İnallı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60477,
+    "name": "Kale",
+    "label": "Kale (Mahalle)",
+    "value": "Kale (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25036,
+    "name": "Karacaören",
+    "label": "Karacaören (K?y)",
+    "value": "Karacaören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25038,
+    "name": "Kozluca",
+    "label": "Kozluca (K?y)",
+    "value": "Kozluca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25039,
+    "name": "Kurugöl",
+    "label": "Kurugöl (K?y)",
+    "value": "Kurugöl (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60473,
+    "name": "Mustafapaşa",
+    "label": "Mustafapaşa (Mahalle)",
+    "value": "Mustafapaşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25041,
+    "name": "Tepeköy",
+    "label": "Tepeköy (K?y)",
+    "value": "Tepeköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25042,
+    "name": "Topaç",
+    "label": "Topaç (K?y)",
+    "value": "Topaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60469,
+    "name": "Yukarı",
+    "label": "Yukarı (Mahalle)",
+    "value": "Yukarı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25043,
+    "name": "Yuva",
+    "label": "Yuva (K?y)",
+    "value": "Yuva (K?y)"
+  }
+]

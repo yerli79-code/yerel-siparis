@@ -1,0 +1,870 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 1614,
+    "name": "100.Yıl",
+    "label": "100.Yıl (Mahalle)",
+    "value": "100.Yıl (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1615,
+    "name": "50.Yıl",
+    "label": "50.Yıl (Mahalle)",
+    "value": "50.Yıl (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1619,
+    "name": "Ahlatlıbel",
+    "label": "Ahlatlıbel (Mahalle)",
+    "value": "Ahlatlıbel (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1986,
+    "name": "Akarlar",
+    "label": "Akarlar (Mahalle)",
+    "value": "Akarlar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1513,
+    "name": "Akpınar",
+    "label": "Akpınar (Mahalle)",
+    "value": "Akpınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1899,
+    "name": "Alacaatlı",
+    "label": "Alacaatlı (Mahalle)",
+    "value": "Alacaatlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1514,
+    "name": "Anıttepe",
+    "label": "Anıttepe (Mahalle)",
+    "value": "Anıttepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1515,
+    "name": "Arka Topraklık",
+    "label": "Arka Topraklık (Mahalle)",
+    "value": "Arka Topraklık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1517,
+    "name": "Aşağı İmrahor",
+    "label": "Aşağı İmrahor (Mahalle)",
+    "value": "Aşağı İmrahor (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1518,
+    "name": "Aşağı Öveçler",
+    "label": "Aşağı Öveçler (Mahalle)",
+    "value": "Aşağı Öveçler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1519,
+    "name": "Aşıkpaşa",
+    "label": "Aşıkpaşa (Mahalle)",
+    "value": "Aşıkpaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1520,
+    "name": "Ata",
+    "label": "Ata (Mahalle)",
+    "value": "Ata (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1521,
+    "name": "Aydınlar",
+    "label": "Aydınlar (Mahalle)",
+    "value": "Aydınlar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1522,
+    "name": "Ayrancı",
+    "label": "Ayrancı (Mahalle)",
+    "value": "Ayrancı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1523,
+    "name": "Aziziye",
+    "label": "Aziziye (Mahalle)",
+    "value": "Aziziye (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1524,
+    "name": "Bademlidere",
+    "label": "Bademlidere (Mahalle)",
+    "value": "Bademlidere (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1525,
+    "name": "Bağcılar",
+    "label": "Bağcılar (Mahalle)",
+    "value": "Bağcılar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1526,
+    "name": "Bahçelievler",
+    "label": "Bahçelievler (Mahalle)",
+    "value": "Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1620,
+    "name": "Balgat",
+    "label": "Balgat (Mahalle)",
+    "value": "Balgat (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1527,
+    "name": "Barbaros",
+    "label": "Barbaros (Mahalle)",
+    "value": "Barbaros (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1528,
+    "name": "Bayraktar",
+    "label": "Bayraktar (Mahalle)",
+    "value": "Bayraktar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1616,
+    "name": "Beytepe",
+    "label": "Beytepe (Mahalle)",
+    "value": "Beytepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1529,
+    "name": "Birlik",
+    "label": "Birlik (Mahalle)",
+    "value": "Birlik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1530,
+    "name": "Boztepe",
+    "label": "Boztepe (Mahalle)",
+    "value": "Boztepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1531,
+    "name": "Büyükesat",
+    "label": "Büyükesat (Mahalle)",
+    "value": "Büyükesat (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1532,
+    "name": "Cebeci",
+    "label": "Cebeci (Mahalle)",
+    "value": "Cebeci (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1533,
+    "name": "Cevizlidere",
+    "label": "Cevizlidere (Mahalle)",
+    "value": "Cevizlidere (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1534,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1535,
+    "name": "Çamlıtepe",
+    "label": "Çamlıtepe (Mahalle)",
+    "value": "Çamlıtepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1536,
+    "name": "Çankaya",
+    "label": "Çankaya (Mahalle)",
+    "value": "Çankaya (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1987,
+    "name": "Çavuşlu",
+    "label": "Çavuşlu (Mahalle)",
+    "value": "Çavuşlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1902,
+    "name": "Çayyolu",
+    "label": "Çayyolu (Mahalle)",
+    "value": "Çayyolu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1563,
+    "name": "Çiğdem",
+    "label": "Çiğdem (Mahalle)",
+    "value": "Çiğdem (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1538,
+    "name": "Çukurambar",
+    "label": "Çukurambar (Mahalle)",
+    "value": "Çukurambar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1539,
+    "name": "Devlet",
+    "label": "Devlet (Mahalle)",
+    "value": "Devlet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1540,
+    "name": "Dilekler",
+    "label": "Dilekler (Mahalle)",
+    "value": "Dilekler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1903,
+    "name": "Dodurga",
+    "label": "Dodurga (Mahalle)",
+    "value": "Dodurga (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1541,
+    "name": "Doğuş",
+    "label": "Doğuş (Mahalle)",
+    "value": "Doğuş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1516,
+    "name": "Dumlupınar",
+    "label": "Dumlupınar (Mahalle)",
+    "value": "Dumlupınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1542,
+    "name": "Ehlibeyt",
+    "label": "Ehlibeyt (Mahalle)",
+    "value": "Ehlibeyt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1543,
+    "name": "Emek",
+    "label": "Emek (Mahalle)",
+    "value": "Emek (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1544,
+    "name": "Ertuğrulgazi",
+    "label": "Ertuğrulgazi (Mahalle)",
+    "value": "Ertuğrulgazi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1545,
+    "name": "Erzurum",
+    "label": "Erzurum (Mahalle)",
+    "value": "Erzurum (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1546,
+    "name": "Esatoğlu",
+    "label": "Esatoğlu (Mahalle)",
+    "value": "Esatoğlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1547,
+    "name": "Eti",
+    "label": "Eti (Mahalle)",
+    "value": "Eti (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1988,
+    "name": "Evciler",
+    "label": "Evciler (Mahalle)",
+    "value": "Evciler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1548,
+    "name": "Fakülteler",
+    "label": "Fakülteler (Mahalle)",
+    "value": "Fakülteler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1549,
+    "name": "Fidanlık",
+    "label": "Fidanlık (Mahalle)",
+    "value": "Fidanlık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1550,
+    "name": "Gaziosmanpaşa",
+    "label": "Gaziosmanpaşa (Mahalle)",
+    "value": "Gaziosmanpaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1551,
+    "name": "Gökkuşağı",
+    "label": "Gökkuşağı (Mahalle)",
+    "value": "Gökkuşağı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1552,
+    "name": "Göktürk",
+    "label": "Göktürk (Mahalle)",
+    "value": "Göktürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1553,
+    "name": "Güvenevler",
+    "label": "Güvenevler (Mahalle)",
+    "value": "Güvenevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1554,
+    "name": "Güzeltepe",
+    "label": "Güzeltepe (Mahalle)",
+    "value": "Güzeltepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1555,
+    "name": "Harbiye",
+    "label": "Harbiye (Mahalle)",
+    "value": "Harbiye (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1556,
+    "name": "Hilal",
+    "label": "Hilal (Mahalle)",
+    "value": "Hilal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1557,
+    "name": "Huzur",
+    "label": "Huzur (Mahalle)",
+    "value": "Huzur (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1558,
+    "name": "İleri",
+    "label": "İleri (Mahalle)",
+    "value": "İleri (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1559,
+    "name": "İlkadım",
+    "label": "İlkadım (Mahalle)",
+    "value": "İlkadım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1598,
+    "name": "İlkbahar",
+    "label": "İlkbahar (Mahalle)",
+    "value": "İlkbahar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1560,
+    "name": "İlker",
+    "label": "İlker (Mahalle)",
+    "value": "İlker (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1561,
+    "name": "İncesu",
+    "label": "İncesu (Mahalle)",
+    "value": "İncesu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1562,
+    "name": "İşçi Blokları",
+    "label": "İşçi Blokları (Mahalle)",
+    "value": "İşçi Blokları (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1989,
+    "name": "Karahasanlı",
+    "label": "Karahasanlı (Mahalle)",
+    "value": "Karahasanlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1564,
+    "name": "Karapınar",
+    "label": "Karapınar (Mahalle)",
+    "value": "Karapınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1617,
+    "name": "Karataş",
+    "label": "Karataş (Mahalle)",
+    "value": "Karataş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1565,
+    "name": "Kavaklıdere",
+    "label": "Kavaklıdere (Mahalle)",
+    "value": "Kavaklıdere (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1566,
+    "name": "Kazım Özalp",
+    "label": "Kazım Özalp (Mahalle)",
+    "value": "Kazım Özalp (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1567,
+    "name": "Keklik Pınarı",
+    "label": "Keklik Pınarı (Mahalle)",
+    "value": "Keklik Pınarı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1568,
+    "name": "Kırkkonaklar",
+    "label": "Kırkkonaklar (Mahalle)",
+    "value": "Kırkkonaklar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1569,
+    "name": "Kızılay",
+    "label": "Kızılay (Mahalle)",
+    "value": "Kızılay (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1570,
+    "name": "Kızılırmak",
+    "label": "Kızılırmak (Mahalle)",
+    "value": "Kızılırmak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1571,
+    "name": "Kocatepe",
+    "label": "Kocatepe (Mahalle)",
+    "value": "Kocatepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1879,
+    "name": "Konutkent",
+    "label": "Konutkent (Mahalle)",
+    "value": "Konutkent (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1572,
+    "name": "Korkutreis",
+    "label": "Korkutreis (Mahalle)",
+    "value": "Korkutreis (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1880,
+    "name": "Koru",
+    "label": "Koru (Mahalle)",
+    "value": "Koru (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1990,
+    "name": "Kömürcü",
+    "label": "Kömürcü (Mahalle)",
+    "value": "Kömürcü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1573,
+    "name": "Küçükesat",
+    "label": "Küçükesat (Mahalle)",
+    "value": "Küçükesat (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1574,
+    "name": "Kültür",
+    "label": "Kültür (Mahalle)",
+    "value": "Kültür (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1575,
+    "name": "Malazgirt",
+    "label": "Malazgirt (Mahalle)",
+    "value": "Malazgirt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1576,
+    "name": "Maltepe",
+    "label": "Maltepe (Mahalle)",
+    "value": "Maltepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1577,
+    "name": "Mebusevleri",
+    "label": "Mebusevleri (Mahalle)",
+    "value": "Mebusevleri (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1578,
+    "name": "Meşrutiyet",
+    "label": "Meşrutiyet (Mahalle)",
+    "value": "Meşrutiyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1579,
+    "name": "Metin Akkuş",
+    "label": "Metin Akkuş (Mahalle)",
+    "value": "Metin Akkuş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1580,
+    "name": "Metin Oktay",
+    "label": "Metin Oktay (Mahalle)",
+    "value": "Metin Oktay (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1581,
+    "name": "Mimar Sinan",
+    "label": "Mimar Sinan (Mahalle)",
+    "value": "Mimar Sinan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1582,
+    "name": "Muhsin Ertuğrul",
+    "label": "Muhsin Ertuğrul (Mahalle)",
+    "value": "Muhsin Ertuğrul (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1583,
+    "name": "Murat",
+    "label": "Murat (Mahalle)",
+    "value": "Murat (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1584,
+    "name": "Mustafa Kemal",
+    "label": "Mustafa Kemal (Mahalle)",
+    "value": "Mustafa Kemal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1537,
+    "name": "Mutlukent",
+    "label": "Mutlukent (Mahalle)",
+    "value": "Mutlukent (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1585,
+    "name": "Mürsel Uluç",
+    "label": "Mürsel Uluç (Mahalle)",
+    "value": "Mürsel Uluç (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1586,
+    "name": "Naci Çakır",
+    "label": "Naci Çakır (Mahalle)",
+    "value": "Naci Çakır (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1587,
+    "name": "Namık Kemal",
+    "label": "Namık Kemal (Mahalle)",
+    "value": "Namık Kemal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1588,
+    "name": "Nasuh Akar",
+    "label": "Nasuh Akar (Mahalle)",
+    "value": "Nasuh Akar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1589,
+    "name": "Oğuzlar",
+    "label": "Oğuzlar (Mahalle)",
+    "value": "Oğuzlar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1590,
+    "name": "Oran",
+    "label": "Oran (Mahalle)",
+    "value": "Oran (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1591,
+    "name": "Orta İmrahor",
+    "label": "Orta İmrahor (Mahalle)",
+    "value": "Orta İmrahor (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1593,
+    "name": "Osman Temiz",
+    "label": "Osman Temiz (Mahalle)",
+    "value": "Osman Temiz (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1594,
+    "name": "Ön Cebeci",
+    "label": "Ön Cebeci (Mahalle)",
+    "value": "Ön Cebeci (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1595,
+    "name": "Öveçler",
+    "label": "Öveçler (Mahalle)",
+    "value": "Öveçler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1886,
+    "name": "Prof. Dr. Ahmet Taner Kışlalı",
+    "label": "Prof. Dr. Ahmet Taner Kışlalı (Mahalle)",
+    "value": "Prof. Dr. Ahmet Taner Kışlalı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1596,
+    "name": "Remzi Oğuz Arık",
+    "label": "Remzi Oğuz Arık (Mahalle)",
+    "value": "Remzi Oğuz Arık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1597,
+    "name": "Sağlık",
+    "label": "Sağlık (Mahalle)",
+    "value": "Sağlık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1621,
+    "name": "Sancak",
+    "label": "Sancak (Mahalle)",
+    "value": "Sancak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1599,
+    "name": "Seyranbağları",
+    "label": "Seyranbağları (Mahalle)",
+    "value": "Seyranbağları (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1600,
+    "name": "Sokullu Mehmet Paşa",
+    "label": "Sokullu Mehmet Paşa (Mahalle)",
+    "value": "Sokullu Mehmet Paşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1601,
+    "name": "Söğütözü",
+    "label": "Söğütözü (Mahalle)",
+    "value": "Söğütözü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1602,
+    "name": "Şehit Cengiz Karaca",
+    "label": "Şehit Cengiz Karaca (Mahalle)",
+    "value": "Şehit Cengiz Karaca (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1603,
+    "name": "Şehit Cevdet Özdemir",
+    "label": "Şehit Cevdet Özdemir (Mahalle)",
+    "value": "Şehit Cevdet Özdemir (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1604,
+    "name": "Tınaztepe",
+    "label": "Tınaztepe (Mahalle)",
+    "value": "Tınaztepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1991,
+    "name": "Tohumlar",
+    "label": "Tohumlar (Mahalle)",
+    "value": "Tohumlar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1605,
+    "name": "Topraklık",
+    "label": "Topraklık (Mahalle)",
+    "value": "Topraklık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1606,
+    "name": "Umut",
+    "label": "Umut (Mahalle)",
+    "value": "Umut (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1890,
+    "name": "Ümit",
+    "label": "Ümit (Mahalle)",
+    "value": "Ümit (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1592,
+    "name": "Üniversiteler",
+    "label": "Üniversiteler (Mahalle)",
+    "value": "Üniversiteler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1618,
+    "name": "Yakupabdal",
+    "label": "Yakupabdal (Mahalle)",
+    "value": "Yakupabdal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1894,
+    "name": "Yaşamkent",
+    "label": "Yaşamkent (Mahalle)",
+    "value": "Yaşamkent (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1993,
+    "name": "Yayla",
+    "label": "Yayla (Mahalle)",
+    "value": "Yayla (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1607,
+    "name": "Yeşilkent",
+    "label": "Yeşilkent (Mahalle)",
+    "value": "Yeşilkent (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1608,
+    "name": "Yıldızevler",
+    "label": "Yıldızevler (Mahalle)",
+    "value": "Yıldızevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1609,
+    "name": "Yukarı Bahçelievler",
+    "label": "Yukarı Bahçelievler (Mahalle)",
+    "value": "Yukarı Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1610,
+    "name": "Yukarı Dikmen",
+    "label": "Yukarı Dikmen (Mahalle)",
+    "value": "Yukarı Dikmen (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1611,
+    "name": "Yukarı Öveçler",
+    "label": "Yukarı Öveçler (Mahalle)",
+    "value": "Yukarı Öveçler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1612,
+    "name": "Yücetepe",
+    "label": "Yücetepe (Mahalle)",
+    "value": "Yücetepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1613,
+    "name": "Zafertepe",
+    "label": "Zafertepe (Mahalle)",
+    "value": "Zafertepe (Mahalle)"
+  }
+]

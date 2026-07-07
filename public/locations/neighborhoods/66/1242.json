@@ -1,0 +1,226 @@
+[
+  {
+    "type": "village",
+    "id": 33935,
+    "name": "Alidemirci",
+    "label": "Alidemirci (K?y)",
+    "value": "Alidemirci (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33936,
+    "name": "Aşağıtekke",
+    "label": "Aşağıtekke (K?y)",
+    "value": "Aşağıtekke (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33937,
+    "name": "Aşağıyahyasaray",
+    "label": "Aşağıyahyasaray (K?y)",
+    "value": "Aşağıyahyasaray (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80766,
+    "name": "Avcılar",
+    "label": "Avcılar (Mahalle)",
+    "value": "Avcılar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33938,
+    "name": "Avşaralanı",
+    "label": "Avşaralanı (K?y)",
+    "value": "Avşaralanı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80767,
+    "name": "Bağlarbaşı",
+    "label": "Bağlarbaşı (Mahalle)",
+    "value": "Bağlarbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80768,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33939,
+    "name": "Curali",
+    "label": "Curali (K?y)",
+    "value": "Curali (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 183862,
+    "name": "Çokradan",
+    "label": "Çokradan (Mahalle)",
+    "value": "Çokradan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 49293,
+    "name": "Çukurören",
+    "label": "Çukurören (K?y)",
+    "value": "Çukurören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33941,
+    "name": "Derekemal",
+    "label": "Derekemal (K?y)",
+    "value": "Derekemal (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33942,
+    "name": "Elçi",
+    "label": "Elçi (K?y)",
+    "value": "Elçi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33943,
+    "name": "Evciler",
+    "label": "Evciler (K?y)",
+    "value": "Evciler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33944,
+    "name": "Fahralı",
+    "label": "Fahralı (K?y)",
+    "value": "Fahralı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80769,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 49295,
+    "name": "Gülderesi",
+    "label": "Gülderesi (K?y)",
+    "value": "Gülderesi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33945,
+    "name": "Günyayla",
+    "label": "Günyayla (K?y)",
+    "value": "Günyayla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33952,
+    "name": "Güzelyayla",
+    "label": "Güzelyayla (K?y)",
+    "value": "Güzelyayla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33946,
+    "name": "İnönü",
+    "label": "İnönü (K?y)",
+    "value": "İnönü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80770,
+    "name": "İshaklı",
+    "label": "İshaklı (Mahalle)",
+    "value": "İshaklı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33947,
+    "name": "Kaletepe",
+    "label": "Kaletepe (K?y)",
+    "value": "Kaletepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 49297,
+    "name": "Karaazap",
+    "label": "Karaazap (K?y)",
+    "value": "Karaazap (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33948,
+    "name": "Karakışla",
+    "label": "Karakışla (K?y)",
+    "value": "Karakışla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33950,
+    "name": "Külekçi",
+    "label": "Külekçi (K?y)",
+    "value": "Külekçi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33951,
+    "name": "Menteşe",
+    "label": "Menteşe (K?y)",
+    "value": "Menteşe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33953,
+    "name": "Söbeçimen",
+    "label": "Söbeçimen (K?y)",
+    "value": "Söbeçimen (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33954,
+    "name": "Turluhan",
+    "label": "Turluhan (K?y)",
+    "value": "Turluhan (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 197721,
+    "name": "Yavuz Sultan Selim",
+    "label": "Yavuz Sultan Selim (Mahalle)",
+    "value": "Yavuz Sultan Selim (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80771,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 197723,
+    "name": "Yıldırım Beyazıt",
+    "label": "Yıldırım Beyazıt (Mahalle)",
+    "value": "Yıldırım Beyazıt (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33955,
+    "name": "Yukarıtekke",
+    "label": "Yukarıtekke (K?y)",
+    "value": "Yukarıtekke (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33956,
+    "name": "Yukarıyahyasaray",
+    "label": "Yukarıyahyasaray (K?y)",
+    "value": "Yukarıyahyasaray (K?y)"
+  }
+]

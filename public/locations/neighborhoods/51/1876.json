@@ -1,0 +1,114 @@
+[
+  {
+    "type": "village",
+    "id": 25246,
+    "name": "Akçaören",
+    "label": "Akçaören (K?y)",
+    "value": "Akçaören (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60706,
+    "name": "Aşağı",
+    "label": "Aşağı (Mahalle)",
+    "value": "Aşağı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60714,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25247,
+    "name": "Çömlekçi",
+    "label": "Çömlekçi (K?y)",
+    "value": "Çömlekçi (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60718,
+    "name": "Erenler",
+    "label": "Erenler (Mahalle)",
+    "value": "Erenler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60707,
+    "name": "İstiklal",
+    "label": "İstiklal (Mahalle)",
+    "value": "İstiklal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60708,
+    "name": "Orta",
+    "label": "Orta (Mahalle)",
+    "value": "Orta (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60709,
+    "name": "Sağlık",
+    "label": "Sağlık (Mahalle)",
+    "value": "Sağlık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60719,
+    "name": "Selçuk",
+    "label": "Selçuk (Mahalle)",
+    "value": "Selçuk (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25250,
+    "name": "Ulukışla",
+    "label": "Ulukışla (K?y)",
+    "value": "Ulukışla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25251,
+    "name": "Uluören",
+    "label": "Uluören (K?y)",
+    "value": "Uluören (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60715,
+    "name": "Yaka",
+    "label": "Yaka (Mahalle)",
+    "value": "Yaka (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25252,
+    "name": "Yakacık",
+    "label": "Yakacık (K?y)",
+    "value": "Yakacık (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60716,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25253,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (K?y)",
+    "value": "Yeşilyurt (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60710,
+    "name": "Yukarı",
+    "label": "Yukarı (Mahalle)",
+    "value": "Yukarı (Mahalle)"
+  }
+]

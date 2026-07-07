@@ -1,0 +1,58 @@
+[
+  {
+    "type": "village",
+    "id": 7200,
+    "name": "Bağsaray",
+    "label": "Bağsaray (K?y)",
+    "value": "Bağsaray (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 11051,
+    "name": "Camii",
+    "label": "Camii (Mahalle)",
+    "value": "Camii (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 7201,
+    "name": "Çebiş",
+    "label": "Çebiş (K?y)",
+    "value": "Çebiş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7202,
+    "name": "Güvenli",
+    "label": "Güvenli (K?y)",
+    "value": "Güvenli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 11052,
+    "name": "Konak",
+    "label": "Konak (Mahalle)",
+    "value": "Konak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 7203,
+    "name": "Kuzköy",
+    "label": "Kuzköy (K?y)",
+    "value": "Kuzköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7204,
+    "name": "Ovacık",
+    "label": "Ovacık (K?y)",
+    "value": "Ovacık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7205,
+    "name": "Tekkeköy",
+    "label": "Tekkeköy (K?y)",
+    "value": "Tekkeköy (K?y)"
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 91115,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37241,
+    "name": "Çolaklı",
+    "label": "Çolaklı (K?y)",
+    "value": "Çolaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37242,
+    "name": "Çulhalı",
+    "label": "Çulhalı (K?y)",
+    "value": "Çulhalı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91116,
+    "name": "Hürriyet",
+    "label": "Hürriyet (Mahalle)",
+    "value": "Hürriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37243,
+    "name": "Kalecik",
+    "label": "Kalecik (K?y)",
+    "value": "Kalecik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37244,
+    "name": "Karayiğit",
+    "label": "Karayiğit (K?y)",
+    "value": "Karayiğit (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91117,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37245,
+    "name": "Sarayova",
+    "label": "Sarayova (K?y)",
+    "value": "Sarayova (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37246,
+    "name": "Yanıkkışla",
+    "label": "Yanıkkışla (K?y)",
+    "value": "Yanıkkışla (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91118,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (Mahalle)",
+    "value": "Yeşilyurt (Mahalle)"
+  }
+]

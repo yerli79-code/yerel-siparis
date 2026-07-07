@@ -1,0 +1,219 @@
+[
+  {
+    "type": "village",
+    "id": 11137,
+    "name": "Aliçopehlivan",
+    "label": "Aliçopehlivan (K?y)",
+    "value": "Aliçopehlivan (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21203,
+    "name": "Atatürk",
+    "label": "Atatürk (Mahalle)",
+    "value": "Atatürk (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11147,
+    "name": "Balabancık",
+    "label": "Balabancık (K?y)",
+    "value": "Balabancık (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21198,
+    "name": "Bayrambey",
+    "label": "Bayrambey (Mahalle)",
+    "value": "Bayrambey (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21199,
+    "name": "Bozkurt",
+    "label": "Bozkurt (Mahalle)",
+    "value": "Bozkurt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21204,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 200281,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21208,
+    "name": "Fevzi Çakmak",
+    "label": "Fevzi Çakmak (Mahalle)",
+    "value": "Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21209,
+    "name": "Gazi",
+    "label": "Gazi (Mahalle)",
+    "value": "Gazi (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11148,
+    "name": "Hacı",
+    "label": "Hacı (K?y)",
+    "value": "Hacı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11133,
+    "name": "Hıdırköy",
+    "label": "Hıdırköy (K?y)",
+    "value": "Hıdırköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11146,
+    "name": "İbriktepe",
+    "label": "İbriktepe (K?y)",
+    "value": "İbriktepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21210,
+    "name": "İnönü",
+    "label": "İnönü (Mahalle)",
+    "value": "İnönü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21200,
+    "name": "Kapucu",
+    "label": "Kapucu (Mahalle)",
+    "value": "Kapucu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11149,
+    "name": "Karaağaç",
+    "label": "Karaağaç (K?y)",
+    "value": "Karaağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11134,
+    "name": "Kocahıdır",
+    "label": "Kocahıdır (K?y)",
+    "value": "Kocahıdır (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11135,
+    "name": "Korucu",
+    "label": "Korucu (K?y)",
+    "value": "Korucu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11136,
+    "name": "Koyuntepe",
+    "label": "Koyuntepe (K?y)",
+    "value": "Koyuntepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21201,
+    "name": "Köprü",
+    "label": "Köprü (Mahalle)",
+    "value": "Köprü (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11138,
+    "name": "Kumdere",
+    "label": "Kumdere (K?y)",
+    "value": "Kumdere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21205,
+    "name": "Kurtuluş",
+    "label": "Kurtuluş (Mahalle)",
+    "value": "Kurtuluş (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11139,
+    "name": "Küçükdoğanca",
+    "label": "Küçükdoğanca (K?y)",
+    "value": "Küçükdoğanca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11140,
+    "name": "Paşaköy",
+    "label": "Paşaköy (K?y)",
+    "value": "Paşaköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11150,
+    "name": "Pazardere",
+    "label": "Pazardere (K?y)",
+    "value": "Pazardere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21202,
+    "name": "Saraç İlyas",
+    "label": "Saraç İlyas (Mahalle)",
+    "value": "Saraç İlyas (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11141,
+    "name": "Sarıcaali",
+    "label": "Sarıcaali (K?y)",
+    "value": "Sarıcaali (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11142,
+    "name": "Sarpdere",
+    "label": "Sarpdere (K?y)",
+    "value": "Sarpdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11151,
+    "name": "Sultan",
+    "label": "Sultan (K?y)",
+    "value": "Sultan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11152,
+    "name": "Tevfikiye",
+    "label": "Tevfikiye (K?y)",
+    "value": "Tevfikiye (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11143,
+    "name": "Turpçular",
+    "label": "Turpçular (K?y)",
+    "value": "Turpçular (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11144,
+    "name": "Yapıldak",
+    "label": "Yapıldak (K?y)",
+    "value": "Yapıldak (K?y)"
+  }
+]

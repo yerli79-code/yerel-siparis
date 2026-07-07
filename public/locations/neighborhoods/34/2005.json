@@ -1,0 +1,79 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 40177,
+    "name": "Bahçelievler",
+    "label": "Bahçelievler (Mahalle)",
+    "value": "Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40181,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40184,
+    "name": "Çobançeşme",
+    "label": "Çobançeşme (Mahalle)",
+    "value": "Çobançeşme (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40185,
+    "name": "Fevzi Çakmak",
+    "label": "Fevzi Çakmak (Mahalle)",
+    "value": "Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40187,
+    "name": "Hürriyet",
+    "label": "Hürriyet (Mahalle)",
+    "value": "Hürriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40182,
+    "name": "Kocasinan Merkez",
+    "label": "Kocasinan Merkez (Mahalle)",
+    "value": "Kocasinan Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40179,
+    "name": "Siyavuşpaşa",
+    "label": "Siyavuşpaşa (Mahalle)",
+    "value": "Siyavuşpaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40180,
+    "name": "Soğanlı",
+    "label": "Soğanlı (Mahalle)",
+    "value": "Soğanlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40178,
+    "name": "Şirinevler",
+    "label": "Şirinevler (Mahalle)",
+    "value": "Şirinevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40183,
+    "name": "Yenibosna Merkez",
+    "label": "Yenibosna Merkez (Mahalle)",
+    "value": "Yenibosna Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40186,
+    "name": "Zafer",
+    "label": "Zafer (Mahalle)",
+    "value": "Zafer (Mahalle)"
+  }
+]

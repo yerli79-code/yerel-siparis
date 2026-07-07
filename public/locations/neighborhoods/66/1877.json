@@ -1,0 +1,191 @@
+[
+  {
+    "type": "village",
+    "id": 33872,
+    "name": "Ağıllı",
+    "label": "Ağıllı (K?y)",
+    "value": "Ağıllı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33873,
+    "name": "Aşağıkuyucak",
+    "label": "Aşağıkuyucak (K?y)",
+    "value": "Aşağıkuyucak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33874,
+    "name": "Bakırboğazı",
+    "label": "Bakırboğazı (K?y)",
+    "value": "Bakırboğazı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140925,
+    "name": "Baştürk",
+    "label": "Baştürk (Mahalle)",
+    "value": "Baştürk (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33876,
+    "name": "Benlioğlu",
+    "label": "Benlioğlu (K?y)",
+    "value": "Benlioğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33877,
+    "name": "Boğazkaya",
+    "label": "Boğazkaya (K?y)",
+    "value": "Boğazkaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33878,
+    "name": "Büyüktoraman",
+    "label": "Büyüktoraman (K?y)",
+    "value": "Büyüktoraman (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80714,
+    "name": "Danlıdağ",
+    "label": "Danlıdağ (Mahalle)",
+    "value": "Danlıdağ (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33879,
+    "name": "Dereçiftlik",
+    "label": "Dereçiftlik (K?y)",
+    "value": "Dereçiftlik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33880,
+    "name": "Güroğlu",
+    "label": "Güroğlu (K?y)",
+    "value": "Güroğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33881,
+    "name": "Hacıilyas",
+    "label": "Hacıilyas (K?y)",
+    "value": "Hacıilyas (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33882,
+    "name": "Kazankaya",
+    "label": "Kazankaya (K?y)",
+    "value": "Kazankaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33883,
+    "name": "Kırımoluk",
+    "label": "Kırımoluk (K?y)",
+    "value": "Kırımoluk (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33884,
+    "name": "Kıyıkışla",
+    "label": "Kıyıkışla (K?y)",
+    "value": "Kıyıkışla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33885,
+    "name": "Kızılcakışla",
+    "label": "Kızılcakışla (K?y)",
+    "value": "Kızılcakışla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33886,
+    "name": "Kocabekir",
+    "label": "Kocabekir (K?y)",
+    "value": "Kocabekir (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33887,
+    "name": "Kösrelik",
+    "label": "Kösrelik (K?y)",
+    "value": "Kösrelik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33888,
+    "name": "Kuşsaray",
+    "label": "Kuşsaray (K?y)",
+    "value": "Kuşsaray (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33889,
+    "name": "Kuyuköy",
+    "label": "Kuyuköy (K?y)",
+    "value": "Kuyuköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33890,
+    "name": "Küçüktoraman",
+    "label": "Küçüktoraman (K?y)",
+    "value": "Küçüktoraman (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33891,
+    "name": "Mercimekören",
+    "label": "Mercimekören (K?y)",
+    "value": "Mercimekören (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80717,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33892,
+    "name": "Mollaismail",
+    "label": "Mollaismail (K?y)",
+    "value": "Mollaismail (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33893,
+    "name": "Sakızlık",
+    "label": "Sakızlık (K?y)",
+    "value": "Sakızlık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33894,
+    "name": "Üzümlük",
+    "label": "Üzümlük (K?y)",
+    "value": "Üzümlük (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80715,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80716,
+    "name": "Yenice",
+    "label": "Yenice (Mahalle)",
+    "value": "Yenice (Mahalle)"
+  }
+]

@@ -1,0 +1,338 @@
+[
+  {
+    "type": "village",
+    "id": 33959,
+    "name": "Alıçlı",
+    "label": "Alıçlı (K?y)",
+    "value": "Alıçlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33960,
+    "name": "Arpaç",
+    "label": "Arpaç (K?y)",
+    "value": "Arpaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80783,
+    "name": "Bağlarbaşı",
+    "label": "Bağlarbaşı (Mahalle)",
+    "value": "Bağlarbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80784,
+    "name": "Bahçelievler",
+    "label": "Bahçelievler (Mahalle)",
+    "value": "Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33961,
+    "name": "Başalan",
+    "label": "Başalan (K?y)",
+    "value": "Başalan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33962,
+    "name": "Başpınar",
+    "label": "Başpınar (K?y)",
+    "value": "Başpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33958,
+    "name": "Bayındırhüyük",
+    "label": "Bayındırhüyük (K?y)",
+    "value": "Bayındırhüyük (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33963,
+    "name": "Bazlambaç",
+    "label": "Bazlambaç (K?y)",
+    "value": "Bazlambaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33964,
+    "name": "Beyyurdu",
+    "label": "Beyyurdu (K?y)",
+    "value": "Beyyurdu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33965,
+    "name": "Cemaloğlu",
+    "label": "Cemaloğlu (K?y)",
+    "value": "Cemaloğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33966,
+    "name": "Çakırköy",
+    "label": "Çakırköy (K?y)",
+    "value": "Çakırköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33967,
+    "name": "Çandır",
+    "label": "Çandır (K?y)",
+    "value": "Çandır (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33968,
+    "name": "Çayırözü",
+    "label": "Çayırözü (K?y)",
+    "value": "Çayırözü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33969,
+    "name": "Çeltek",
+    "label": "Çeltek (K?y)",
+    "value": "Çeltek (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33971,
+    "name": "Demircialan",
+    "label": "Demircialan (K?y)",
+    "value": "Demircialan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33972,
+    "name": "Doğanoğlu",
+    "label": "Doğanoğlu (K?y)",
+    "value": "Doğanoğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33973,
+    "name": "Elemin",
+    "label": "Elemin (K?y)",
+    "value": "Elemin (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33974,
+    "name": "Fakıdağı",
+    "label": "Fakıdağı (K?y)",
+    "value": "Fakıdağı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33975,
+    "name": "Fuadiye",
+    "label": "Fuadiye (K?y)",
+    "value": "Fuadiye (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33976,
+    "name": "Gökdere",
+    "label": "Gökdere (K?y)",
+    "value": "Gökdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33970,
+    "name": "Gönülyurdu",
+    "label": "Gönülyurdu (K?y)",
+    "value": "Gönülyurdu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80792,
+    "name": "Gültepe",
+    "label": "Gültepe (Mahalle)",
+    "value": "Gültepe (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33977,
+    "name": "Hamzalı",
+    "label": "Hamzalı (K?y)",
+    "value": "Hamzalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33978,
+    "name": "İkizce",
+    "label": "İkizce (K?y)",
+    "value": "İkizce (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33979,
+    "name": "İlbeyli",
+    "label": "İlbeyli (K?y)",
+    "value": "İlbeyli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33980,
+    "name": "İsaklı",
+    "label": "İsaklı (K?y)",
+    "value": "İsaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33982,
+    "name": "Kalederesi",
+    "label": "Kalederesi (K?y)",
+    "value": "Kalederesi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33983,
+    "name": "Kamışcık",
+    "label": "Kamışcık (K?y)",
+    "value": "Kamışcık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33999,
+    "name": "Karahacılı",
+    "label": "Karahacılı (K?y)",
+    "value": "Karahacılı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34000,
+    "name": "Karakaya",
+    "label": "Karakaya (K?y)",
+    "value": "Karakaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33984,
+    "name": "Kavakalanı",
+    "label": "Kavakalanı (K?y)",
+    "value": "Kavakalanı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33985,
+    "name": "Kayalar",
+    "label": "Kayalar (K?y)",
+    "value": "Kayalar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33986,
+    "name": "Kırkdilim",
+    "label": "Kırkdilim (K?y)",
+    "value": "Kırkdilim (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33987,
+    "name": "Koyunculu",
+    "label": "Koyunculu (K?y)",
+    "value": "Koyunculu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33988,
+    "name": "Körpınar",
+    "label": "Körpınar (K?y)",
+    "value": "Körpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33989,
+    "name": "Kurtağılı",
+    "label": "Kurtağılı (K?y)",
+    "value": "Kurtağılı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33990,
+    "name": "Kuruçay",
+    "label": "Kuruçay (K?y)",
+    "value": "Kuruçay (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33991,
+    "name": "Kuzgun",
+    "label": "Kuzgun (K?y)",
+    "value": "Kuzgun (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33992,
+    "name": "Mehmetli",
+    "label": "Mehmetli (K?y)",
+    "value": "Mehmetli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140360,
+    "name": "Mevlana",
+    "label": "Mevlana (Mahalle)",
+    "value": "Mevlana (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33993,
+    "name": "Ortaoba",
+    "label": "Ortaoba (K?y)",
+    "value": "Ortaoba (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33994,
+    "name": "Özören",
+    "label": "Özören (K?y)",
+    "value": "Özören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33997,
+    "name": "Sarıköy",
+    "label": "Sarıköy (K?y)",
+    "value": "Sarıköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140362,
+    "name": "Seyit Ahmet",
+    "label": "Seyit Ahmet (Mahalle)",
+    "value": "Seyit Ahmet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33998,
+    "name": "Tipideresi",
+    "label": "Tipideresi (K?y)",
+    "value": "Tipideresi (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80785,
+    "name": "Yeniyol",
+    "label": "Yeniyol (Mahalle)",
+    "value": "Yeniyol (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34001,
+    "name": "Yukarıoba",
+    "label": "Yukarıoba (K?y)",
+    "value": "Yukarıoba (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140358,
+    "name": "Yunus Emre",
+    "label": "Yunus Emre (Mahalle)",
+    "value": "Yunus Emre (Mahalle)"
+  }
+]

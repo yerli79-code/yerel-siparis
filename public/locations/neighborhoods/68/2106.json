@@ -1,0 +1,58 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 89985,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89986,
+    "name": "Gazi",
+    "label": "Gazi (Mahalle)",
+    "value": "Gazi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89987,
+    "name": "İstikamet",
+    "label": "İstikamet (Mahalle)",
+    "value": "İstikamet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89988,
+    "name": "Koyuncu",
+    "label": "Koyuncu (Mahalle)",
+    "value": "Koyuncu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89989,
+    "name": "Selçuk",
+    "label": "Selçuk (Mahalle)",
+    "value": "Selçuk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89990,
+    "name": "Türkistan",
+    "label": "Türkistan (Mahalle)",
+    "value": "Türkistan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34792,
+    "name": "Yeşiltömek",
+    "label": "Yeşiltömek (K?y)",
+    "value": "Yeşiltömek (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89991,
+    "name": "Zafer",
+    "label": "Zafer (Mahalle)",
+    "value": "Zafer (Mahalle)"
+  }
+]

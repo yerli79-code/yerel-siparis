@@ -1,0 +1,135 @@
+[
+  {
+    "type": "village",
+    "id": 19549,
+    "name": "Armutveren",
+    "label": "Armutveren (K?y)",
+    "value": "Armutveren (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19561,
+    "name": "Avcılar",
+    "label": "Avcılar (K?y)",
+    "value": "Avcılar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19550,
+    "name": "Balaban",
+    "label": "Balaban (K?y)",
+    "value": "Balaban (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19562,
+    "name": "Beğendik",
+    "label": "Beğendik (K?y)",
+    "value": "Beğendik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19551,
+    "name": "Boztaş",
+    "label": "Boztaş (K?y)",
+    "value": "Boztaş (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 49935,
+    "name": "Deniz",
+    "label": "Deniz (Mahalle)",
+    "value": "Deniz (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19552,
+    "name": "Gökyaka",
+    "label": "Gökyaka (K?y)",
+    "value": "Gökyaka (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19553,
+    "name": "Hamdibey",
+    "label": "Hamdibey (K?y)",
+    "value": "Hamdibey (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 49932,
+    "name": "Hamdibey",
+    "label": "Hamdibey (Mahalle)",
+    "value": "Hamdibey (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19554,
+    "name": "İncesırt",
+    "label": "İncesırt (K?y)",
+    "value": "İncesırt (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19555,
+    "name": "Karacadağ",
+    "label": "Karacadağ (K?y)",
+    "value": "Karacadağ (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19563,
+    "name": "Limanköy",
+    "label": "Limanköy (K?y)",
+    "value": "Limanköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 49933,
+    "name": "Orhaniye",
+    "label": "Orhaniye (Mahalle)",
+    "value": "Orhaniye (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19556,
+    "name": "Sarpdere",
+    "label": "Sarpdere (K?y)",
+    "value": "Sarpdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19564,
+    "name": "Sislioba",
+    "label": "Sislioba (K?y)",
+    "value": "Sislioba (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19557,
+    "name": "Sivriler",
+    "label": "Sivriler (K?y)",
+    "value": "Sivriler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 49934,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19558,
+    "name": "Yeşilce",
+    "label": "Yeşilce (K?y)",
+    "value": "Yeşilce (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19559,
+    "name": "Yiğitbaşı",
+    "label": "Yiğitbaşı (K?y)",
+    "value": "Yiğitbaşı (K?y)"
+  }
+]

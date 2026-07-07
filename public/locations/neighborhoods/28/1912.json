@@ -1,0 +1,107 @@
+[
+  {
+    "type": "village",
+    "id": 14570,
+    "name": "Çatak",
+    "label": "Çatak (K?y)",
+    "value": "Çatak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 14571,
+    "name": "Çatalağaç",
+    "label": "Çatalağaç (K?y)",
+    "value": "Çatalağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 14572,
+    "name": "Doymuş",
+    "label": "Doymuş (K?y)",
+    "value": "Doymuş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 14573,
+    "name": "Güdül",
+    "label": "Güdül (K?y)",
+    "value": "Güdül (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 14574,
+    "name": "Güvenlik",
+    "label": "Güvenlik (K?y)",
+    "value": "Güvenlik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 14575,
+    "name": "Kozköy",
+    "label": "Kozköy (K?y)",
+    "value": "Kozköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30786,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 14578,
+    "name": "Oyraca",
+    "label": "Oyraca (K?y)",
+    "value": "Oyraca (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30788,
+    "name": "Sadaklı",
+    "label": "Sadaklı (Mahalle)",
+    "value": "Sadaklı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 14576,
+    "name": "Söğütağzı",
+    "label": "Söğütağzı (K?y)",
+    "value": "Söğütağzı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30789,
+    "name": "Süttaşı",
+    "label": "Süttaşı (Mahalle)",
+    "value": "Süttaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15128,
+    "name": "Üçtaş",
+    "label": "Üçtaş (K?y)",
+    "value": "Üçtaş (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 100420,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 14577,
+    "name": "Yeniköy",
+    "label": "Yeniköy (K?y)",
+    "value": "Yeniköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 100421,
+    "name": "Yeşiltepe",
+    "label": "Yeşiltepe (Mahalle)",
+    "value": "Yeşiltepe (Mahalle)"
+  }
+]

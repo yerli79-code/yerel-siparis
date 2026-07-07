@@ -1,0 +1,100 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 140352,
+    "name": "Abdullah Efendi",
+    "label": "Abdullah Efendi (Mahalle)",
+    "value": "Abdullah Efendi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80755,
+    "name": "Atatürk",
+    "label": "Atatürk (Mahalle)",
+    "value": "Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80756,
+    "name": "Bahçelievler",
+    "label": "Bahçelievler (Mahalle)",
+    "value": "Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80757,
+    "name": "Barboros",
+    "label": "Barboros (Mahalle)",
+    "value": "Barboros (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33930,
+    "name": "Büyükkışla",
+    "label": "Büyükkışla (K?y)",
+    "value": "Büyükkışla (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80758,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80762,
+    "name": "Eşrefpaşa",
+    "label": "Eşrefpaşa (Mahalle)",
+    "value": "Eşrefpaşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33931,
+    "name": "Gülpınar",
+    "label": "Gülpınar (K?y)",
+    "value": "Gülpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 33932,
+    "name": "İğdeli",
+    "label": "İğdeli (K?y)",
+    "value": "İğdeli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80759,
+    "name": "Kılıçlar",
+    "label": "Kılıçlar (Mahalle)",
+    "value": "Kılıçlar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 33933,
+    "name": "Kozan",
+    "label": "Kozan (K?y)",
+    "value": "Kozan (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80760,
+    "name": "Nabioğlu",
+    "label": "Nabioğlu (Mahalle)",
+    "value": "Nabioğlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140354,
+    "name": "Şah Sultan",
+    "label": "Şah Sultan (Mahalle)",
+    "value": "Şah Sultan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80761,
+    "name": "Yenimeydan",
+    "label": "Yenimeydan (Mahalle)",
+    "value": "Yenimeydan (Mahalle)"
+  }
+]

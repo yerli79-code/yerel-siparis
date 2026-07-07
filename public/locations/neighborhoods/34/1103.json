@@ -1,0 +1,37 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 40139,
+    "name": "Burgazada",
+    "label": "Burgazada (Mahalle)",
+    "value": "Burgazada (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40142,
+    "name": "Heybeliada",
+    "label": "Heybeliada (Mahalle)",
+    "value": "Heybeliada (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40143,
+    "name": "Kınalıada",
+    "label": "Kınalıada (Mahalle)",
+    "value": "Kınalıada (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40140,
+    "name": "Maden",
+    "label": "Maden (Mahalle)",
+    "value": "Maden (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40141,
+    "name": "Nizam",
+    "label": "Nizam (Mahalle)",
+    "value": "Nizam (Mahalle)"
+  }
+]

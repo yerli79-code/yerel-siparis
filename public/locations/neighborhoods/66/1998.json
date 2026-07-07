@@ -1,0 +1,86 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 80903,
+    "name": "Altındağ",
+    "label": "Altındağ (Mahalle)",
+    "value": "Altındağ (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34244,
+    "name": "Başpınar",
+    "label": "Başpınar (K?y)",
+    "value": "Başpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34245,
+    "name": "Bektaşlı",
+    "label": "Bektaşlı (K?y)",
+    "value": "Bektaşlı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80904,
+    "name": "Cankurtaran",
+    "label": "Cankurtaran (Mahalle)",
+    "value": "Cankurtaran (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34246,
+    "name": "Çöplüçiftliği",
+    "label": "Çöplüçiftliği (K?y)",
+    "value": "Çöplüçiftliği (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34247,
+    "name": "Eskiören",
+    "label": "Eskiören (K?y)",
+    "value": "Eskiören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34248,
+    "name": "Fehimli",
+    "label": "Fehimli (K?y)",
+    "value": "Fehimli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 100158,
+    "name": "Mehmet Akif Ersoy",
+    "label": "Mehmet Akif Ersoy (Mahalle)",
+    "value": "Mehmet Akif Ersoy (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34249,
+    "name": "Üçobalar",
+    "label": "Üçobalar (K?y)",
+    "value": "Üçobalar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80905,
+    "name": "Yazlak",
+    "label": "Yazlak (Mahalle)",
+    "value": "Yazlak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80906,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34250,
+    "name": "Yiğitler",
+    "label": "Yiğitler (K?y)",
+    "value": "Yiğitler (K?y)"
+  }
+]

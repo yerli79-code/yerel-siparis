@@ -1,0 +1,58 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 90821,
+    "name": "50. Yıl",
+    "label": "50. Yıl (Mahalle)",
+    "value": "50. Yıl (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90819,
+    "name": "Bayır",
+    "label": "Bayır (Mahalle)",
+    "value": "Bayır (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36707,
+    "name": "Fıstıklı",
+    "label": "Fıstıklı (K?y)",
+    "value": "Fıstıklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36708,
+    "name": "Hayriye",
+    "label": "Hayriye (K?y)",
+    "value": "Hayriye (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36709,
+    "name": "Kapaklı",
+    "label": "Kapaklı (K?y)",
+    "value": "Kapaklı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90820,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36710,
+    "name": "Mecidiye",
+    "label": "Mecidiye (K?y)",
+    "value": "Mecidiye (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36711,
+    "name": "Selimiye",
+    "label": "Selimiye (K?y)",
+    "value": "Selimiye (K?y)"
+  }
+]

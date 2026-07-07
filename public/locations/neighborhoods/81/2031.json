@@ -1,0 +1,191 @@
+[
+  {
+    "type": "village",
+    "id": 37585,
+    "name": "Altunköy",
+    "label": "Altunköy (K?y)",
+    "value": "Altunköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37586,
+    "name": "Bıçkıyanı",
+    "label": "Bıçkıyanı (K?y)",
+    "value": "Bıçkıyanı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37587,
+    "name": "Çakırsayvan",
+    "label": "Çakırsayvan (K?y)",
+    "value": "Çakırsayvan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37588,
+    "name": "Çamlıca",
+    "label": "Çamlıca (K?y)",
+    "value": "Çamlıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37589,
+    "name": "Çamoluk",
+    "label": "Çamoluk (K?y)",
+    "value": "Çamoluk (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37590,
+    "name": "Çatalçam",
+    "label": "Çatalçam (K?y)",
+    "value": "Çatalçam (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91234,
+    "name": "Çele",
+    "label": "Çele (Mahalle)",
+    "value": "Çele (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37591,
+    "name": "Darıyeri Bakacak",
+    "label": "Darıyeri Bakacak (K?y)",
+    "value": "Darıyeri Bakacak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37592,
+    "name": "Darıyeri Hasanbey",
+    "label": "Darıyeri Hasanbey (K?y)",
+    "value": "Darıyeri Hasanbey (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37593,
+    "name": "Darıyeri Mengencik",
+    "label": "Darıyeri Mengencik (K?y)",
+    "value": "Darıyeri Mengencik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37594,
+    "name": "Darıyeri Yörükler",
+    "label": "Darıyeri Yörükler (K?y)",
+    "value": "Darıyeri Yörükler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37595,
+    "name": "Dipsizgöl",
+    "label": "Dipsizgöl (K?y)",
+    "value": "Dipsizgöl (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91235,
+    "name": "Eskiköy",
+    "label": "Eskiköy (Mahalle)",
+    "value": "Eskiköy (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37596,
+    "name": "Fındıklı",
+    "label": "Fındıklı (K?y)",
+    "value": "Fındıklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37597,
+    "name": "Hacıazizler",
+    "label": "Hacıazizler (K?y)",
+    "value": "Hacıazizler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91236,
+    "name": "Karaçalı",
+    "label": "Karaçalı (Mahalle)",
+    "value": "Karaçalı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91237,
+    "name": "Kumluca",
+    "label": "Kumluca (Mahalle)",
+    "value": "Kumluca (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91238,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37598,
+    "name": "Muratbey",
+    "label": "Muratbey (K?y)",
+    "value": "Muratbey (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37599,
+    "name": "Sarıçökek",
+    "label": "Sarıçökek (K?y)",
+    "value": "Sarıçökek (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91239,
+    "name": "Sarıyer",
+    "label": "Sarıyer (Mahalle)",
+    "value": "Sarıyer (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37600,
+    "name": "Sazköy",
+    "label": "Sazköy (K?y)",
+    "value": "Sazköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91240,
+    "name": "Şimşir",
+    "label": "Şimşir (Mahalle)",
+    "value": "Şimşir (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37601,
+    "name": "Tavak",
+    "label": "Tavak (K?y)",
+    "value": "Tavak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37602,
+    "name": "Üçköprü",
+    "label": "Üçköprü (K?y)",
+    "value": "Üçköprü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37603,
+    "name": "Yeniyurt",
+    "label": "Yeniyurt (K?y)",
+    "value": "Yeniyurt (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37604,
+    "name": "Yeşiltepe",
+    "label": "Yeşiltepe (K?y)",
+    "value": "Yeşiltepe (K?y)"
+  }
+]

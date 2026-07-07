@@ -1,0 +1,289 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 1284,
+    "name": "15 Temmuz Şehitler",
+    "label": "15 Temmuz Şehitler (Mahalle)",
+    "value": "15 Temmuz Şehitler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1287,
+    "name": "Adnan Menderes",
+    "label": "Adnan Menderes (Mahalle)",
+    "value": "Adnan Menderes (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1932,
+    "name": "Alakoçlu",
+    "label": "Alakoçlu (K?y)",
+    "value": "Alakoçlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1933,
+    "name": "Aras",
+    "label": "Aras (K?y)",
+    "value": "Aras (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1934,
+    "name": "Aşağıdumanlı",
+    "label": "Aşağıdumanlı (K?y)",
+    "value": "Aşağıdumanlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1935,
+    "name": "Aşağıdüzmeydan",
+    "label": "Aşağıdüzmeydan (K?y)",
+    "value": "Aşağıdüzmeydan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1936,
+    "name": "Aşağıesen",
+    "label": "Aşağıesen (K?y)",
+    "value": "Aşağıesen (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1937,
+    "name": "Aşağıtoklu",
+    "label": "Aşağıtoklu (K?y)",
+    "value": "Aşağıtoklu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1938,
+    "name": "Balçiçek",
+    "label": "Balçiçek (K?y)",
+    "value": "Balçiçek (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1939,
+    "name": "Bayıraltı",
+    "label": "Bayıraltı (K?y)",
+    "value": "Bayıraltı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1940,
+    "name": "Bayramyazı",
+    "label": "Bayramyazı (K?y)",
+    "value": "Bayramyazı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1941,
+    "name": "Boyuncak",
+    "label": "Boyuncak (K?y)",
+    "value": "Boyuncak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1285,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1942,
+    "name": "Çöğürlü",
+    "label": "Çöğürlü (K?y)",
+    "value": "Çöğürlü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1943,
+    "name": "Çökelge",
+    "label": "Çökelge (K?y)",
+    "value": "Çökelge (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1944,
+    "name": "Dilekyazı",
+    "label": "Dilekyazı (K?y)",
+    "value": "Dilekyazı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1945,
+    "name": "Düzgören",
+    "label": "Düzgören (K?y)",
+    "value": "Düzgören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1946,
+    "name": "Geçitveren",
+    "label": "Geçitveren (K?y)",
+    "value": "Geçitveren (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1947,
+    "name": "Gözucu",
+    "label": "Gözucu (K?y)",
+    "value": "Gözucu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1948,
+    "name": "Gündoğdu",
+    "label": "Gündoğdu (K?y)",
+    "value": "Gündoğdu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1949,
+    "name": "Güneysöğüt",
+    "label": "Güneysöğüt (K?y)",
+    "value": "Güneysöğüt (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1286,
+    "name": "Hürriyet",
+    "label": "Hürriyet (Mahalle)",
+    "value": "Hürriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1950,
+    "name": "İkiyamaç",
+    "label": "İkiyamaç (K?y)",
+    "value": "İkiyamaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1951,
+    "name": "Kağnılı",
+    "label": "Kağnılı (K?y)",
+    "value": "Kağnılı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1952,
+    "name": "Karagöz",
+    "label": "Karagöz (K?y)",
+    "value": "Karagöz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1953,
+    "name": "Kumlubucak",
+    "label": "Kumlubucak (K?y)",
+    "value": "Kumlubucak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1954,
+    "name": "Kumluca",
+    "label": "Kumluca (K?y)",
+    "value": "Kumluca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1955,
+    "name": "Samanyolu",
+    "label": "Samanyolu (K?y)",
+    "value": "Samanyolu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1956,
+    "name": "Tanrıverdi",
+    "label": "Tanrıverdi (K?y)",
+    "value": "Tanrıverdi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1957,
+    "name": "Tanyolu",
+    "label": "Tanyolu (K?y)",
+    "value": "Tanyolu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1958,
+    "name": "Taşteker",
+    "label": "Taşteker (K?y)",
+    "value": "Taşteker (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1959,
+    "name": "Yanalyol",
+    "label": "Yanalyol (K?y)",
+    "value": "Yanalyol (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1960,
+    "name": "Yankaya",
+    "label": "Yankaya (K?y)",
+    "value": "Yankaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1961,
+    "name": "Yardımcılar",
+    "label": "Yardımcılar (K?y)",
+    "value": "Yardımcılar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1962,
+    "name": "Yassıkaya",
+    "label": "Yassıkaya (K?y)",
+    "value": "Yassıkaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1963,
+    "name": "Yeltepe",
+    "label": "Yeltepe (K?y)",
+    "value": "Yeltepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1964,
+    "name": "Yukarıdumanlı",
+    "label": "Yukarıdumanlı (K?y)",
+    "value": "Yukarıdumanlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1965,
+    "name": "Yukarıdüzmeydan",
+    "label": "Yukarıdüzmeydan (K?y)",
+    "value": "Yukarıdüzmeydan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1966,
+    "name": "Yukarıesen",
+    "label": "Yukarıesen (K?y)",
+    "value": "Yukarıesen (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1967,
+    "name": "Yukarıtaşlıçay",
+    "label": "Yukarıtaşlıçay (K?y)",
+    "value": "Yukarıtaşlıçay (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1968,
+    "name": "Yukarıtoklu",
+    "label": "Yukarıtoklu (K?y)",
+    "value": "Yukarıtoklu (K?y)"
+  }
+]

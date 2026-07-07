@@ -1,0 +1,219 @@
+[
+  {
+    "type": "village",
+    "id": 35790,
+    "name": "Akarsu",
+    "label": "Akarsu (K?y)",
+    "value": "Akarsu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35819,
+    "name": "Akçayol",
+    "label": "Akçayol (K?y)",
+    "value": "Akçayol (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90590,
+    "name": "Aliçavuş",
+    "label": "Aliçavuş (Mahalle)",
+    "value": "Aliçavuş (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35791,
+    "name": "Aşağıdere",
+    "label": "Aşağıdere (K?y)",
+    "value": "Aşağıdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35792,
+    "name": "Ayvalık",
+    "label": "Ayvalık (K?y)",
+    "value": "Ayvalık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35793,
+    "name": "Başaran",
+    "label": "Başaran (K?y)",
+    "value": "Başaran (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35794,
+    "name": "Beşağaç",
+    "label": "Beşağaç (K?y)",
+    "value": "Beşağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35795,
+    "name": "Boğazören",
+    "label": "Boğazören (K?y)",
+    "value": "Boğazören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35796,
+    "name": "Bolağaç",
+    "label": "Bolağaç (K?y)",
+    "value": "Bolağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35797,
+    "name": "Bölücek",
+    "label": "Bölücek (K?y)",
+    "value": "Bölücek (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35798,
+    "name": "Cevizağacı",
+    "label": "Cevizağacı (K?y)",
+    "value": "Cevizağacı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35799,
+    "name": "Çığlıca",
+    "label": "Çığlıca (K?y)",
+    "value": "Çığlıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35800,
+    "name": "Dağaltı",
+    "label": "Dağaltı (K?y)",
+    "value": "Dağaltı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35802,
+    "name": "Doğanyol",
+    "label": "Doğanyol (K?y)",
+    "value": "Doğanyol (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35803,
+    "name": "Dönmezler",
+    "label": "Dönmezler (K?y)",
+    "value": "Dönmezler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90589,
+    "name": "Elki",
+    "label": "Elki (Mahalle)",
+    "value": "Elki (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35804,
+    "name": "Gökçe",
+    "label": "Gökçe (K?y)",
+    "value": "Gökçe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35805,
+    "name": "Güneyyaka",
+    "label": "Güneyyaka (K?y)",
+    "value": "Güneyyaka (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35820,
+    "name": "Günyüzü",
+    "label": "Günyüzü (K?y)",
+    "value": "Günyüzü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35806,
+    "name": "Ilıcak",
+    "label": "Ilıcak (K?y)",
+    "value": "Ilıcak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90591,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35808,
+    "name": "Koyunoba",
+    "label": "Koyunoba (K?y)",
+    "value": "Koyunoba (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35809,
+    "name": "Mezraa",
+    "label": "Mezraa (K?y)",
+    "value": "Mezraa (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35810,
+    "name": "Mutluca",
+    "label": "Mutluca (K?y)",
+    "value": "Mutluca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35811,
+    "name": "Ortalı",
+    "label": "Ortalı (K?y)",
+    "value": "Ortalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35812,
+    "name": "Oymakaya",
+    "label": "Oymakaya (K?y)",
+    "value": "Oymakaya (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90592,
+    "name": "Pınarbaşı",
+    "label": "Pınarbaşı (Mahalle)",
+    "value": "Pınarbaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35813,
+    "name": "Pirinçli",
+    "label": "Pirinçli (K?y)",
+    "value": "Pirinçli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35814,
+    "name": "Söğütçe",
+    "label": "Söğütçe (K?y)",
+    "value": "Söğütçe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35815,
+    "name": "Toptepe",
+    "label": "Toptepe (K?y)",
+    "value": "Toptepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35818,
+    "name": "Yeşilöz",
+    "label": "Yeşilöz (K?y)",
+    "value": "Yeşilöz (K?y)"
+  }
+]

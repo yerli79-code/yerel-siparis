@@ -1,0 +1,128 @@
+[
+  {
+    "type": "village",
+    "id": 9371,
+    "name": "Akkaya",
+    "label": "Akkaya (K?y)",
+    "value": "Akkaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9360,
+    "name": "Alpagut",
+    "label": "Alpagut (K?y)",
+    "value": "Alpagut (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9361,
+    "name": "Ayvaköy",
+    "label": "Ayvaköy (K?y)",
+    "value": "Ayvaköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9362,
+    "name": "Berkköy",
+    "label": "Berkköy (K?y)",
+    "value": "Berkköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20395,
+    "name": "Çatar",
+    "label": "Çatar (Mahalle)",
+    "value": "Çatar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 9363,
+    "name": "Çiftlikköy",
+    "label": "Çiftlikköy (K?y)",
+    "value": "Çiftlikköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9364,
+    "name": "Dikenli",
+    "label": "Dikenli (K?y)",
+    "value": "Dikenli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20396,
+    "name": "Doğu",
+    "label": "Doğu (Mahalle)",
+    "value": "Doğu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20397,
+    "name": "Esentepe",
+    "label": "Esentepe (Mahalle)",
+    "value": "Esentepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 180806,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 9370,
+    "name": "Kirenci",
+    "label": "Kirenci (K?y)",
+    "value": "Kirenci (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9365,
+    "name": "Kuyucak",
+    "label": "Kuyucak (K?y)",
+    "value": "Kuyucak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9366,
+    "name": "Mehmet Dede Obruğu",
+    "label": "Mehmet Dede Obruğu (K?y)",
+    "value": "Mehmet Dede Obruğu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 9367,
+    "name": "Mehmet Dede Tekkesi",
+    "label": "Mehmet Dede Tekkesi (K?y)",
+    "value": "Mehmet Dede Tekkesi (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20398,
+    "name": "Okul",
+    "label": "Okul (Mahalle)",
+    "value": "Okul (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 9368,
+    "name": "Tutuş",
+    "label": "Tutuş (K?y)",
+    "value": "Tutuş (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20399,
+    "name": "Ulucami",
+    "label": "Ulucami (Mahalle)",
+    "value": "Ulucami (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 9369,
+    "name": "Yeniköy",
+    "label": "Yeniköy (K?y)",
+    "value": "Yeniköy (K?y)"
+  }
+]

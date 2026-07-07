@@ -1,0 +1,219 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 91219,
+    "name": "Açma",
+    "label": "Açma (Mahalle)",
+    "value": "Açma (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37544,
+    "name": "Aksu",
+    "label": "Aksu (K?y)",
+    "value": "Aksu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37545,
+    "name": "Bakacak",
+    "label": "Bakacak (K?y)",
+    "value": "Bakacak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37549,
+    "name": "Bekiroğlu",
+    "label": "Bekiroğlu (K?y)",
+    "value": "Bekiroğlu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91227,
+    "name": "Cumakırı",
+    "label": "Cumakırı (Mahalle)",
+    "value": "Cumakırı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37546,
+    "name": "Çamlıbel",
+    "label": "Çamlıbel (K?y)",
+    "value": "Çamlıbel (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37547,
+    "name": "Çayköy",
+    "label": "Çayköy (K?y)",
+    "value": "Çayköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37548,
+    "name": "Değirmentepe",
+    "label": "Değirmentepe (K?y)",
+    "value": "Değirmentepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91225,
+    "name": "Esen",
+    "label": "Esen (Mahalle)",
+    "value": "Esen (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91220,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37543,
+    "name": "Gökçedere",
+    "label": "Gökçedere (K?y)",
+    "value": "Gökçedere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37550,
+    "name": "Güzeldere",
+    "label": "Güzeldere (K?y)",
+    "value": "Güzeldere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37551,
+    "name": "Hacısüleymanbey",
+    "label": "Hacısüleymanbey (K?y)",
+    "value": "Hacısüleymanbey (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37552,
+    "name": "Hacıyakup",
+    "label": "Hacıyakup (K?y)",
+    "value": "Hacıyakup (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37553,
+    "name": "Hamamüstü",
+    "label": "Hamamüstü (K?y)",
+    "value": "Hamamüstü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 97964,
+    "name": "İçmeler",
+    "label": "İçmeler (Mahalle)",
+    "value": "İçmeler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91221,
+    "name": "İmamlar",
+    "label": "İmamlar (Mahalle)",
+    "value": "İmamlar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37555,
+    "name": "Kemeryanı",
+    "label": "Kemeryanı (K?y)",
+    "value": "Kemeryanı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99310,
+    "name": "Kuyudüzü",
+    "label": "Kuyudüzü (Mahalle)",
+    "value": "Kuyudüzü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91222,
+    "name": "Kültür",
+    "label": "Kültür (Mahalle)",
+    "value": "Kültür (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37557,
+    "name": "Muhapdede",
+    "label": "Muhapdede (K?y)",
+    "value": "Muhapdede (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37558,
+    "name": "Saçmalıpınar",
+    "label": "Saçmalıpınar (K?y)",
+    "value": "Saçmalıpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37559,
+    "name": "Sarıdere",
+    "label": "Sarıdere (K?y)",
+    "value": "Sarıdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37560,
+    "name": "Taşlık",
+    "label": "Taşlık (K?y)",
+    "value": "Taşlık (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91226,
+    "name": "Yazıpınar",
+    "label": "Yazıpınar (Mahalle)",
+    "value": "Yazıpınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 97982,
+    "name": "Yazlık",
+    "label": "Yazlık (Mahalle)",
+    "value": "Yazlık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91223,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 91224,
+    "name": "Yeşil",
+    "label": "Yeşil (Mahalle)",
+    "value": "Yeşil (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37562,
+    "name": "Yeşilova",
+    "label": "Yeşilova (K?y)",
+    "value": "Yeşilova (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37563,
+    "name": "Yunusefendi",
+    "label": "Yunusefendi (K?y)",
+    "value": "Yunusefendi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37564,
+    "name": "Zekeriyaköy",
+    "label": "Zekeriyaköy (K?y)",
+    "value": "Zekeriyaköy (K?y)"
+  }
+]

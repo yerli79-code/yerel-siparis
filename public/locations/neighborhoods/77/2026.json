@@ -1,0 +1,30 @@
+[
+  {
+    "type": "village",
+    "id": 36732,
+    "name": "Akköy",
+    "label": "Akköy (K?y)",
+    "value": "Akköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90844,
+    "name": "Gökçedere",
+    "label": "Gökçedere (Mahalle)",
+    "value": "Gökçedere (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90845,
+    "name": "Üvezpınar",
+    "label": "Üvezpınar (Mahalle)",
+    "value": "Üvezpınar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36733,
+    "name": "Yenimahalle",
+    "label": "Yenimahalle (K?y)",
+    "value": "Yenimahalle (K?y)"
+  }
+]

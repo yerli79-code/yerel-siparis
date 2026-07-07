@@ -1,0 +1,121 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 90438,
+    "name": "Alaaddin",
+    "label": "Alaaddin (Mahalle)",
+    "value": "Alaaddin (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 199737,
+    "name": "Bayraktepe",
+    "label": "Bayraktepe (Mahalle)",
+    "value": "Bayraktepe (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35459,
+    "name": "Bedesten",
+    "label": "Bedesten (K?y)",
+    "value": "Bedesten (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90439,
+    "name": "Doğanlık",
+    "label": "Doğanlık (Mahalle)",
+    "value": "Doğanlık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90440,
+    "name": "Emirler",
+    "label": "Emirler (Mahalle)",
+    "value": "Emirler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90441,
+    "name": "Erenler",
+    "label": "Erenler (Mahalle)",
+    "value": "Erenler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35460,
+    "name": "Hacıbalı",
+    "label": "Hacıbalı (K?y)",
+    "value": "Hacıbalı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 199735,
+    "name": "Hacıbey",
+    "label": "Hacıbey (Mahalle)",
+    "value": "Hacıbey (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35461,
+    "name": "Hisarköy",
+    "label": "Hisarköy (K?y)",
+    "value": "Hisarköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35462,
+    "name": "Irmak",
+    "label": "Irmak (K?y)",
+    "value": "Irmak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90443,
+    "name": "Kadıoğlu",
+    "label": "Kadıoğlu (Mahalle)",
+    "value": "Kadıoğlu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35463,
+    "name": "Keçili",
+    "label": "Keçili (K?y)",
+    "value": "Keçili (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35464,
+    "name": "Kılıçlar",
+    "label": "Kılıçlar (K?y)",
+    "value": "Kılıçlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35465,
+    "name": "Mahmutlar",
+    "label": "Mahmutlar (K?y)",
+    "value": "Mahmutlar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 199739,
+    "name": "Seyrantepe",
+    "label": "Seyrantepe (Mahalle)",
+    "value": "Seyrantepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90442,
+    "name": "Yenişehir",
+    "label": "Yenişehir (Mahalle)",
+    "value": "Yenişehir (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99086,
+    "name": "Yeşil Vadi",
+    "label": "Yeşil Vadi (Mahalle)",
+    "value": "Yeşil Vadi (Mahalle)"
+  }
+]

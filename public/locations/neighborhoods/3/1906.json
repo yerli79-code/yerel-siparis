@@ -1,0 +1,114 @@
+[
+  {
+    "type": "village",
+    "id": 1088,
+    "name": "Akkoyunlu",
+    "label": "Akkoyunlu (K?y)",
+    "value": "Akkoyunlu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 877,
+    "name": "Atatürk",
+    "label": "Atatürk (Mahalle)",
+    "value": "Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 871,
+    "name": "Bucak",
+    "label": "Bucak (Mahalle)",
+    "value": "Bucak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 880,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 878,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99414,
+    "name": "Gölcük",
+    "label": "Gölcük (Mahalle)",
+    "value": "Gölcük (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1089,
+    "name": "Göynük",
+    "label": "Göynük (K?y)",
+    "value": "Göynük (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 872,
+    "name": "Işık",
+    "label": "Işık (Mahalle)",
+    "value": "Işık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 879,
+    "name": "İstiklal",
+    "label": "İstiklal (Mahalle)",
+    "value": "İstiklal (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1090,
+    "name": "Kaleköy",
+    "label": "Kaleköy (K?y)",
+    "value": "Kaleköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 873,
+    "name": "Karadede",
+    "label": "Karadede (Mahalle)",
+    "value": "Karadede (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 874,
+    "name": "Sırakapı",
+    "label": "Sırakapı (Mahalle)",
+    "value": "Sırakapı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99415,
+    "name": "Termalkent",
+    "label": "Termalkent (Mahalle)",
+    "value": "Termalkent (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99412,
+    "name": "Yavuz Selim",
+    "label": "Yavuz Selim (Mahalle)",
+    "value": "Yavuz Selim (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 875,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 876,
+    "name": "Zafer",
+    "label": "Zafer (Mahalle)",
+    "value": "Zafer (Mahalle)"
+  }
+]

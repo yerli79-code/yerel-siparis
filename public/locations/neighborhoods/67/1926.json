@@ -1,0 +1,205 @@
+[
+  {
+    "type": "village",
+    "id": 34696,
+    "name": "Aktarla",
+    "label": "Aktarla (K?y)",
+    "value": "Aktarla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34697,
+    "name": "Aliusta",
+    "label": "Aliusta (K?y)",
+    "value": "Aliusta (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34698,
+    "name": "Aydınlar",
+    "label": "Aydınlar (K?y)",
+    "value": "Aydınlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34700,
+    "name": "Bakiler",
+    "label": "Bakiler (K?y)",
+    "value": "Bakiler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34701,
+    "name": "Bodaç",
+    "label": "Bodaç (K?y)",
+    "value": "Bodaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89899,
+    "name": "Çarşı",
+    "label": "Çarşı (Mahalle)",
+    "value": "Çarşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89900,
+    "name": "Çay",
+    "label": "Çay (Mahalle)",
+    "value": "Çay (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 181594,
+    "name": "Çukur",
+    "label": "Çukur (Mahalle)",
+    "value": "Çukur (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34703,
+    "name": "Dağdemirciler",
+    "label": "Dağdemirciler (K?y)",
+    "value": "Dağdemirciler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34704,
+    "name": "Duhancılar",
+    "label": "Duhancılar (K?y)",
+    "value": "Duhancılar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34705,
+    "name": "Gaziler",
+    "label": "Gaziler (K?y)",
+    "value": "Gaziler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34706,
+    "name": "Hacımusa",
+    "label": "Hacımusa (K?y)",
+    "value": "Hacımusa (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89901,
+    "name": "İstasyon",
+    "label": "İstasyon (Mahalle)",
+    "value": "İstasyon (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89905,
+    "name": "Kadıoğlu",
+    "label": "Kadıoğlu (Mahalle)",
+    "value": "Kadıoğlu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34702,
+    "name": "Karahatipler",
+    "label": "Karahatipler (K?y)",
+    "value": "Karahatipler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34707,
+    "name": "Karapınar",
+    "label": "Karapınar (K?y)",
+    "value": "Karapınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89906,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34708,
+    "name": "Muharremler",
+    "label": "Muharremler (K?y)",
+    "value": "Muharremler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34709,
+    "name": "Namazgah",
+    "label": "Namazgah (K?y)",
+    "value": "Namazgah (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89902,
+    "name": "Onmayıs",
+    "label": "Onmayıs (Mahalle)",
+    "value": "Onmayıs (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34710,
+    "name": "Örmeci",
+    "label": "Örmeci (K?y)",
+    "value": "Örmeci (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34711,
+    "name": "Pazarlıoğlu",
+    "label": "Pazarlıoğlu (K?y)",
+    "value": "Pazarlıoğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34712,
+    "name": "Saraçlar",
+    "label": "Saraçlar (K?y)",
+    "value": "Saraçlar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89907,
+    "name": "Satıbeyler",
+    "label": "Satıbeyler (Mahalle)",
+    "value": "Satıbeyler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34713,
+    "name": "Uzunahmetler",
+    "label": "Uzunahmetler (K?y)",
+    "value": "Uzunahmetler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89903,
+    "name": "Üçburgu",
+    "label": "Üçburgu (Mahalle)",
+    "value": "Üçburgu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34714,
+    "name": "Veyisoğlu",
+    "label": "Veyisoğlu (K?y)",
+    "value": "Veyisoğlu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 89904,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37943,
+    "name": "Yeşilköy",
+    "label": "Yeşilköy (K?y)",
+    "value": "Yeşilköy (K?y)"
+  }
+]

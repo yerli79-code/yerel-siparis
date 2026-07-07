@@ -1,0 +1,100 @@
+[
+  {
+    "type": "village",
+    "id": 21256,
+    "name": "Ağaçköy",
+    "label": "Ağaçköy (K?y)",
+    "value": "Ağaçköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21257,
+    "name": "Allıören",
+    "label": "Allıören (K?y)",
+    "value": "Allıören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21258,
+    "name": "Arpalı",
+    "label": "Arpalı (K?y)",
+    "value": "Arpalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21259,
+    "name": "Büyükaslıhanlar",
+    "label": "Büyükaslıhanlar (K?y)",
+    "value": "Büyükaslıhanlar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51487,
+    "name": "Cafergazi",
+    "label": "Cafergazi (Mahalle)",
+    "value": "Cafergazi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51488,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21260,
+    "name": "Eydemir",
+    "label": "Eydemir (K?y)",
+    "value": "Eydemir (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21261,
+    "name": "Hamur",
+    "label": "Hamur (K?y)",
+    "value": "Hamur (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21262,
+    "name": "Kızılca",
+    "label": "Kızılca (K?y)",
+    "value": "Kızılca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21263,
+    "name": "Küçükaslıhanlar",
+    "label": "Küçükaslıhanlar (K?y)",
+    "value": "Küçükaslıhanlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21264,
+    "name": "Selkisaray",
+    "label": "Selkisaray (K?y)",
+    "value": "Selkisaray (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51489,
+    "name": "Turgut Özal",
+    "label": "Turgut Özal (Mahalle)",
+    "value": "Turgut Özal (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21265,
+    "name": "Yüylük",
+    "label": "Yüylük (K?y)",
+    "value": "Yüylük (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51490,
+    "name": "Zafer",
+    "label": "Zafer (Mahalle)",
+    "value": "Zafer (Mahalle)"
+  }
+]

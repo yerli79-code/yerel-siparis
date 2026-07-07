@@ -1,0 +1,107 @@
+[
+  {
+    "type": "village",
+    "id": 18096,
+    "name": "Akçam",
+    "label": "Akçam (K?y)",
+    "value": "Akçam (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 18097,
+    "name": "Altıkulaç",
+    "label": "Altıkulaç (K?y)",
+    "value": "Altıkulaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41808,
+    "name": "Bağlık",
+    "label": "Bağlık (Mahalle)",
+    "value": "Bağlık (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 18098,
+    "name": "Çampınar",
+    "label": "Çampınar (K?y)",
+    "value": "Çampınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41809,
+    "name": "Çayırcık",
+    "label": "Çayırcık (Mahalle)",
+    "value": "Çayırcık (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 18099,
+    "name": "Denizbükü",
+    "label": "Denizbükü (K?y)",
+    "value": "Denizbükü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 18100,
+    "name": "Elmaçukuru",
+    "label": "Elmaçukuru (K?y)",
+    "value": "Elmaçukuru (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 18101,
+    "name": "Göynükler",
+    "label": "Göynükler (K?y)",
+    "value": "Göynükler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41810,
+    "name": "Hacıveli",
+    "label": "Hacıveli (Mahalle)",
+    "value": "Hacıveli (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 18102,
+    "name": "Kadıyusuf",
+    "label": "Kadıyusuf (K?y)",
+    "value": "Kadıyusuf (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41811,
+    "name": "Konakören",
+    "label": "Konakören (Mahalle)",
+    "value": "Konakören (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41812,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 18103,
+    "name": "Yakabaşı",
+    "label": "Yakabaşı (K?y)",
+    "value": "Yakabaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 18104,
+    "name": "Yemeni",
+    "label": "Yemeni (K?y)",
+    "value": "Yemeni (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 18105,
+    "name": "Yeşilyuva",
+    "label": "Yeşilyuva (K?y)",
+    "value": "Yeşilyuva (K?y)"
+  }
+]

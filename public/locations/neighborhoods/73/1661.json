@@ -1,0 +1,296 @@
+[
+  {
+    "type": "village",
+    "id": 49507,
+    "name": "Akçay",
+    "label": "Akçay (K?y)",
+    "value": "Akçay (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35751,
+    "name": "Araköy",
+    "label": "Araköy (K?y)",
+    "value": "Araköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90580,
+    "name": "Aşağı",
+    "label": "Aşağı (Mahalle)",
+    "value": "Aşağı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90570,
+    "name": "Atatürk",
+    "label": "Atatürk (Mahalle)",
+    "value": "Atatürk (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 42943,
+    "name": "Atbaşı",
+    "label": "Atbaşı (K?y)",
+    "value": "Atbaşı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90576,
+    "name": "Aydınlar",
+    "label": "Aydınlar (Mahalle)",
+    "value": "Aydınlar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90571,
+    "name": "Aydınlıkevler",
+    "label": "Aydınlıkevler (Mahalle)",
+    "value": "Aydınlıkevler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35774,
+    "name": "Bağpınar",
+    "label": "Bağpınar (K?y)",
+    "value": "Bağpınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90564,
+    "name": "Bahçelievler",
+    "label": "Bahçelievler (Mahalle)",
+    "value": "Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35753,
+    "name": "Başağaç",
+    "label": "Başağaç (K?y)",
+    "value": "Başağaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90586,
+    "name": "Boğaz",
+    "label": "Boğaz (Mahalle)",
+    "value": "Boğaz (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35755,
+    "name": "Cevizdüzü",
+    "label": "Cevizdüzü (K?y)",
+    "value": "Cevizdüzü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90565,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90582,
+    "name": "Çadırlı",
+    "label": "Çadırlı (Mahalle)",
+    "value": "Çadırlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90583,
+    "name": "Çavuşhan",
+    "label": "Çavuşhan (Mahalle)",
+    "value": "Çavuşhan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35758,
+    "name": "Dağkonak",
+    "label": "Dağkonak (K?y)",
+    "value": "Dağkonak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90575,
+    "name": "Dicle",
+    "label": "Dicle (Mahalle)",
+    "value": "Dicle (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90566,
+    "name": "Gazi Paşa",
+    "label": "Gazi Paşa (Mahalle)",
+    "value": "Gazi Paşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35760,
+    "name": "Geçitboyu",
+    "label": "Geçitboyu (K?y)",
+    "value": "Geçitboyu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90574,
+    "name": "Gündoğdu",
+    "label": "Gündoğdu (Mahalle)",
+    "value": "Gündoğdu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35761,
+    "name": "Güneyce",
+    "label": "Güneyce (K?y)",
+    "value": "Güneyce (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35762,
+    "name": "Güneyçam",
+    "label": "Güneyçam (K?y)",
+    "value": "Güneyçam (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90577,
+    "name": "Hatipler",
+    "label": "Hatipler (Mahalle)",
+    "value": "Hatipler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35763,
+    "name": "İkizce",
+    "label": "İkizce (K?y)",
+    "value": "İkizce (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90567,
+    "name": "İsmet Paşa",
+    "label": "İsmet Paşa (Mahalle)",
+    "value": "İsmet Paşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35782,
+    "name": "Kavuncu",
+    "label": "Kavuncu (K?y)",
+    "value": "Kavuncu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35783,
+    "name": "Kayaboyun",
+    "label": "Kayaboyun (K?y)",
+    "value": "Kayaboyun (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35764,
+    "name": "Kemerli",
+    "label": "Kemerli (K?y)",
+    "value": "Kemerli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35784,
+    "name": "Kırkkuyu",
+    "label": "Kırkkuyu (K?y)",
+    "value": "Kırkkuyu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35771,
+    "name": "Kızılsu",
+    "label": "Kızılsu (K?y)",
+    "value": "Kızılsu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35786,
+    "name": "Koçbeyi",
+    "label": "Koçbeyi (K?y)",
+    "value": "Koçbeyi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 27863,
+    "name": "Körüklükaya",
+    "label": "Körüklükaya (K?y)",
+    "value": "Körüklükaya (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90584,
+    "name": "Nasırhan",
+    "label": "Nasırhan (Mahalle)",
+    "value": "Nasırhan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90578,
+    "name": "Şafak",
+    "label": "Şafak (Mahalle)",
+    "value": "Şafak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90573,
+    "name": "Şehrinuh",
+    "label": "Şehrinuh (Mahalle)",
+    "value": "Şehrinuh (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35767,
+    "name": "Toptepe",
+    "label": "Toptepe (K?y)",
+    "value": "Toptepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90572,
+    "name": "Vakıfkent",
+    "label": "Vakıfkent (Mahalle)",
+    "value": "Vakıfkent (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90579,
+    "name": "Yayla",
+    "label": "Yayla (Mahalle)",
+    "value": "Yayla (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90568,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35769,
+    "name": "Yeniaslanbaşar",
+    "label": "Yeniaslanbaşar (K?y)",
+    "value": "Yeniaslanbaşar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90569,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (Mahalle)",
+    "value": "Yeşilyurt (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35770,
+    "name": "Yoğurtçular",
+    "label": "Yoğurtçular (K?y)",
+    "value": "Yoğurtçular (K?y)"
+  }
+]

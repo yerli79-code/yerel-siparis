@@ -1,0 +1,100 @@
+[
+  {
+    "type": "village",
+    "id": 15298,
+    "name": "Anadağ",
+    "label": "Anadağ (K?y)",
+    "value": "Anadağ (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31025,
+    "name": "Balkaya",
+    "label": "Balkaya (Mahalle)",
+    "value": "Balkaya (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15308,
+    "name": "Gelişen",
+    "label": "Gelişen (K?y)",
+    "value": "Gelişen (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31024,
+    "name": "Güney",
+    "label": "Güney (Mahalle)",
+    "value": "Güney (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 752501,
+    "name": "Gürmeşe",
+    "label": "Gürmeşe (Mahalle)",
+    "value": "Gürmeşe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31022,
+    "name": "Hacıbey",
+    "label": "Hacıbey (Mahalle)",
+    "value": "Hacıbey (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31021,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31020,
+    "name": "Orta",
+    "label": "Orta (Mahalle)",
+    "value": "Orta (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15314,
+    "name": "Ortaklar",
+    "label": "Ortaklar (K?y)",
+    "value": "Ortaklar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 677799,
+    "name": "Rize",
+    "label": "Rize (Mahalle)",
+    "value": "Rize (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 754069,
+    "name": "Ulaşan",
+    "label": "Ulaşan (K?y)",
+    "value": "Ulaşan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 49462,
+    "name": "Uslu",
+    "label": "Uslu (K?y)",
+    "value": "Uslu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31023,
+    "name": "Üçyan",
+    "label": "Üçyan (Mahalle)",
+    "value": "Üçyan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 602169,
+    "name": "Vapurtepe",
+    "label": "Vapurtepe (Mahalle)",
+    "value": "Vapurtepe (Mahalle)"
+  }
+]

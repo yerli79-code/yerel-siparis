@@ -1,0 +1,100 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 199699,
+    "name": "15 Temmuz",
+    "label": "15 Temmuz (Mahalle)",
+    "value": "15 Temmuz (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34908,
+    "name": "Bekdik",
+    "label": "Bekdik (K?y)",
+    "value": "Bekdik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34909,
+    "name": "Boğazköy",
+    "label": "Boğazköy (K?y)",
+    "value": "Boğazköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34910,
+    "name": "Demirciobası",
+    "label": "Demirciobası (K?y)",
+    "value": "Demirciobası (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90116,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90117,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90118,
+    "name": "Kızılırmak",
+    "label": "Kızılırmak (Mahalle)",
+    "value": "Kızılırmak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90119,
+    "name": "Kurtuluş",
+    "label": "Kurtuluş (Mahalle)",
+    "value": "Kurtuluş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90120,
+    "name": "Özal",
+    "label": "Özal (Mahalle)",
+    "value": "Özal (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34911,
+    "name": "Sipahiler",
+    "label": "Sipahiler (K?y)",
+    "value": "Sipahiler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90121,
+    "name": "Şafaktepe",
+    "label": "Şafaktepe (Mahalle)",
+    "value": "Şafaktepe (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34912,
+    "name": "Yaylak",
+    "label": "Yaylak (K?y)",
+    "value": "Yaylak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90122,
+    "name": "Yenidoğan",
+    "label": "Yenidoğan (Mahalle)",
+    "value": "Yenidoğan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34913,
+    "name": "Yenitorunobası",
+    "label": "Yenitorunobası (K?y)",
+    "value": "Yenitorunobası (K?y)"
+  }
+]

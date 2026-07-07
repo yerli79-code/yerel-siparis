@@ -1,0 +1,93 @@
+[
+  {
+    "type": "village",
+    "id": 1249,
+    "name": "Akyarma",
+    "label": "Akyarma (K?y)",
+    "value": "Akyarma (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1250,
+    "name": "Altınova",
+    "label": "Altınova (K?y)",
+    "value": "Altınova (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1251,
+    "name": "Baraklı",
+    "label": "Baraklı (K?y)",
+    "value": "Baraklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1252,
+    "name": "Bostancı",
+    "label": "Bostancı (K?y)",
+    "value": "Bostancı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 975,
+    "name": "Camikebir",
+    "label": "Camikebir (Mahalle)",
+    "value": "Camikebir (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 976,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1253,
+    "name": "Gökçek",
+    "label": "Gökçek (K?y)",
+    "value": "Gökçek (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 977,
+    "name": "Kayalık",
+    "label": "Kayalık (Mahalle)",
+    "value": "Kayalık (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1254,
+    "name": "Körkuyu",
+    "label": "Körkuyu (K?y)",
+    "value": "Körkuyu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1255,
+    "name": "Madenler",
+    "label": "Madenler (K?y)",
+    "value": "Madenler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 100416,
+    "name": "Mehmet Akif",
+    "label": "Mehmet Akif (Mahalle)",
+    "value": "Mehmet Akif (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 100417,
+    "name": "Yavuz Selim",
+    "label": "Yavuz Selim (Mahalle)",
+    "value": "Yavuz Selim (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 978,
+    "name": "Yunus Emre",
+    "label": "Yunus Emre (Mahalle)",
+    "value": "Yunus Emre (Mahalle)"
+  }
+]

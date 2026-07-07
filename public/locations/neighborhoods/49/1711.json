@@ -1,0 +1,702 @@
+[
+  {
+    "type": "village",
+    "id": 24920,
+    "name": "Acarkent",
+    "label": "Acarkent (K?y)",
+    "value": "Acarkent (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24921,
+    "name": "Ağaçaltı",
+    "label": "Ağaçaltı (K?y)",
+    "value": "Ağaçaltı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24922,
+    "name": "Ağaçkorur",
+    "label": "Ağaçkorur (K?y)",
+    "value": "Ağaçkorur (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24992,
+    "name": "Akçatepe",
+    "label": "Akçatepe (K?y)",
+    "value": "Akçatepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24970,
+    "name": "Alabalık",
+    "label": "Alabalık (K?y)",
+    "value": "Alabalık (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60404,
+    "name": "Alagöz",
+    "label": "Alagöz (Mahalle)",
+    "value": "Alagöz (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24993,
+    "name": "Alnıaçık",
+    "label": "Alnıaçık (K?y)",
+    "value": "Alnıaçık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24971,
+    "name": "Armutkaşı",
+    "label": "Armutkaşı (K?y)",
+    "value": "Armutkaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24923,
+    "name": "Aşağıalagöz",
+    "label": "Aşağıalagöz (K?y)",
+    "value": "Aşağıalagöz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24924,
+    "name": "Aşağıhacıbey",
+    "label": "Aşağıhacıbey (K?y)",
+    "value": "Aşağıhacıbey (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24925,
+    "name": "Bağiçi",
+    "label": "Bağiçi (K?y)",
+    "value": "Bağiçi (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60405,
+    "name": "Bahçelievler",
+    "label": "Bahçelievler (Mahalle)",
+    "value": "Bahçelievler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24926,
+    "name": "Baltaş",
+    "label": "Baltaş (K?y)",
+    "value": "Baltaş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24927,
+    "name": "Başkent",
+    "label": "Başkent (K?y)",
+    "value": "Başkent (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24972,
+    "name": "Beşikkaya",
+    "label": "Beşikkaya (K?y)",
+    "value": "Beşikkaya (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24994,
+    "name": "Boyalı",
+    "label": "Boyalı (K?y)",
+    "value": "Boyalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24928,
+    "name": "Boylu",
+    "label": "Boylu (K?y)",
+    "value": "Boylu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24929,
+    "name": "Buzlugöze",
+    "label": "Buzlugöze (K?y)",
+    "value": "Buzlugöze (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24973,
+    "name": "Çalıdere",
+    "label": "Çalıdere (K?y)",
+    "value": "Çalıdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24930,
+    "name": "Çaltılı",
+    "label": "Çaltılı (K?y)",
+    "value": "Çaltılı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24931,
+    "name": "Çayçatı",
+    "label": "Çayçatı (K?y)",
+    "value": "Çayçatı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24932,
+    "name": "Çayıryolu",
+    "label": "Çayıryolu (K?y)",
+    "value": "Çayıryolu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24969,
+    "name": "Çaylar",
+    "label": "Çaylar (K?y)",
+    "value": "Çaylar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24995,
+    "name": "Çayönü",
+    "label": "Çayönü (K?y)",
+    "value": "Çayönü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24933,
+    "name": "Çobandağı",
+    "label": "Çobandağı (K?y)",
+    "value": "Çobandağı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24974,
+    "name": "Dağcılar",
+    "label": "Dağcılar (K?y)",
+    "value": "Dağcılar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24934,
+    "name": "Dallıöz",
+    "label": "Dallıöz (K?y)",
+    "value": "Dallıöz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24996,
+    "name": "Değerli",
+    "label": "Değerli (K?y)",
+    "value": "Değerli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25012,
+    "name": "Derince",
+    "label": "Derince (K?y)",
+    "value": "Derince (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24935,
+    "name": "Diktepeler",
+    "label": "Diktepeler (K?y)",
+    "value": "Diktepeler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24975,
+    "name": "Doğanca",
+    "label": "Doğanca (K?y)",
+    "value": "Doğanca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24997,
+    "name": "Dönertaş",
+    "label": "Dönertaş (K?y)",
+    "value": "Dönertaş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24998,
+    "name": "Durucabulak",
+    "label": "Durucabulak (K?y)",
+    "value": "Durucabulak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24936,
+    "name": "Dutözü",
+    "label": "Dutözü (K?y)",
+    "value": "Dutözü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24999,
+    "name": "Erdoğan",
+    "label": "Erdoğan (K?y)",
+    "value": "Erdoğan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24976,
+    "name": "Eryurdu",
+    "label": "Eryurdu (K?y)",
+    "value": "Eryurdu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25000,
+    "name": "Esenler",
+    "label": "Esenler (K?y)",
+    "value": "Esenler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25001,
+    "name": "Gelintaşı",
+    "label": "Gelintaşı (K?y)",
+    "value": "Gelintaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25002,
+    "name": "Göltepe",
+    "label": "Göltepe (K?y)",
+    "value": "Göltepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24977,
+    "name": "Gölyayla",
+    "label": "Gölyayla (K?y)",
+    "value": "Gölyayla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24937,
+    "name": "Görgü",
+    "label": "Görgü (K?y)",
+    "value": "Görgü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60406,
+    "name": "Gümgüm",
+    "label": "Gümgüm (Mahalle)",
+    "value": "Gümgüm (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24978,
+    "name": "Güzeldere",
+    "label": "Güzeldere (K?y)",
+    "value": "Güzeldere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24979,
+    "name": "Güzelkent",
+    "label": "Güzelkent (K?y)",
+    "value": "Güzelkent (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24938,
+    "name": "Haksever",
+    "label": "Haksever (K?y)",
+    "value": "Haksever (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60407,
+    "name": "Hürriyet",
+    "label": "Hürriyet (Mahalle)",
+    "value": "Hürriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24939,
+    "name": "Hüseyinoğlu",
+    "label": "Hüseyinoğlu (K?y)",
+    "value": "Hüseyinoğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24980,
+    "name": "İçmeler",
+    "label": "İçmeler (K?y)",
+    "value": "İçmeler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24940,
+    "name": "İlbey",
+    "label": "İlbey (K?y)",
+    "value": "İlbey (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60408,
+    "name": "İnönü",
+    "label": "İnönü (Mahalle)",
+    "value": "İnönü (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24968,
+    "name": "Kalecik",
+    "label": "Kalecik (K?y)",
+    "value": "Kalecik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25003,
+    "name": "Karaköy",
+    "label": "Karaköy (K?y)",
+    "value": "Karaköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24941,
+    "name": "Karameşe",
+    "label": "Karameşe (K?y)",
+    "value": "Karameşe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25004,
+    "name": "Karapınar",
+    "label": "Karapınar (K?y)",
+    "value": "Karapınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24981,
+    "name": "Kartaldere",
+    "label": "Kartaldere (K?y)",
+    "value": "Kartaldere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24942,
+    "name": "Kayadelen",
+    "label": "Kayadelen (K?y)",
+    "value": "Kayadelen (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24943,
+    "name": "Kayalıdere",
+    "label": "Kayalıdere (K?y)",
+    "value": "Kayalıdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24944,
+    "name": "Kayalık",
+    "label": "Kayalık (K?y)",
+    "value": "Kayalık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25005,
+    "name": "Kayalıkale",
+    "label": "Kayalıkale (K?y)",
+    "value": "Kayalıkale (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24945,
+    "name": "Kaygıntaş",
+    "label": "Kaygıntaş (K?y)",
+    "value": "Kaygıntaş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24946,
+    "name": "Kaynarca",
+    "label": "Kaynarca (K?y)",
+    "value": "Kaynarca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24947,
+    "name": "Koçyatağı",
+    "label": "Koçyatağı (K?y)",
+    "value": "Koçyatağı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24948,
+    "name": "Kolan",
+    "label": "Kolan (K?y)",
+    "value": "Kolan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24982,
+    "name": "Köprücük",
+    "label": "Köprücük (K?y)",
+    "value": "Köprücük (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25006,
+    "name": "Kumlukıyı",
+    "label": "Kumlukıyı (K?y)",
+    "value": "Kumlukıyı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25007,
+    "name": "Kuşluk",
+    "label": "Kuşluk (K?y)",
+    "value": "Kuşluk (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24983,
+    "name": "Küçüktepe",
+    "label": "Küçüktepe (K?y)",
+    "value": "Küçüktepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60409,
+    "name": "Kültür",
+    "label": "Kültür (Mahalle)",
+    "value": "Kültür (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24949,
+    "name": "Leylek",
+    "label": "Leylek (K?y)",
+    "value": "Leylek (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24950,
+    "name": "Ocaklı",
+    "label": "Ocaklı (K?y)",
+    "value": "Ocaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24951,
+    "name": "Oğlakçı",
+    "label": "Oğlakçı (K?y)",
+    "value": "Oğlakçı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24991,
+    "name": "Omcalı",
+    "label": "Omcalı (K?y)",
+    "value": "Omcalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24984,
+    "name": "Onpınar",
+    "label": "Onpınar (K?y)",
+    "value": "Onpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24952,
+    "name": "Ölçekli",
+    "label": "Ölçekli (K?y)",
+    "value": "Ölçekli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24953,
+    "name": "Özenç",
+    "label": "Özenç (K?y)",
+    "value": "Özenç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24985,
+    "name": "Özkonak",
+    "label": "Özkonak (K?y)",
+    "value": "Özkonak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24954,
+    "name": "Sağlıcak",
+    "label": "Sağlıcak (K?y)",
+    "value": "Sağlıcak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25008,
+    "name": "Sanlıca",
+    "label": "Sanlıca (K?y)",
+    "value": "Sanlıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24955,
+    "name": "Sazlıca",
+    "label": "Sazlıca (K?y)",
+    "value": "Sazlıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24956,
+    "name": "Seki",
+    "label": "Seki (K?y)",
+    "value": "Seki (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24957,
+    "name": "Taşçı",
+    "label": "Taşçı (K?y)",
+    "value": "Taşçı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24958,
+    "name": "Taşdibek",
+    "label": "Taşdibek (K?y)",
+    "value": "Taşdibek (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24986,
+    "name": "Taşlıyayla",
+    "label": "Taşlıyayla (K?y)",
+    "value": "Taşlıyayla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24987,
+    "name": "Teknedüzü",
+    "label": "Teknedüzü (K?y)",
+    "value": "Teknedüzü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24959,
+    "name": "Tepeköy",
+    "label": "Tepeköy (K?y)",
+    "value": "Tepeköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24988,
+    "name": "Tuzlu",
+    "label": "Tuzlu (K?y)",
+    "value": "Tuzlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24960,
+    "name": "Ulusırt",
+    "label": "Ulusırt (K?y)",
+    "value": "Ulusırt (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24989,
+    "name": "Üçbulak",
+    "label": "Üçbulak (K?y)",
+    "value": "Üçbulak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25009,
+    "name": "Ünaldı",
+    "label": "Ünaldı (K?y)",
+    "value": "Ünaldı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24961,
+    "name": "Yarlısu",
+    "label": "Yarlısu (K?y)",
+    "value": "Yarlısu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24962,
+    "name": "Yayıklı",
+    "label": "Yayıklı (K?y)",
+    "value": "Yayıklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24963,
+    "name": "Yayla",
+    "label": "Yayla (K?y)",
+    "value": "Yayla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24964,
+    "name": "Yedikavak",
+    "label": "Yedikavak (K?y)",
+    "value": "Yedikavak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60410,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 24990,
+    "name": "Yeşildal",
+    "label": "Yeşildal (K?y)",
+    "value": "Yeşildal (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25010,
+    "name": "Yeşilpınar",
+    "label": "Yeşilpınar (K?y)",
+    "value": "Yeşilpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24965,
+    "name": "Yılanlı",
+    "label": "Yılanlı (K?y)",
+    "value": "Yılanlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24966,
+    "name": "Yukarıhacıbey",
+    "label": "Yukarıhacıbey (K?y)",
+    "value": "Yukarıhacıbey (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 25011,
+    "name": "Yurttutan",
+    "label": "Yurttutan (K?y)",
+    "value": "Yurttutan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 24967,
+    "name": "Zorabat",
+    "label": "Zorabat (K?y)",
+    "value": "Zorabat (K?y)"
+  }
+]

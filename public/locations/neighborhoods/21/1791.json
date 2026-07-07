@@ -1,0 +1,212 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 192721,
+    "name": "Akalan",
+    "label": "Akalan (Mahalle)",
+    "value": "Akalan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192785,
+    "name": "Babalar",
+    "label": "Babalar (Mahalle)",
+    "value": "Babalar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192725,
+    "name": "Bahşilar",
+    "label": "Bahşilar (Mahalle)",
+    "value": "Bahşilar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192727,
+    "name": "Balaban",
+    "label": "Balaban (Mahalle)",
+    "value": "Balaban (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192729,
+    "name": "Balım",
+    "label": "Balım (Mahalle)",
+    "value": "Balım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192731,
+    "name": "Baysu",
+    "label": "Baysu (Mahalle)",
+    "value": "Baysu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21083,
+    "name": "Dere",
+    "label": "Dere (Mahalle)",
+    "value": "Dere (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192723,
+    "name": "Döşemeler",
+    "label": "Döşemeler (Mahalle)",
+    "value": "Döşemeler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192781,
+    "name": "Düzlük",
+    "label": "Düzlük (Mahalle)",
+    "value": "Düzlük (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21084,
+    "name": "Gündoğuran",
+    "label": "Gündoğuran (Mahalle)",
+    "value": "Gündoğuran (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192733,
+    "name": "Gürünlü",
+    "label": "Gürünlü (Mahalle)",
+    "value": "Gürünlü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192735,
+    "name": "Ilgın",
+    "label": "Ilgın (Mahalle)",
+    "value": "Ilgın (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21085,
+    "name": "Kale",
+    "label": "Kale (Mahalle)",
+    "value": "Kale (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192737,
+    "name": "Kalecik",
+    "label": "Kalecik (Mahalle)",
+    "value": "Kalecik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192741,
+    "name": "Kalkan",
+    "label": "Kalkan (Mahalle)",
+    "value": "Kalkan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192743,
+    "name": "Kaya",
+    "label": "Kaya (Mahalle)",
+    "value": "Kaya (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192745,
+    "name": "Kazanlı",
+    "label": "Kazanlı (Mahalle)",
+    "value": "Kazanlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192749,
+    "name": "Kırkkuyu",
+    "label": "Kırkkuyu (Mahalle)",
+    "value": "Kırkkuyu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192753,
+    "name": "Konak",
+    "label": "Konak (Mahalle)",
+    "value": "Konak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192755,
+    "name": "Meşeler",
+    "label": "Meşeler (Mahalle)",
+    "value": "Meşeler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192759,
+    "name": "Oyalı",
+    "label": "Oyalı (Mahalle)",
+    "value": "Oyalı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192761,
+    "name": "Sağlam",
+    "label": "Sağlam (Mahalle)",
+    "value": "Sağlam (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192765,
+    "name": "Sarıca",
+    "label": "Sarıca (Mahalle)",
+    "value": "Sarıca (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192769,
+    "name": "Sarmaşık",
+    "label": "Sarmaşık (Mahalle)",
+    "value": "Sarmaşık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192771,
+    "name": "Selman",
+    "label": "Selman (Mahalle)",
+    "value": "Selman (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192773,
+    "name": "Taşdam",
+    "label": "Taşdam (Mahalle)",
+    "value": "Taşdam (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192777,
+    "name": "Tepecik",
+    "label": "Tepecik (Mahalle)",
+    "value": "Tepecik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192779,
+    "name": "Yatır",
+    "label": "Yatır (Mahalle)",
+    "value": "Yatır (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21086,
+    "name": "Yenişehir",
+    "label": "Yenişehir (Mahalle)",
+    "value": "Yenişehir (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 192783,
+    "name": "Yukarıhaydan",
+    "label": "Yukarıhaydan (Mahalle)",
+    "value": "Yukarıhaydan (Mahalle)"
+  }
+]

@@ -1,0 +1,107 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 31509,
+    "name": "Alaca Mescit",
+    "label": "Alaca Mescit (Mahalle)",
+    "value": "Alaca Mescit (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140827,
+    "name": "Baladız",
+    "label": "Baladız (Mahalle)",
+    "value": "Baladız (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31510,
+    "name": "Cami",
+    "label": "Cami (Mahalle)",
+    "value": "Cami (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15904,
+    "name": "Gölbaşı",
+    "label": "Gölbaşı (K?y)",
+    "value": "Gölbaşı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31514,
+    "name": "Göletevleri",
+    "label": "Göletevleri (Mahalle)",
+    "value": "Göletevleri (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15906,
+    "name": "İğdecik",
+    "label": "İğdecik (K?y)",
+    "value": "İğdecik (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31511,
+    "name": "Kasap",
+    "label": "Kasap (Mahalle)",
+    "value": "Kasap (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15903,
+    "name": "Kızılcık",
+    "label": "Kızılcık (K?y)",
+    "value": "Kızılcık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 15907,
+    "name": "Koçtepe",
+    "label": "Koçtepe (K?y)",
+    "value": "Koçtepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31512,
+    "name": "Musalla",
+    "label": "Musalla (Mahalle)",
+    "value": "Musalla (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31516,
+    "name": "Orta",
+    "label": "Orta (Mahalle)",
+    "value": "Orta (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31513,
+    "name": "Pazar",
+    "label": "Pazar (Mahalle)",
+    "value": "Pazar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15908,
+    "name": "Senirce",
+    "label": "Senirce (K?y)",
+    "value": "Senirce (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31517,
+    "name": "Tekke",
+    "label": "Tekke (Mahalle)",
+    "value": "Tekke (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31518,
+    "name": "Yenice",
+    "label": "Yenice (Mahalle)",
+    "value": "Yenice (Mahalle)"
+  }
+]

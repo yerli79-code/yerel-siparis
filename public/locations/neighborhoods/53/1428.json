@@ -1,0 +1,240 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 61448,
+    "name": "Adalar",
+    "label": "Adalar (Mahalle)",
+    "value": "Adalar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61442,
+    "name": "Aksu",
+    "label": "Aksu (Mahalle)",
+    "value": "Aksu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61443,
+    "name": "Aşağı Tatlısu",
+    "label": "Aşağı Tatlısu (Mahalle)",
+    "value": "Aşağı Tatlısu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61444,
+    "name": "Cevizlik",
+    "label": "Cevizlik (Mahalle)",
+    "value": "Cevizlik (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26214,
+    "name": "Çağlayan",
+    "label": "Çağlayan (K?y)",
+    "value": "Çağlayan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26215,
+    "name": "Çayırlı",
+    "label": "Çayırlı (K?y)",
+    "value": "Çayırlı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61445,
+    "name": "Dağdibi",
+    "label": "Dağdibi (Mahalle)",
+    "value": "Dağdibi (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26217,
+    "name": "Dülgerli",
+    "label": "Dülgerli (K?y)",
+    "value": "Dülgerli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26218,
+    "name": "Esendere",
+    "label": "Esendere (K?y)",
+    "value": "Esendere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26235,
+    "name": "Esentepe",
+    "label": "Esentepe (K?y)",
+    "value": "Esentepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26219,
+    "name": "Fındıklı",
+    "label": "Fındıklı (K?y)",
+    "value": "Fındıklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26220,
+    "name": "Geçitli",
+    "label": "Geçitli (K?y)",
+    "value": "Geçitli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26221,
+    "name": "Hurmalık",
+    "label": "Hurmalık (K?y)",
+    "value": "Hurmalık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26223,
+    "name": "Hüseyinhoca",
+    "label": "Hüseyinhoca (K?y)",
+    "value": "Hüseyinhoca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26222,
+    "name": "İnciköy",
+    "label": "İnciköy (K?y)",
+    "value": "İnciköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26224,
+    "name": "Kayabaşı",
+    "label": "Kayabaşı (K?y)",
+    "value": "Kayabaşı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61449,
+    "name": "Kızıltoprak",
+    "label": "Kızıltoprak (Mahalle)",
+    "value": "Kızıltoprak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61446,
+    "name": "Kuruköy",
+    "label": "Kuruköy (Mahalle)",
+    "value": "Kuruköy (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61450,
+    "name": "Medrese",
+    "label": "Medrese (Mahalle)",
+    "value": "Medrese (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26225,
+    "name": "Ormanlı",
+    "label": "Ormanlı (K?y)",
+    "value": "Ormanlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26216,
+    "name": "Pınarköy",
+    "label": "Pınarköy (K?y)",
+    "value": "Pınarköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26226,
+    "name": "Seyrantepe",
+    "label": "Seyrantepe (K?y)",
+    "value": "Seyrantepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26227,
+    "name": "Soğuksu",
+    "label": "Soğuksu (K?y)",
+    "value": "Soğuksu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61451,
+    "name": "Soğuksu",
+    "label": "Soğuksu (Mahalle)",
+    "value": "Soğuksu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61452,
+    "name": "Taşçılar",
+    "label": "Taşçılar (Mahalle)",
+    "value": "Taşçılar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26228,
+    "name": "Ünalan",
+    "label": "Ünalan (K?y)",
+    "value": "Ünalan (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61453,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26229,
+    "name": "Yenigeçitli",
+    "label": "Yenigeçitli (K?y)",
+    "value": "Yenigeçitli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26230,
+    "name": "Yeniköy",
+    "label": "Yeniköy (K?y)",
+    "value": "Yeniköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26231,
+    "name": "Yeşilköy",
+    "label": "Yeşilköy (K?y)",
+    "value": "Yeşilköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26232,
+    "name": "Yokuşlu",
+    "label": "Yokuşlu (K?y)",
+    "value": "Yokuşlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26233,
+    "name": "Yolbaşı",
+    "label": "Yolbaşı (K?y)",
+    "value": "Yolbaşı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61447,
+    "name": "Yukarı Tatlısu",
+    "label": "Yukarı Tatlısu (Mahalle)",
+    "value": "Yukarı Tatlısu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26234,
+    "name": "Yumurtatepe",
+    "label": "Yumurtatepe (K?y)",
+    "value": "Yumurtatepe (K?y)"
+  }
+]

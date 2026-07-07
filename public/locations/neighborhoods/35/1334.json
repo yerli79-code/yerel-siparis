@@ -1,0 +1,114 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 41431,
+    "name": "Atatürk",
+    "label": "Atatürk (Mahalle)",
+    "value": "Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41441,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41442,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41443,
+    "name": "Fevzi Çakmak",
+    "label": "Fevzi Çakmak (Mahalle)",
+    "value": "Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41432,
+    "name": "Fevzipaşa",
+    "label": "Fevzipaşa (Mahalle)",
+    "value": "Fevzipaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41434,
+    "name": "Hacıveli",
+    "label": "Hacıveli (Mahalle)",
+    "value": "Hacıveli (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 194125,
+    "name": "Ilıpınar",
+    "label": "Ilıpınar (Mahalle)",
+    "value": "Ilıpınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41433,
+    "name": "İsmetpaşa",
+    "label": "İsmetpaşa (Mahalle)",
+    "value": "İsmetpaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41435,
+    "name": "Kazım Dirik",
+    "label": "Kazım Dirik (Mahalle)",
+    "value": "Kazım Dirik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41438,
+    "name": "Kemal Atatürk",
+    "label": "Kemal Atatürk (Mahalle)",
+    "value": "Kemal Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41436,
+    "name": "Koca Mehmetler",
+    "label": "Koca Mehmetler (Mahalle)",
+    "value": "Koca Mehmetler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 194131,
+    "name": "Kozbeyli",
+    "label": "Kozbeyli (Mahalle)",
+    "value": "Kozbeyli (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41439,
+    "name": "Mareşal Fevzi Çakmak",
+    "label": "Mareşal Fevzi Çakmak (Mahalle)",
+    "value": "Mareşal Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 41440,
+    "name": "Mustafa Kemal Atatürk",
+    "label": "Mustafa Kemal Atatürk (Mahalle)",
+    "value": "Mustafa Kemal Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 194127,
+    "name": "Yenibağarası",
+    "label": "Yenibağarası (Mahalle)",
+    "value": "Yenibağarası (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 194129,
+    "name": "Yeniköy",
+    "label": "Yeniköy (Mahalle)",
+    "value": "Yeniköy (Mahalle)"
+  }
+]

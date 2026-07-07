@@ -1,0 +1,205 @@
+[
+  {
+    "type": "village",
+    "id": 6109,
+    "name": "Açıkgüney",
+    "label": "Açıkgüney (K?y)",
+    "value": "Açıkgüney (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6110,
+    "name": "Ağaçöven",
+    "label": "Ağaçöven (K?y)",
+    "value": "Ağaçöven (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6111,
+    "name": "Alagöz",
+    "label": "Alagöz (K?y)",
+    "value": "Alagöz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6113,
+    "name": "Baklalı",
+    "label": "Baklalı (K?y)",
+    "value": "Baklalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6114,
+    "name": "Billice",
+    "label": "Billice (K?y)",
+    "value": "Billice (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6115,
+    "name": "Çanakçı",
+    "label": "Çanakçı (K?y)",
+    "value": "Çanakçı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6116,
+    "name": "Çiçektepe",
+    "label": "Çiçektepe (K?y)",
+    "value": "Çiçektepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6117,
+    "name": "Çomak",
+    "label": "Çomak (K?y)",
+    "value": "Çomak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6118,
+    "name": "Dallıca",
+    "label": "Dallıca (K?y)",
+    "value": "Dallıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6119,
+    "name": "Darköprü",
+    "label": "Darköprü (K?y)",
+    "value": "Darköprü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6120,
+    "name": "Demirdöş",
+    "label": "Demirdöş (K?y)",
+    "value": "Demirdöş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6121,
+    "name": "Demirkanat",
+    "label": "Demirkanat (K?y)",
+    "value": "Demirkanat (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6122,
+    "name": "Duranlar",
+    "label": "Duranlar (K?y)",
+    "value": "Duranlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6123,
+    "name": "Eskikavak",
+    "label": "Eskikavak (K?y)",
+    "value": "Eskikavak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10726,
+    "name": "Eskişehir",
+    "label": "Eskişehir (Mahalle)",
+    "value": "Eskişehir (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 6124,
+    "name": "Eşme",
+    "label": "Eşme (K?y)",
+    "value": "Eşme (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6125,
+    "name": "Güneyağıl",
+    "label": "Güneyağıl (K?y)",
+    "value": "Güneyağıl (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6126,
+    "name": "İlbeyi",
+    "label": "İlbeyi (K?y)",
+    "value": "İlbeyi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6127,
+    "name": "Kadıköy",
+    "label": "Kadıköy (K?y)",
+    "value": "Kadıköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 5988,
+    "name": "Kuşçimeni",
+    "label": "Kuşçimeni (K?y)",
+    "value": "Kuşçimeni (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6128,
+    "name": "Kutluca",
+    "label": "Kutluca (K?y)",
+    "value": "Kutluca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6129,
+    "name": "Nacaklı",
+    "label": "Nacaklı (K?y)",
+    "value": "Nacaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6131,
+    "name": "Sabırtaşı",
+    "label": "Sabırtaşı (K?y)",
+    "value": "Sabırtaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6132,
+    "name": "Sırmaçek",
+    "label": "Sırmaçek (K?y)",
+    "value": "Sırmaçek (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6133,
+    "name": "Tekbaş",
+    "label": "Tekbaş (K?y)",
+    "value": "Tekbaş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 6135,
+    "name": "Yazgünü",
+    "label": "Yazgünü (K?y)",
+    "value": "Yazgünü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10727,
+    "name": "Yenişehir",
+    "label": "Yenişehir (Mahalle)",
+    "value": "Yenişehir (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10728,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (Mahalle)",
+    "value": "Yeşilyurt (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 6136,
+    "name": "Yukarıserinyer",
+    "label": "Yukarıserinyer (K?y)",
+    "value": "Yukarıserinyer (K?y)"
+  }
+]

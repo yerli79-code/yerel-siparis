@@ -1,0 +1,72 @@
+[
+  {
+    "type": "village",
+    "id": 35373,
+    "name": "Akkoşan",
+    "label": "Akkoşan (K?y)",
+    "value": "Akkoşan (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90400,
+    "name": "Fatih Sultan Mehmet",
+    "label": "Fatih Sultan Mehmet (Mahalle)",
+    "value": "Fatih Sultan Mehmet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90402,
+    "name": "Hoca Ahmet Yesevi",
+    "label": "Hoca Ahmet Yesevi (Mahalle)",
+    "value": "Hoca Ahmet Yesevi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90403,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90404,
+    "name": "Kurtuluş",
+    "label": "Kurtuluş (Mahalle)",
+    "value": "Kurtuluş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90401,
+    "name": "Mareşal Fevzi Çakmak",
+    "label": "Mareşal Fevzi Çakmak (Mahalle)",
+    "value": "Mareşal Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35374,
+    "name": "Sulubük",
+    "label": "Sulubük (K?y)",
+    "value": "Sulubük (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90405,
+    "name": "Yavuz Sultan Selim",
+    "label": "Yavuz Sultan Selim (Mahalle)",
+    "value": "Yavuz Sultan Selim (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90406,
+    "name": "Yeşilevler",
+    "label": "Yeşilevler (Mahalle)",
+    "value": "Yeşilevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90407,
+    "name": "Zafer",
+    "label": "Zafer (Mahalle)",
+    "value": "Zafer (Mahalle)"
+  }
+]

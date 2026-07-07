@@ -1,0 +1,135 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 201303,
+    "name": "Alparslan",
+    "label": "Alparslan (Mahalle)",
+    "value": "Alparslan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60510,
+    "name": "Baş",
+    "label": "Baş (Mahalle)",
+    "value": "Baş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60511,
+    "name": "Bayramlı",
+    "label": "Bayramlı (Mahalle)",
+    "value": "Bayramlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60516,
+    "name": "Bozkır",
+    "label": "Bozkır (Mahalle)",
+    "value": "Bozkır (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60512,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25065,
+    "name": "Çakıllı",
+    "label": "Çakıllı (K?y)",
+    "value": "Çakıllı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60513,
+    "name": "Demirci",
+    "label": "Demirci (Mahalle)",
+    "value": "Demirci (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25066,
+    "name": "Doğala",
+    "label": "Doğala (K?y)",
+    "value": "Doğala (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 197251,
+    "name": "Esentepe",
+    "label": "Esentepe (Mahalle)",
+    "value": "Esentepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 198193,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 201301,
+    "name": "Göktürk",
+    "label": "Göktürk (Mahalle)",
+    "value": "Göktürk (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25067,
+    "name": "Güneyce",
+    "label": "Güneyce (K?y)",
+    "value": "Güneyce (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60514,
+    "name": "Kale",
+    "label": "Kale (Mahalle)",
+    "value": "Kale (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25068,
+    "name": "Kuyulutatlar",
+    "label": "Kuyulutatlar (K?y)",
+    "value": "Kuyulutatlar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 198195,
+    "name": "Namık Kemal",
+    "label": "Namık Kemal (Mahalle)",
+    "value": "Namık Kemal (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25069,
+    "name": "Özlüce",
+    "label": "Özlüce (K?y)",
+    "value": "Özlüce (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60517,
+    "name": "Polatkan",
+    "label": "Polatkan (Mahalle)",
+    "value": "Polatkan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 25071,
+    "name": "Tilköy",
+    "label": "Tilköy (K?y)",
+    "value": "Tilköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 60515,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  }
+]

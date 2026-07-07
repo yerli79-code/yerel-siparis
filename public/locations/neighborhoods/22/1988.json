@@ -1,0 +1,100 @@
+[
+  {
+    "type": "village",
+    "id": 11256,
+    "name": "Akardere",
+    "label": "Akardere (K?y)",
+    "value": "Akardere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11257,
+    "name": "Büyükgerdelli",
+    "label": "Büyükgerdelli (K?y)",
+    "value": "Büyükgerdelli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21259,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11258,
+    "name": "Domurcalı",
+    "label": "Domurcalı (K?y)",
+    "value": "Domurcalı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11259,
+    "name": "Geçkinli",
+    "label": "Geçkinli (K?y)",
+    "value": "Geçkinli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11260,
+    "name": "Keramettin",
+    "label": "Keramettin (K?y)",
+    "value": "Keramettin (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11261,
+    "name": "Küküler",
+    "label": "Küküler (K?y)",
+    "value": "Küküler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21260,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11262,
+    "name": "Sülecik",
+    "label": "Sülecik (K?y)",
+    "value": "Sülecik (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21262,
+    "name": "Şafak",
+    "label": "Şafak (Mahalle)",
+    "value": "Şafak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11263,
+    "name": "Taşlısekban",
+    "label": "Taşlısekban (K?y)",
+    "value": "Taşlısekban (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11264,
+    "name": "Tatarlar",
+    "label": "Tatarlar (K?y)",
+    "value": "Tatarlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11265,
+    "name": "Yağcılı",
+    "label": "Yağcılı (K?y)",
+    "value": "Yağcılı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21261,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  }
+]

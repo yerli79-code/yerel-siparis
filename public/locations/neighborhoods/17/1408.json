@@ -1,0 +1,100 @@
+[
+  {
+    "type": "village",
+    "id": 8478,
+    "name": "Bademli",
+    "label": "Bademli (K?y)",
+    "value": "Bademli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99154,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20187,
+    "name": "Çınarlı",
+    "label": "Çınarlı (Mahalle)",
+    "value": "Çınarlı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 8479,
+    "name": "Dereköy",
+    "label": "Dereköy (K?y)",
+    "value": "Dereköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8485,
+    "name": "Eşelek",
+    "label": "Eşelek (K?y)",
+    "value": "Eşelek (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20188,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 8480,
+    "name": "Kaleköy",
+    "label": "Kaleköy (K?y)",
+    "value": "Kaleköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 197827,
+    "name": "Kuzulimanı",
+    "label": "Kuzulimanı (Mahalle)",
+    "value": "Kuzulimanı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 8486,
+    "name": "Şirinköy",
+    "label": "Şirinköy (K?y)",
+    "value": "Şirinköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8481,
+    "name": "Tepeköy",
+    "label": "Tepeköy (K?y)",
+    "value": "Tepeköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8482,
+    "name": "Uğurlu",
+    "label": "Uğurlu (K?y)",
+    "value": "Uğurlu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 20189,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 8483,
+    "name": "Yenibademli",
+    "label": "Yenibademli (K?y)",
+    "value": "Yenibademli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 8484,
+    "name": "Zeytinli",
+    "label": "Zeytinli (K?y)",
+    "value": "Zeytinli (K?y)"
+  }
+]

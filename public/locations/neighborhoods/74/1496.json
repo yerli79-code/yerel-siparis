@@ -1,0 +1,226 @@
+[
+  {
+    "type": "village",
+    "id": 36174,
+    "name": "Alapınar",
+    "label": "Alapınar (K?y)",
+    "value": "Alapınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36175,
+    "name": "Aydoğmuş",
+    "label": "Aydoğmuş (K?y)",
+    "value": "Aydoğmuş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36176,
+    "name": "Başköy",
+    "label": "Başköy (K?y)",
+    "value": "Başköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36177,
+    "name": "Curunlu",
+    "label": "Curunlu (K?y)",
+    "value": "Curunlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36178,
+    "name": "Çayaltı",
+    "label": "Çayaltı (K?y)",
+    "value": "Çayaltı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36179,
+    "name": "Danişment",
+    "label": "Danişment (K?y)",
+    "value": "Danişment (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36180,
+    "name": "Demirci",
+    "label": "Demirci (K?y)",
+    "value": "Demirci (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36181,
+    "name": "Dizlermezeci",
+    "label": "Dizlermezeci (K?y)",
+    "value": "Dizlermezeci (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36182,
+    "name": "Elvanlar",
+    "label": "Elvanlar (K?y)",
+    "value": "Elvanlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36183,
+    "name": "Hacıköy",
+    "label": "Hacıköy (K?y)",
+    "value": "Hacıköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36184,
+    "name": "Hisarköy",
+    "label": "Hisarköy (K?y)",
+    "value": "Hisarköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36185,
+    "name": "İlyasgeçidi",
+    "label": "İlyasgeçidi (K?y)",
+    "value": "İlyasgeçidi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36186,
+    "name": "Kaleköy",
+    "label": "Kaleköy (K?y)",
+    "value": "Kaleköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36187,
+    "name": "Kanatlı",
+    "label": "Kanatlı (K?y)",
+    "value": "Kanatlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36188,
+    "name": "Kapısuyu",
+    "label": "Kapısuyu (K?y)",
+    "value": "Kapısuyu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36189,
+    "name": "Karaman",
+    "label": "Karaman (K?y)",
+    "value": "Karaman (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90701,
+    "name": "Kargacak",
+    "label": "Kargacak (Mahalle)",
+    "value": "Kargacak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36190,
+    "name": "Kavaklı",
+    "label": "Kavaklı (K?y)",
+    "value": "Kavaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36191,
+    "name": "Kirlikmüslimhoca",
+    "label": "Kirlikmüslimhoca (K?y)",
+    "value": "Kirlikmüslimhoca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36192,
+    "name": "Kömeç",
+    "label": "Kömeç (K?y)",
+    "value": "Kömeç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90702,
+    "name": "Liman",
+    "label": "Liman (Mahalle)",
+    "value": "Liman (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36193,
+    "name": "Meydan",
+    "label": "Meydan (K?y)",
+    "value": "Meydan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36194,
+    "name": "Ovatekkeönü",
+    "label": "Ovatekkeönü (K?y)",
+    "value": "Ovatekkeönü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36195,
+    "name": "Ömerler",
+    "label": "Ömerler (K?y)",
+    "value": "Ömerler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90703,
+    "name": "Ömerler",
+    "label": "Ömerler (Mahalle)",
+    "value": "Ömerler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36196,
+    "name": "Paşalılar",
+    "label": "Paşalılar (K?y)",
+    "value": "Paşalılar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36197,
+    "name": "Sarıderesi",
+    "label": "Sarıderesi (K?y)",
+    "value": "Sarıderesi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36198,
+    "name": "Şeyhler",
+    "label": "Şeyhler (K?y)",
+    "value": "Şeyhler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90704,
+    "name": "Şile",
+    "label": "Şile (Mahalle)",
+    "value": "Şile (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36199,
+    "name": "Uğurlu",
+    "label": "Uğurlu (K?y)",
+    "value": "Uğurlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36200,
+    "name": "Yeniköy",
+    "label": "Yeniköy (K?y)",
+    "value": "Yeniköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36201,
+    "name": "Ziyaretköy",
+    "label": "Ziyaretköy (K?y)",
+    "value": "Ziyaretköy (K?y)"
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 90351,
+    "name": "Atadönmez",
+    "label": "Atadönmez (Mahalle)",
+    "value": "Atadönmez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35282,
+    "name": "Çamlıca",
+    "label": "Çamlıca (K?y)",
+    "value": "Çamlıca (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90353,
+    "name": "Doğanay",
+    "label": "Doğanay (Mahalle)",
+    "value": "Doğanay (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90352,
+    "name": "Halim Şenses",
+    "label": "Halim Şenses (Mahalle)",
+    "value": "Halim Şenses (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90355,
+    "name": "Hidayet Doğruer",
+    "label": "Hidayet Doğruer (Mahalle)",
+    "value": "Hidayet Doğruer (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90354,
+    "name": "Hüseyin Onbaşı",
+    "label": "Hüseyin Onbaşı (Mahalle)",
+    "value": "Hüseyin Onbaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35283,
+    "name": "Karaahmetli",
+    "label": "Karaahmetli (K?y)",
+    "value": "Karaahmetli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35284,
+    "name": "Küçüksarıkayalar",
+    "label": "Küçüksarıkayalar (K?y)",
+    "value": "Küçüksarıkayalar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35285,
+    "name": "Küreboğazı",
+    "label": "Küreboğazı (K?y)",
+    "value": "Küreboğazı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35286,
+    "name": "Sarıkayalar",
+    "label": "Sarıkayalar (K?y)",
+    "value": "Sarıkayalar (K?y)"
+  }
+]

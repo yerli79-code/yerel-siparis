@@ -1,0 +1,107 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 51578,
+    "name": "Adnanmenderes",
+    "label": "Adnanmenderes (Mahalle)",
+    "value": "Adnanmenderes (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21393,
+    "name": "Akşinik",
+    "label": "Akşinik (K?y)",
+    "value": "Akşinik (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51579,
+    "name": "Atatürk",
+    "label": "Atatürk (Mahalle)",
+    "value": "Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51580,
+    "name": "Ayvalı",
+    "label": "Ayvalı (Mahalle)",
+    "value": "Ayvalı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51581,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51582,
+    "name": "Hocaahmetyesevi",
+    "label": "Hocaahmetyesevi (Mahalle)",
+    "value": "Hocaahmetyesevi (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21394,
+    "name": "Orhanlar",
+    "label": "Orhanlar (K?y)",
+    "value": "Orhanlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21395,
+    "name": "Örey",
+    "label": "Örey (K?y)",
+    "value": "Örey (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21396,
+    "name": "Sarayköy",
+    "label": "Sarayköy (K?y)",
+    "value": "Sarayköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21397,
+    "name": "Sofular",
+    "label": "Sofular (K?y)",
+    "value": "Sofular (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21398,
+    "name": "Tepeköy",
+    "label": "Tepeköy (K?y)",
+    "value": "Tepeköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51583,
+    "name": "Turgut Özal",
+    "label": "Turgut Özal (Mahalle)",
+    "value": "Turgut Özal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51587,
+    "name": "Yakuplar Atatürk",
+    "label": "Yakuplar Atatürk (Mahalle)",
+    "value": "Yakuplar Atatürk (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51588,
+    "name": "Yakuplar Fatih",
+    "label": "Yakuplar Fatih (Mahalle)",
+    "value": "Yakuplar Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21400,
+    "name": "Yenice",
+    "label": "Yenice (K?y)",
+    "value": "Yenice (K?y)"
+  }
+]

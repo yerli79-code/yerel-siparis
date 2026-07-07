@@ -1,0 +1,205 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 139658,
+    "name": "Aydınlık",
+    "label": "Aydınlık (Mahalle)",
+    "value": "Aydınlık (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34840,
+    "name": "Başaran",
+    "label": "Başaran (K?y)",
+    "value": "Başaran (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34844,
+    "name": "Bayramdüğün",
+    "label": "Bayramdüğün (K?y)",
+    "value": "Bayramdüğün (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34843,
+    "name": "Büğet",
+    "label": "Büğet (K?y)",
+    "value": "Büğet (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90043,
+    "name": "Camikebir",
+    "label": "Camikebir (Mahalle)",
+    "value": "Camikebir (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34845,
+    "name": "Celil",
+    "label": "Celil (K?y)",
+    "value": "Celil (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90032,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34846,
+    "name": "Çukuryurt",
+    "label": "Çukuryurt (K?y)",
+    "value": "Çukuryurt (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 199695,
+    "name": "Çulfa",
+    "label": "Çulfa (Mahalle)",
+    "value": "Çulfa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90033,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90034,
+    "name": "Fevzi Çakmak",
+    "label": "Fevzi Çakmak (Mahalle)",
+    "value": "Fevzi Çakmak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 48966,
+    "name": "Filikçi",
+    "label": "Filikçi (K?y)",
+    "value": "Filikçi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 37789,
+    "name": "Gümüşdüğün",
+    "label": "Gümüşdüğün (K?y)",
+    "value": "Gümüşdüğün (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34842,
+    "name": "Güneşli",
+    "label": "Güneşli (K?y)",
+    "value": "Güneşli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90035,
+    "name": "Hürriyet",
+    "label": "Hürriyet (Mahalle)",
+    "value": "Hürriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90036,
+    "name": "İstiklal",
+    "label": "İstiklal (Mahalle)",
+    "value": "İstiklal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90037,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34847,
+    "name": "Katrancı",
+    "label": "Katrancı (K?y)",
+    "value": "Katrancı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90044,
+    "name": "Kayacık",
+    "label": "Kayacık (Mahalle)",
+    "value": "Kayacık (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 37788,
+    "name": "Kökez",
+    "label": "Kökez (K?y)",
+    "value": "Kökez (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90038,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90039,
+    "name": "Mimar Sinan",
+    "label": "Mimar Sinan (Mahalle)",
+    "value": "Mimar Sinan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 909671,
+    "name": "Muratlı",
+    "label": "Muratlı (Mahalle)",
+    "value": "Muratlı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34848,
+    "name": "Sağsak",
+    "label": "Sağsak (K?y)",
+    "value": "Sağsak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 199697,
+    "name": "Yavuz Sultan Selim",
+    "label": "Yavuz Sultan Selim (Mahalle)",
+    "value": "Yavuz Sultan Selim (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90045,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90046,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (Mahalle)",
+    "value": "Yeşilyurt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90041,
+    "name": "Yıldırım",
+    "label": "Yıldırım (Mahalle)",
+    "value": "Yıldırım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90042,
+    "name": "Zafer",
+    "label": "Zafer (Mahalle)",
+    "value": "Zafer (Mahalle)"
+  }
+]

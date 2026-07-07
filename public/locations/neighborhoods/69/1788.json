@@ -1,0 +1,233 @@
+[
+  {
+    "type": "village",
+    "id": 35062,
+    "name": "Akyaka",
+    "label": "Akyaka (K?y)",
+    "value": "Akyaka (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35063,
+    "name": "Bayrampaşa",
+    "label": "Bayrampaşa (K?y)",
+    "value": "Bayrampaşa (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35064,
+    "name": "Beşpınar",
+    "label": "Beşpınar (K?y)",
+    "value": "Beşpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35065,
+    "name": "Çağıllı",
+    "label": "Çağıllı (K?y)",
+    "value": "Çağıllı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35066,
+    "name": "Çakıröz",
+    "label": "Çakıröz (K?y)",
+    "value": "Çakıröz (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35067,
+    "name": "Çatalçeşme",
+    "label": "Çatalçeşme (K?y)",
+    "value": "Çatalçeşme (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99396,
+    "name": "Çiftetaş",
+    "label": "Çiftetaş (Mahalle)",
+    "value": "Çiftetaş (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35069,
+    "name": "Çimentepe",
+    "label": "Çimentepe (K?y)",
+    "value": "Çimentepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35070,
+    "name": "Damlıca",
+    "label": "Damlıca (K?y)",
+    "value": "Damlıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35071,
+    "name": "Devetaşı",
+    "label": "Devetaşı (K?y)",
+    "value": "Devetaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35072,
+    "name": "Dikmetaş",
+    "label": "Dikmetaş (K?y)",
+    "value": "Dikmetaş (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35073,
+    "name": "Elmalı",
+    "label": "Elmalı (K?y)",
+    "value": "Elmalı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90155,
+    "name": "Esentepe",
+    "label": "Esentepe (Mahalle)",
+    "value": "Esentepe (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35074,
+    "name": "Eymür",
+    "label": "Eymür (K?y)",
+    "value": "Eymür (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35076,
+    "name": "Güçlü",
+    "label": "Güçlü (K?y)",
+    "value": "Güçlü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99397,
+    "name": "Güneşli",
+    "label": "Güneşli (Mahalle)",
+    "value": "Güneşli (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35078,
+    "name": "Güvercindere",
+    "label": "Güvercindere (K?y)",
+    "value": "Güvercindere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35079,
+    "name": "Işıkova",
+    "label": "Işıkova (K?y)",
+    "value": "Işıkova (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35080,
+    "name": "Kalecik",
+    "label": "Kalecik (K?y)",
+    "value": "Kalecik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35081,
+    "name": "Karayaşmak",
+    "label": "Karayaşmak (K?y)",
+    "value": "Karayaşmak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90159,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35082,
+    "name": "Kavaklı",
+    "label": "Kavaklı (K?y)",
+    "value": "Kavaklı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35083,
+    "name": "Otlukbeli",
+    "label": "Otlukbeli (K?y)",
+    "value": "Otlukbeli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35084,
+    "name": "Petekli",
+    "label": "Petekli (K?y)",
+    "value": "Petekli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90160,
+    "name": "Pınarbaşı",
+    "label": "Pınarbaşı (Mahalle)",
+    "value": "Pınarbaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35085,
+    "name": "Pınarcık",
+    "label": "Pınarcık (K?y)",
+    "value": "Pınarcık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35086,
+    "name": "Serenli",
+    "label": "Serenli (K?y)",
+    "value": "Serenli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90156,
+    "name": "Şirin",
+    "label": "Şirin (Mahalle)",
+    "value": "Şirin (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35087,
+    "name": "Yakupabdal",
+    "label": "Yakupabdal (K?y)",
+    "value": "Yakupabdal (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35088,
+    "name": "Yazıbaşı",
+    "label": "Yazıbaşı (K?y)",
+    "value": "Yazıbaşı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35089,
+    "name": "Yelpınar",
+    "label": "Yelpınar (K?y)",
+    "value": "Yelpınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90161,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (Mahalle)",
+    "value": "Yeşilyurt (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35090,
+    "name": "Yukarıpınarlı",
+    "label": "Yukarıpınarlı (K?y)",
+    "value": "Yukarıpınarlı (K?y)"
+  }
+]

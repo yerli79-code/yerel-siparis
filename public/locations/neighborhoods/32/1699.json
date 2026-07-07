@@ -1,0 +1,107 @@
+[
+  {
+    "type": "village",
+    "id": 15995,
+    "name": "Dere",
+    "label": "Dere (K?y)",
+    "value": "Dere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31611,
+    "name": "Güreşyeri",
+    "label": "Güreşyeri (Mahalle)",
+    "value": "Güreşyeri (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140370,
+    "name": "Hamideli",
+    "label": "Hamideli (Mahalle)",
+    "value": "Hamideli (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15996,
+    "name": "İleydağı",
+    "label": "İleydağı (K?y)",
+    "value": "İleydağı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 15997,
+    "name": "İnhisar",
+    "label": "İnhisar (K?y)",
+    "value": "İnhisar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31612,
+    "name": "Kabaağaç",
+    "label": "Kabaağaç (Mahalle)",
+    "value": "Kabaağaç (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31619,
+    "name": "Kösehasan",
+    "label": "Kösehasan (Mahalle)",
+    "value": "Kösehasan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 15998,
+    "name": "Küçükkabaca",
+    "label": "Küçükkabaca (K?y)",
+    "value": "Küçükkabaca (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31618,
+    "name": "Namazgah",
+    "label": "Namazgah (Mahalle)",
+    "value": "Namazgah (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31613,
+    "name": "Pazar",
+    "label": "Pazar (Mahalle)",
+    "value": "Pazar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31617,
+    "name": "Selçuklu",
+    "label": "Selçuklu (Mahalle)",
+    "value": "Selçuklu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 140372,
+    "name": "Serenler",
+    "label": "Serenler (Mahalle)",
+    "value": "Serenler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31614,
+    "name": "Taşköprü",
+    "label": "Taşköprü (Mahalle)",
+    "value": "Taşköprü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31615,
+    "name": "Topraklık",
+    "label": "Topraklık (Mahalle)",
+    "value": "Topraklık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31616,
+    "name": "Zincirli",
+    "label": "Zincirli (Mahalle)",
+    "value": "Zincirli (Mahalle)"
+  }
+]

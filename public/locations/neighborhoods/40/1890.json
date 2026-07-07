@@ -1,0 +1,121 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 50061,
+    "name": "Bağbaşı",
+    "label": "Bağbaşı (Mahalle)",
+    "value": "Bağbaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19775,
+    "name": "Büyükkışla",
+    "label": "Büyükkışla (K?y)",
+    "value": "Büyükkışla (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19776,
+    "name": "Çamalak",
+    "label": "Çamalak (K?y)",
+    "value": "Çamalak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19777,
+    "name": "Çevirme",
+    "label": "Çevirme (K?y)",
+    "value": "Çevirme (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19778,
+    "name": "Çiğdeli",
+    "label": "Çiğdeli (K?y)",
+    "value": "Çiğdeli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19779,
+    "name": "Çimeli",
+    "label": "Çimeli (K?y)",
+    "value": "Çimeli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19780,
+    "name": "Eskidoğanlı",
+    "label": "Eskidoğanlı (K?y)",
+    "value": "Eskidoğanlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19781,
+    "name": "Harmanaltı",
+    "label": "Harmanaltı (K?y)",
+    "value": "Harmanaltı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19785,
+    "name": "Hatunoğlu",
+    "label": "Hatunoğlu (K?y)",
+    "value": "Hatunoğlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19782,
+    "name": "Hüseyinli",
+    "label": "Hüseyinli (K?y)",
+    "value": "Hüseyinli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19783,
+    "name": "Karacaören",
+    "label": "Karacaören (K?y)",
+    "value": "Karacaören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19784,
+    "name": "Külhüyük",
+    "label": "Külhüyük (K?y)",
+    "value": "Külhüyük (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 50062,
+    "name": "Orta",
+    "label": "Orta (Mahalle)",
+    "value": "Orta (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19786,
+    "name": "Uzunpınar",
+    "label": "Uzunpınar (K?y)",
+    "value": "Uzunpınar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 19787,
+    "name": "Üçkuyu",
+    "label": "Üçkuyu (K?y)",
+    "value": "Üçkuyu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 50063,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 19788,
+    "name": "Yenidoğanlı",
+    "label": "Yenidoğanlı (K?y)",
+    "value": "Yenidoğanlı (K?y)"
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "type": "village",
+    "id": 7142,
+    "name": "Asmabağ",
+    "label": "Asmabağ (K?y)",
+    "value": "Asmabağ (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7143,
+    "name": "Ballık",
+    "label": "Ballık (K?y)",
+    "value": "Ballık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7144,
+    "name": "Çatak",
+    "label": "Çatak (K?y)",
+    "value": "Çatak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7145,
+    "name": "Çörten",
+    "label": "Çörten (K?y)",
+    "value": "Çörten (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10994,
+    "name": "Gülpınar",
+    "label": "Gülpınar (Mahalle)",
+    "value": "Gülpınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10995,
+    "name": "Heybeli",
+    "label": "Heybeli (Mahalle)",
+    "value": "Heybeli (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 7146,
+    "name": "Kızılyaka",
+    "label": "Kızılyaka (K?y)",
+    "value": "Kızılyaka (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10996,
+    "name": "Taşyaka",
+    "label": "Taşyaka (Mahalle)",
+    "value": "Taşyaka (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 10997,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  }
+]

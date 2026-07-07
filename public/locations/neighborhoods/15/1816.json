@@ -1,0 +1,72 @@
+[
+  {
+    "type": "village",
+    "id": 7230,
+    "name": "Akçaören",
+    "label": "Akçaören (K?y)",
+    "value": "Akçaören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7231,
+    "name": "Akören",
+    "label": "Akören (K?y)",
+    "value": "Akören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7232,
+    "name": "Belenli",
+    "label": "Belenli (K?y)",
+    "value": "Belenli (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7233,
+    "name": "Elmacık",
+    "label": "Elmacık (K?y)",
+    "value": "Elmacık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 7234,
+    "name": "Kayı",
+    "label": "Kayı (K?y)",
+    "value": "Kayı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 11082,
+    "name": "Konak",
+    "label": "Konak (Mahalle)",
+    "value": "Konak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 7235,
+    "name": "Pınarbaşı",
+    "label": "Pınarbaşı (K?y)",
+    "value": "Pınarbaşı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 11083,
+    "name": "Saray",
+    "label": "Saray (Mahalle)",
+    "value": "Saray (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 7236,
+    "name": "Yakalar",
+    "label": "Yakalar (K?y)",
+    "value": "Yakalar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 11084,
+    "name": "Yeni Camii",
+    "label": "Yeni Camii (Mahalle)",
+    "value": "Yeni Camii (Mahalle)"
+  }
+]

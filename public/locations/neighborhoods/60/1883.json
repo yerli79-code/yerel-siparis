@@ -1,0 +1,93 @@
+[
+  {
+    "type": "village",
+    "id": 30259,
+    "name": "Alanköy",
+    "label": "Alanköy (K?y)",
+    "value": "Alanköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30261,
+    "name": "Aydoğmuş",
+    "label": "Aydoğmuş (K?y)",
+    "value": "Aydoğmuş (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70800,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30262,
+    "name": "Dağüstü",
+    "label": "Dağüstü (K?y)",
+    "value": "Dağüstü (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 30263,
+    "name": "Erikbelen",
+    "label": "Erikbelen (K?y)",
+    "value": "Erikbelen (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70809,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70801,
+    "name": "Gençosman",
+    "label": "Gençosman (Mahalle)",
+    "value": "Gençosman (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70804,
+    "name": "Karacaören Alibaba",
+    "label": "Karacaören Alibaba (Mahalle)",
+    "value": "Karacaören Alibaba (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70805,
+    "name": "Karacaören Aşıroğlu",
+    "label": "Karacaören Aşıroğlu (Mahalle)",
+    "value": "Karacaören Aşıroğlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70806,
+    "name": "Karacaören Gaziosmanpaşa",
+    "label": "Karacaören Gaziosmanpaşa (Mahalle)",
+    "value": "Karacaören Gaziosmanpaşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30265,
+    "name": "Sarıağıl",
+    "label": "Sarıağıl (K?y)",
+    "value": "Sarıağıl (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70803,
+    "name": "Sinanpaşa",
+    "label": "Sinanpaşa (Mahalle)",
+    "value": "Sinanpaşa (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 30266,
+    "name": "Şahnaalan",
+    "label": "Şahnaalan (K?y)",
+    "value": "Şahnaalan (K?y)"
+  }
+]

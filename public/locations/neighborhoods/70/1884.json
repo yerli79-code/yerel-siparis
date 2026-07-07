@@ -1,0 +1,65 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 90251,
+    "name": "Başköy",
+    "label": "Başköy (Mahalle)",
+    "value": "Başköy (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35212,
+    "name": "Bozyaka",
+    "label": "Bozyaka (K?y)",
+    "value": "Bozyaka (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35213,
+    "name": "Büyükkarapınar",
+    "label": "Büyükkarapınar (K?y)",
+    "value": "Büyükkarapınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90252,
+    "name": "Göztepe",
+    "label": "Göztepe (Mahalle)",
+    "value": "Göztepe (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35214,
+    "name": "Kışlaköy",
+    "label": "Kışlaköy (K?y)",
+    "value": "Kışlaköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90253,
+    "name": "Kirazlıyayla",
+    "label": "Kirazlıyayla (Mahalle)",
+    "value": "Kirazlıyayla (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90254,
+    "name": "Şirindere",
+    "label": "Şirindere (Mahalle)",
+    "value": "Şirindere (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35215,
+    "name": "Üzümlü",
+    "label": "Üzümlü (K?y)",
+    "value": "Üzümlü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90255,
+    "name": "Yenimahalle",
+    "label": "Yenimahalle (Mahalle)",
+    "value": "Yenimahalle (Mahalle)"
+  }
+]

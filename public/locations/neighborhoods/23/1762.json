@@ -1,0 +1,233 @@
+[
+  {
+    "type": "village",
+    "id": 11494,
+    "name": "Bozçavuş",
+    "label": "Bozçavuş (K?y)",
+    "value": "Bozçavuş (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21385,
+    "name": "Bölükbaşı",
+    "label": "Bölükbaşı (Mahalle)",
+    "value": "Bölükbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21387,
+    "name": "Cami",
+    "label": "Cami (Mahalle)",
+    "value": "Cami (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21388,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11496,
+    "name": "Çavuşdere",
+    "label": "Çavuşdere (K?y)",
+    "value": "Çavuşdere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21392,
+    "name": "Çay",
+    "label": "Çay (Mahalle)",
+    "value": "Çay (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11497,
+    "name": "Çevrecik",
+    "label": "Çevrecik (K?y)",
+    "value": "Çevrecik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11498,
+    "name": "Erbağı",
+    "label": "Erbağı (K?y)",
+    "value": "Erbağı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 11500,
+    "name": "Göründü",
+    "label": "Göründü (K?y)",
+    "value": "Göründü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21389,
+    "name": "Güleç",
+    "label": "Güleç (Mahalle)",
+    "value": "Güleç (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21379,
+    "name": "Gümüşyaka",
+    "label": "Gümüşyaka (Mahalle)",
+    "value": "Gümüşyaka (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21390,
+    "name": "Güvenevler",
+    "label": "Güvenevler (Mahalle)",
+    "value": "Güvenevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21393,
+    "name": "Haberci",
+    "label": "Haberci (Mahalle)",
+    "value": "Haberci (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21377,
+    "name": "Halil Yavuz",
+    "label": "Halil Yavuz (Mahalle)",
+    "value": "Halil Yavuz (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21378,
+    "name": "Hürriyet",
+    "label": "Hürriyet (Mahalle)",
+    "value": "Hürriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11501,
+    "name": "Kambertepe",
+    "label": "Kambertepe (K?y)",
+    "value": "Kambertepe (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21384,
+    "name": "Kaplanbağ",
+    "label": "Kaplanbağ (Mahalle)",
+    "value": "Kaplanbağ (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11502,
+    "name": "Karakaş",
+    "label": "Karakaş (K?y)",
+    "value": "Karakaş (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21391,
+    "name": "Kışla",
+    "label": "Kışla (Mahalle)",
+    "value": "Kışla (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21394,
+    "name": "Kutlu Düğün",
+    "label": "Kutlu Düğün (Mahalle)",
+    "value": "Kutlu Düğün (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11504,
+    "name": "Küplüce",
+    "label": "Küplüce (K?y)",
+    "value": "Küplüce (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21395,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 100135,
+    "name": "Mustafa Çelebi",
+    "label": "Mustafa Çelebi (Mahalle)",
+    "value": "Mustafa Çelebi (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11505,
+    "name": "Ormanpınar",
+    "label": "Ormanpınar (K?y)",
+    "value": "Ormanpınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21386,
+    "name": "Pınarbaşı",
+    "label": "Pınarbaşı (Mahalle)",
+    "value": "Pınarbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21376,
+    "name": "Saman",
+    "label": "Saman (Mahalle)",
+    "value": "Saman (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21381,
+    "name": "Serinevler",
+    "label": "Serinevler (Mahalle)",
+    "value": "Serinevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 181430,
+    "name": "Simserkis",
+    "label": "Simserkis (Mahalle)",
+    "value": "Simserkis (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21380,
+    "name": "Vali Göktayoğlu",
+    "label": "Vali Göktayoğlu (Mahalle)",
+    "value": "Vali Göktayoğlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21383,
+    "name": "Yaylabaşı",
+    "label": "Yaylabaşı (Mahalle)",
+    "value": "Yaylabaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 11507,
+    "name": "Yoğunbilek",
+    "label": "Yoğunbilek (K?y)",
+    "value": "Yoğunbilek (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21382,
+    "name": "Zeynet",
+    "label": "Zeynet (Mahalle)",
+    "value": "Zeynet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21396,
+    "name": "Ziyaret",
+    "label": "Ziyaret (Mahalle)",
+    "value": "Ziyaret (Mahalle)"
+  }
+]

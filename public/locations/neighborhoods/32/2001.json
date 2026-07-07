@@ -1,0 +1,37 @@
+[
+  {
+    "type": "village",
+    "id": 16039,
+    "name": "Gölkonak",
+    "label": "Gölkonak (K?y)",
+    "value": "Gölkonak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31711,
+    "name": "Gündoğdu",
+    "label": "Gündoğdu (Mahalle)",
+    "value": "Gündoğdu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31712,
+    "name": "Pınarbaşı",
+    "label": "Pınarbaşı (Mahalle)",
+    "value": "Pınarbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31713,
+    "name": "Yenicami",
+    "label": "Yenicami (Mahalle)",
+    "value": "Yenicami (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 31714,
+    "name": "Yenice",
+    "label": "Yenice (Mahalle)",
+    "value": "Yenice (Mahalle)"
+  }
+]

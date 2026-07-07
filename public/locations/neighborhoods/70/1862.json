@@ -1,0 +1,100 @@
+[
+  {
+    "type": "village",
+    "id": 35247,
+    "name": "Akarköy",
+    "label": "Akarköy (K?y)",
+    "value": "Akarköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90287,
+    "name": "Boyacı",
+    "label": "Boyacı (Mahalle)",
+    "value": "Boyacı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90288,
+    "name": "Eminettin",
+    "label": "Eminettin (Mahalle)",
+    "value": "Eminettin (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90289,
+    "name": "Emsalhayat",
+    "label": "Emsalhayat (Mahalle)",
+    "value": "Emsalhayat (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35248,
+    "name": "Karalgazi",
+    "label": "Karalgazi (K?y)",
+    "value": "Karalgazi (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35249,
+    "name": "Kızılkuyu",
+    "label": "Kızılkuyu (K?y)",
+    "value": "Kızılkuyu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35250,
+    "name": "Mecidiye",
+    "label": "Mecidiye (K?y)",
+    "value": "Mecidiye (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90290,
+    "name": "Oba",
+    "label": "Oba (Mahalle)",
+    "value": "Oba (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35251,
+    "name": "Özyurt",
+    "label": "Özyurt (K?y)",
+    "value": "Özyurt (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90291,
+    "name": "Pazar",
+    "label": "Pazar (Mahalle)",
+    "value": "Pazar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99362,
+    "name": "Selçuklu",
+    "label": "Selçuklu (Mahalle)",
+    "value": "Selçuklu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35252,
+    "name": "Sinci",
+    "label": "Sinci (K?y)",
+    "value": "Sinci (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90292,
+    "name": "Subaşı",
+    "label": "Subaşı (Mahalle)",
+    "value": "Subaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99363,
+    "name": "Timsal",
+    "label": "Timsal (Mahalle)",
+    "value": "Timsal (Mahalle)"
+  }
+]

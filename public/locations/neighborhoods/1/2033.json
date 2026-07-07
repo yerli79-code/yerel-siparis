@@ -1,0 +1,191 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 8,
+    "name": "Belediye Evleri",
+    "label": "Belediye Evleri (Mahalle)",
+    "value": "Belediye Evleri (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 11,
+    "name": "Beyazevler",
+    "label": "Beyazevler (Mahalle)",
+    "value": "Beyazevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177831,
+    "name": "Bozcalar",
+    "label": "Bozcalar (Mahalle)",
+    "value": "Bozcalar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177843,
+    "name": "Dörtler",
+    "label": "Dörtler (Mahalle)",
+    "value": "Dörtler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 102,
+    "name": "Esentepe",
+    "label": "Esentepe (Mahalle)",
+    "value": "Esentepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177833,
+    "name": "Fadıl",
+    "label": "Fadıl (Mahalle)",
+    "value": "Fadıl (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 347,
+    "name": "Gökkuyu",
+    "label": "Gökkuyu (Mahalle)",
+    "value": "Gökkuyu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 26,
+    "name": "Güzelyalı",
+    "label": "Güzelyalı (Mahalle)",
+    "value": "Güzelyalı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30,
+    "name": "Huzurevleri",
+    "label": "Huzurevleri (Mahalle)",
+    "value": "Huzurevleri (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177827,
+    "name": "Kabasakal",
+    "label": "Kabasakal (Mahalle)",
+    "value": "Kabasakal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177829,
+    "name": "Karahan",
+    "label": "Karahan (Mahalle)",
+    "value": "Karahan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 83,
+    "name": "Karslılar",
+    "label": "Karslılar (Mahalle)",
+    "value": "Karslılar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177835,
+    "name": "Kaşoba",
+    "label": "Kaşoba (Mahalle)",
+    "value": "Kaşoba (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 345,
+    "name": "Kocatepe",
+    "label": "Kocatepe (Mahalle)",
+    "value": "Kocatepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 88,
+    "name": "Kurttepe",
+    "label": "Kurttepe (Mahalle)",
+    "value": "Kurttepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177837,
+    "name": "Küçükçınar",
+    "label": "Küçükçınar (Mahalle)",
+    "value": "Küçükçınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 39,
+    "name": "Mahfesığmaz",
+    "label": "Mahfesığmaz (Mahalle)",
+    "value": "Mahfesığmaz (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177845,
+    "name": "Memişli",
+    "label": "Memişli (Mahalle)",
+    "value": "Memişli (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177847,
+    "name": "Örcün",
+    "label": "Örcün (Mahalle)",
+    "value": "Örcün (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177839,
+    "name": "Pirili",
+    "label": "Pirili (Mahalle)",
+    "value": "Pirili (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 344,
+    "name": "Salbaş Esentepe",
+    "label": "Salbaş Esentepe (Mahalle)",
+    "value": "Salbaş Esentepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 177841,
+    "name": "Söğütlü",
+    "label": "Söğütlü (Mahalle)",
+    "value": "Söğütlü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 95,
+    "name": "Şambayadı",
+    "label": "Şambayadı (Mahalle)",
+    "value": "Şambayadı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 58,
+    "name": "Toros",
+    "label": "Toros (Mahalle)",
+    "value": "Toros (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 346,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 69,
+    "name": "Yurt",
+    "label": "Yurt (Mahalle)",
+    "value": "Yurt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 70,
+    "name": "Yüzüncüyıl",
+    "label": "Yüzüncüyıl (Mahalle)",
+    "value": "Yüzüncüyıl (Mahalle)"
+  }
+]

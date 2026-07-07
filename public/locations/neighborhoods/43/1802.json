@@ -1,0 +1,219 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 51567,
+    "name": "82.Yıl",
+    "label": "82.Yıl (Mahalle)",
+    "value": "82.Yıl (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21367,
+    "name": "Alınören",
+    "label": "Alınören (K?y)",
+    "value": "Alınören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21368,
+    "name": "Aşağıyoncaağaç",
+    "label": "Aşağıyoncaağaç (K?y)",
+    "value": "Aşağıyoncaağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21369,
+    "name": "Beyköy",
+    "label": "Beyköy (K?y)",
+    "value": "Beyköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51562,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21370,
+    "name": "Çatak",
+    "label": "Çatak (K?y)",
+    "value": "Çatak (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21371,
+    "name": "Dereköy",
+    "label": "Dereköy (K?y)",
+    "value": "Dereköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21372,
+    "name": "Güldüren",
+    "label": "Güldüren (K?y)",
+    "value": "Güldüren (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21373,
+    "name": "Halifeler",
+    "label": "Halifeler (K?y)",
+    "value": "Halifeler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21374,
+    "name": "Hamamköy",
+    "label": "Hamamköy (K?y)",
+    "value": "Hamamköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21375,
+    "name": "Hasanlar",
+    "label": "Hasanlar (K?y)",
+    "value": "Hasanlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21376,
+    "name": "Hocalar",
+    "label": "Hocalar (K?y)",
+    "value": "Hocalar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21377,
+    "name": "Karaağıl",
+    "label": "Karaağıl (K?y)",
+    "value": "Karaağıl (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21378,
+    "name": "Karbasan",
+    "label": "Karbasan (K?y)",
+    "value": "Karbasan (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51563,
+    "name": "Karşıyaka",
+    "label": "Karşıyaka (Mahalle)",
+    "value": "Karşıyaka (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21379,
+    "name": "Kızılçukur",
+    "label": "Kızılçukur (K?y)",
+    "value": "Kızılçukur (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21380,
+    "name": "Kurtdere",
+    "label": "Kurtdere (K?y)",
+    "value": "Kurtdere (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21381,
+    "name": "Kutlubeyler",
+    "label": "Kutlubeyler (K?y)",
+    "value": "Kutlubeyler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21382,
+    "name": "Kutluhallar",
+    "label": "Kutluhallar (K?y)",
+    "value": "Kutluhallar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21383,
+    "name": "Ören",
+    "label": "Ören (K?y)",
+    "value": "Ören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21384,
+    "name": "Saklar",
+    "label": "Saklar (K?y)",
+    "value": "Saklar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21385,
+    "name": "Sefaköy",
+    "label": "Sefaköy (K?y)",
+    "value": "Sefaköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51564,
+    "name": "Şehitler",
+    "label": "Şehitler (Mahalle)",
+    "value": "Şehitler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21386,
+    "name": "Şeyhçakır",
+    "label": "Şeyhçakır (K?y)",
+    "value": "Şeyhçakır (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21387,
+    "name": "Şeyhler",
+    "label": "Şeyhler (K?y)",
+    "value": "Şeyhler (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21388,
+    "name": "Tokat",
+    "label": "Tokat (K?y)",
+    "value": "Tokat (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 21389,
+    "name": "Ulaşlar",
+    "label": "Ulaşlar (K?y)",
+    "value": "Ulaşlar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51565,
+    "name": "Yenidoğan",
+    "label": "Yenidoğan (Mahalle)",
+    "value": "Yenidoğan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21390,
+    "name": "Yenipınar",
+    "label": "Yenipınar (K?y)",
+    "value": "Yenipınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 51566,
+    "name": "Yeşilhisar",
+    "label": "Yeşilhisar (Mahalle)",
+    "value": "Yeşilhisar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 21391,
+    "name": "Yukarıyoncaağaç",
+    "label": "Yukarıyoncaağaç (K?y)",
+    "value": "Yukarıyoncaağaç (K?y)"
+  }
+]

@@ -1,0 +1,198 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 191031,
+    "name": "Abbashalimpaşa",
+    "label": "Abbashalimpaşa (Mahalle)",
+    "value": "Abbashalimpaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30257,
+    "name": "Adalar",
+    "label": "Adalar (Mahalle)",
+    "value": "Adalar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191069,
+    "name": "Alikan",
+    "label": "Alikan (Mahalle)",
+    "value": "Alikan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191033,
+    "name": "Arslanlı",
+    "label": "Arslanlı (Mahalle)",
+    "value": "Arslanlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191035,
+    "name": "Başkurt",
+    "label": "Başkurt (Mahalle)",
+    "value": "Başkurt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191037,
+    "name": "Belpınar",
+    "label": "Belpınar (Mahalle)",
+    "value": "Belpınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191039,
+    "name": "Çatmapınar",
+    "label": "Çatmapınar (Mahalle)",
+    "value": "Çatmapınar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30258,
+    "name": "Çiftçi",
+    "label": "Çiftçi (Mahalle)",
+    "value": "Çiftçi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191041,
+    "name": "Dikilikaya",
+    "label": "Dikilikaya (Mahalle)",
+    "value": "Dikilikaya (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191043,
+    "name": "Dikmen",
+    "label": "Dikmen (Mahalle)",
+    "value": "Dikmen (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191045,
+    "name": "Doğanay",
+    "label": "Doğanay (Mahalle)",
+    "value": "Doğanay (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191047,
+    "name": "Eminekin",
+    "label": "Eminekin (Mahalle)",
+    "value": "Eminekin (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30259,
+    "name": "Erbap",
+    "label": "Erbap (Mahalle)",
+    "value": "Erbap (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191049,
+    "name": "Hayriye",
+    "label": "Hayriye (Mahalle)",
+    "value": "Hayriye (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191051,
+    "name": "Ilıcabaşı",
+    "label": "Ilıcabaşı (Mahalle)",
+    "value": "Ilıcabaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191053,
+    "name": "Kadıkuyusu",
+    "label": "Kadıkuyusu (Mahalle)",
+    "value": "Kadıkuyusu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191055,
+    "name": "Körhasan",
+    "label": "Körhasan (Mahalle)",
+    "value": "Körhasan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191057,
+    "name": "Orhaniye",
+    "label": "Orhaniye (Mahalle)",
+    "value": "Orhaniye (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191059,
+    "name": "Ortaköy",
+    "label": "Ortaköy (Mahalle)",
+    "value": "Ortaköy (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191061,
+    "name": "Osmaniye",
+    "label": "Osmaniye (Mahalle)",
+    "value": "Osmaniye (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191063,
+    "name": "Sadıroğlu",
+    "label": "Sadıroğlu (Mahalle)",
+    "value": "Sadıroğlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191065,
+    "name": "Saithalimpaşa",
+    "label": "Saithalimpaşa (Mahalle)",
+    "value": "Saithalimpaşa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30260,
+    "name": "Sakarya",
+    "label": "Sakarya (Mahalle)",
+    "value": "Sakarya (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191067,
+    "name": "Sarıkavak",
+    "label": "Sarıkavak (Mahalle)",
+    "value": "Sarıkavak (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30261,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 30262,
+    "name": "Yenidoğan",
+    "label": "Yenidoğan (Mahalle)",
+    "value": "Yenidoğan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191071,
+    "name": "Yıldızören",
+    "label": "Yıldızören (Mahalle)",
+    "value": "Yıldızören (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 191073,
+    "name": "Zaferhamit",
+    "label": "Zaferhamit (Mahalle)",
+    "value": "Zaferhamit (Mahalle)"
+  }
+]

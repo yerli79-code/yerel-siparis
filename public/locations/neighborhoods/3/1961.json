@@ -1,0 +1,44 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 1035,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1318,
+    "name": "Ekinova",
+    "label": "Ekinova (K?y)",
+    "value": "Ekinova (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1319,
+    "name": "Gülyazı",
+    "label": "Gülyazı (K?y)",
+    "value": "Gülyazı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1320,
+    "name": "Türkbelkavak",
+    "label": "Türkbelkavak (K?y)",
+    "value": "Türkbelkavak (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1036,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1321,
+    "name": "Yenibelkavak",
+    "label": "Yenibelkavak (K?y)",
+    "value": "Yenibelkavak (K?y)"
+  }
+]

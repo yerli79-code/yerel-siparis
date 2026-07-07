@@ -1,0 +1,156 @@
+[
+  {
+    "type": "village",
+    "id": 1020,
+    "name": "Akkeçili",
+    "label": "Akkeçili (K?y)",
+    "value": "Akkeçili (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1021,
+    "name": "Akkoyunlu",
+    "label": "Akkoyunlu (K?y)",
+    "value": "Akkoyunlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1022,
+    "name": "Akpınar",
+    "label": "Akpınar (K?y)",
+    "value": "Akpınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 733,
+    "name": "Aşağı Hilal",
+    "label": "Aşağı Hilal (Mahalle)",
+    "value": "Aşağı Hilal (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 734,
+    "name": "Barbaros",
+    "label": "Barbaros (Mahalle)",
+    "value": "Barbaros (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1023,
+    "name": "Beltarla",
+    "label": "Beltarla (K?y)",
+    "value": "Beltarla (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 735,
+    "name": "Çağlayan",
+    "label": "Çağlayan (Mahalle)",
+    "value": "Çağlayan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1024,
+    "name": "Çevlik",
+    "label": "Çevlik (K?y)",
+    "value": "Çevlik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1025,
+    "name": "Çığrı",
+    "label": "Çığrı (K?y)",
+    "value": "Çığrı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1026,
+    "name": "Ekinlik",
+    "label": "Ekinlik (K?y)",
+    "value": "Ekinlik (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 736,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 737,
+    "name": "Gülistan",
+    "label": "Gülistan (Mahalle)",
+    "value": "Gülistan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1027,
+    "name": "Hırkaköy",
+    "label": "Hırkaköy (K?y)",
+    "value": "Hırkaköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1028,
+    "name": "Küllüce",
+    "label": "Küllüce (K?y)",
+    "value": "Küllüce (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 738,
+    "name": "Mimar Sinan",
+    "label": "Mimar Sinan (Mahalle)",
+    "value": "Mimar Sinan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1029,
+    "name": "Ovacık",
+    "label": "Ovacık (K?y)",
+    "value": "Ovacık (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1030,
+    "name": "Sarıköy",
+    "label": "Sarıköy (K?y)",
+    "value": "Sarıköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1031,
+    "name": "Yaka",
+    "label": "Yaka (K?y)",
+    "value": "Yaka (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1032,
+    "name": "Yassıören",
+    "label": "Yassıören (K?y)",
+    "value": "Yassıören (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 739,
+    "name": "Yeni",
+    "label": "Yeni (Mahalle)",
+    "value": "Yeni (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 740,
+    "name": "Yukarı Hilal",
+    "label": "Yukarı Hilal (Mahalle)",
+    "value": "Yukarı Hilal (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1033,
+    "name": "Yukarıbeltarla",
+    "label": "Yukarıbeltarla (K?y)",
+    "value": "Yukarıbeltarla (K?y)"
+  }
+]

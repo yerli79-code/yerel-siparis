@@ -1,0 +1,212 @@
+[
+  {
+    "type": "village",
+    "id": 35991,
+    "name": "Andaç",
+    "label": "Andaç (K?y)",
+    "value": "Andaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90663,
+    "name": "Ayyıldız",
+    "label": "Ayyıldız (Mahalle)",
+    "value": "Ayyıldız (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35992,
+    "name": "Bağlı",
+    "label": "Bağlı (K?y)",
+    "value": "Bağlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35983,
+    "name": "Bağlıca",
+    "label": "Bağlıca (K?y)",
+    "value": "Bağlıca (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35993,
+    "name": "Ballı",
+    "label": "Ballı (K?y)",
+    "value": "Ballı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90664,
+    "name": "Başkaya",
+    "label": "Başkaya (Mahalle)",
+    "value": "Başkaya (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 183810,
+    "name": "Bulakbaşı",
+    "label": "Bulakbaşı (Mahalle)",
+    "value": "Bulakbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90665,
+    "name": "Cumhuriyet.",
+    "label": "Cumhuriyet. (Mahalle)",
+    "value": "Cumhuriyet. (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35994,
+    "name": "Dağdibi",
+    "label": "Dağdibi (K?y)",
+    "value": "Dağdibi (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90666,
+    "name": "Gazi",
+    "label": "Gazi (Mahalle)",
+    "value": "Gazi (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35995,
+    "name": "Gülyazı",
+    "label": "Gülyazı (K?y)",
+    "value": "Gülyazı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90651,
+    "name": "Gündoğdu",
+    "label": "Gündoğdu (Mahalle)",
+    "value": "Gündoğdu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90660,
+    "name": "Güneşli",
+    "label": "Güneşli (Mahalle)",
+    "value": "Güneşli (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35996,
+    "name": "Işıkveren",
+    "label": "Işıkveren (K?y)",
+    "value": "Işıkveren (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35997,
+    "name": "İnceler",
+    "label": "İnceler (K?y)",
+    "value": "İnceler (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 99518,
+    "name": "Kılaban",
+    "label": "Kılaban (Mahalle)",
+    "value": "Kılaban (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90654,
+    "name": "Küçükçay",
+    "label": "Küçükçay (Mahalle)",
+    "value": "Küçükçay (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 35990,
+    "name": "Ortabağ",
+    "label": "Ortabağ (K?y)",
+    "value": "Ortabağ (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35998,
+    "name": "Ortaköy",
+    "label": "Ortaköy (K?y)",
+    "value": "Ortaköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 35999,
+    "name": "Ortasu",
+    "label": "Ortasu (K?y)",
+    "value": "Ortasu (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90656,
+    "name": "Ödül",
+    "label": "Ödül (Mahalle)",
+    "value": "Ödül (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90657,
+    "name": "Özelli",
+    "label": "Özelli (Mahalle)",
+    "value": "Özelli (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90668,
+    "name": "Pınarbaşı",
+    "label": "Pınarbaşı (Mahalle)",
+    "value": "Pınarbaşı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90661,
+    "name": "Şehan",
+    "label": "Şehan (Mahalle)",
+    "value": "Şehan (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90669,
+    "name": "Tanin",
+    "label": "Tanin (Mahalle)",
+    "value": "Tanin (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36000,
+    "name": "Taşdelen",
+    "label": "Taşdelen (K?y)",
+    "value": "Taşdelen (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36001,
+    "name": "Yemişli",
+    "label": "Yemişli (K?y)",
+    "value": "Yemişli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90670,
+    "name": "Yenişehir",
+    "label": "Yenişehir (Mahalle)",
+    "value": "Yenişehir (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90658,
+    "name": "Yeşilyova",
+    "label": "Yeşilyova (Mahalle)",
+    "value": "Yeşilyova (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90662,
+    "name": "Yıldız",
+    "label": "Yıldız (Mahalle)",
+    "value": "Yıldız (Mahalle)"
+  }
+]

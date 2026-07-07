@@ -1,0 +1,93 @@
+[
+  {
+    "type": "village",
+    "id": 12221,
+    "name": "Ağamçağam",
+    "label": "Ağamçağam (K?y)",
+    "value": "Ağamçağam (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 12222,
+    "name": "Avcıçayırı",
+    "label": "Avcıçayırı (K?y)",
+    "value": "Avcıçayırı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 12223,
+    "name": "Boğazlı",
+    "label": "Boğazlı (K?y)",
+    "value": "Boğazlı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21569,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 12224,
+    "name": "Karadivan",
+    "label": "Karadivan (K?y)",
+    "value": "Karadivan (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 12225,
+    "name": "Küçükotlukbeli",
+    "label": "Küçükotlukbeli (K?y)",
+    "value": "Küçükotlukbeli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21567,
+    "name": "Mehmet Akif Ersoy",
+    "label": "Mehmet Akif Ersoy (Mahalle)",
+    "value": "Mehmet Akif Ersoy (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 12226,
+    "name": "Ördekhacı",
+    "label": "Ördekhacı (K?y)",
+    "value": "Ördekhacı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 12227,
+    "name": "Söğütlü",
+    "label": "Söğütlü (K?y)",
+    "value": "Söğütlü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 21568,
+    "name": "Şehitler",
+    "label": "Şehitler (Mahalle)",
+    "value": "Şehitler (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 12228,
+    "name": "Umurlu",
+    "label": "Umurlu (K?y)",
+    "value": "Umurlu (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 12229,
+    "name": "Yeniköy",
+    "label": "Yeniköy (K?y)",
+    "value": "Yeniköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 12230,
+    "name": "Yeşilbük",
+    "label": "Yeşilbük (K?y)",
+    "value": "Yeşilbük (K?y)"
+  }
+]

@@ -1,0 +1,107 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 40202,
+    "name": "Ataköy 1. Kısım",
+    "label": "Ataköy 1. Kısım (Mahalle)",
+    "value": "Ataköy 1. Kısım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40194,
+    "name": "Ataköy 2-5-6. Kısım",
+    "label": "Ataköy 2-5-6. Kısım (Mahalle)",
+    "value": "Ataköy 2-5-6. Kısım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40201,
+    "name": "Ataköy 3-4-11. Kısım",
+    "label": "Ataköy 3-4-11. Kısım (Mahalle)",
+    "value": "Ataköy 3-4-11. Kısım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40196,
+    "name": "Ataköy 7-8-9-10. Kısım",
+    "label": "Ataköy 7-8-9-10. Kısım (Mahalle)",
+    "value": "Ataköy 7-8-9-10. Kısım (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40200,
+    "name": "Basınköy",
+    "label": "Basınköy (Mahalle)",
+    "value": "Basınköy (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40192,
+    "name": "Cevizlik",
+    "label": "Cevizlik (Mahalle)",
+    "value": "Cevizlik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40197,
+    "name": "Kartaltepe",
+    "label": "Kartaltepe (Mahalle)",
+    "value": "Kartaltepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40188,
+    "name": "Osmaniye",
+    "label": "Osmaniye (Mahalle)",
+    "value": "Osmaniye (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40191,
+    "name": "Sakızağacı",
+    "label": "Sakızağacı (Mahalle)",
+    "value": "Sakızağacı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40199,
+    "name": "Şenlikköy",
+    "label": "Şenlikköy (Mahalle)",
+    "value": "Şenlikköy (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40190,
+    "name": "Yenimahalle",
+    "label": "Yenimahalle (Mahalle)",
+    "value": "Yenimahalle (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40189,
+    "name": "Yeşilköy",
+    "label": "Yeşilköy (Mahalle)",
+    "value": "Yeşilköy (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40195,
+    "name": "Yeşilyurt",
+    "label": "Yeşilyurt (Mahalle)",
+    "value": "Yeşilyurt (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40193,
+    "name": "Zeytinlik",
+    "label": "Zeytinlik (Mahalle)",
+    "value": "Zeytinlik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 40198,
+    "name": "Zuhuratbaba",
+    "label": "Zuhuratbaba (Mahalle)",
+    "value": "Zuhuratbaba (Mahalle)"
+  }
+]

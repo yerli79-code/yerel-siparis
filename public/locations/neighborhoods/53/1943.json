@@ -1,0 +1,86 @@
+[
+  {
+    "type": "village",
+    "id": 26167,
+    "name": "Akyamaç",
+    "label": "Akyamaç (K?y)",
+    "value": "Akyamaç (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61418,
+    "name": "Bahar",
+    "label": "Bahar (Mahalle)",
+    "value": "Bahar (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26168,
+    "name": "Bilenköy",
+    "label": "Bilenköy (K?y)",
+    "value": "Bilenköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26169,
+    "name": "Çamlıtepe",
+    "label": "Çamlıtepe (K?y)",
+    "value": "Çamlıtepe (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26170,
+    "name": "Hilal",
+    "label": "Hilal (K?y)",
+    "value": "Hilal (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26171,
+    "name": "Kantarlı",
+    "label": "Kantarlı (K?y)",
+    "value": "Kantarlı (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 26172,
+    "name": "Leventköy",
+    "label": "Leventköy (K?y)",
+    "value": "Leventköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61419,
+    "name": "Mutlu",
+    "label": "Mutlu (Mahalle)",
+    "value": "Mutlu (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26173,
+    "name": "Nurluca",
+    "label": "Nurluca (K?y)",
+    "value": "Nurluca (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61420,
+    "name": "Ortaköy",
+    "label": "Ortaköy (Mahalle)",
+    "value": "Ortaköy (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 26174,
+    "name": "Yaltkaya",
+    "label": "Yaltkaya (K?y)",
+    "value": "Yaltkaya (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 61421,
+    "name": "Yeniköy",
+    "label": "Yeniköy (Mahalle)",
+    "value": "Yeniköy (Mahalle)"
+  }
+]

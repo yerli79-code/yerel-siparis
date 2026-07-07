@@ -1,0 +1,170 @@
+[
+  {
+    "type": "village",
+    "id": 1305,
+    "name": "Alanyurt",
+    "label": "Alanyurt (K?y)",
+    "value": "Alanyurt (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1306,
+    "name": "Bahçecik",
+    "label": "Bahçecik (K?y)",
+    "value": "Bahçecik (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1307,
+    "name": "Cevizli",
+    "label": "Cevizli (K?y)",
+    "value": "Cevizli (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1033,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1308,
+    "name": "Çalışlar",
+    "label": "Çalışlar (K?y)",
+    "value": "Çalışlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1309,
+    "name": "Çatağıl",
+    "label": "Çatağıl (K?y)",
+    "value": "Çatağıl (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1017,
+    "name": "Çukur",
+    "label": "Çukur (Mahalle)",
+    "value": "Çukur (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1310,
+    "name": "Doğanlar",
+    "label": "Doğanlar (K?y)",
+    "value": "Doğanlar (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1311,
+    "name": "Doğlat",
+    "label": "Doğlat (K?y)",
+    "value": "Doğlat (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1018,
+    "name": "Esentepe",
+    "label": "Esentepe (Mahalle)",
+    "value": "Esentepe (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1019,
+    "name": "Eski Hamam",
+    "label": "Eski Hamam (Mahalle)",
+    "value": "Eski Hamam (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1025,
+    "name": "Fatih",
+    "label": "Fatih (Mahalle)",
+    "value": "Fatih (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1034,
+    "name": "Hasan Basri",
+    "label": "Hasan Basri (Mahalle)",
+    "value": "Hasan Basri (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1312,
+    "name": "Karaağaç",
+    "label": "Karaağaç (K?y)",
+    "value": "Karaağaç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 1313,
+    "name": "Karakaya",
+    "label": "Karakaya (K?y)",
+    "value": "Karakaya (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1020,
+    "name": "Kavak",
+    "label": "Kavak (Mahalle)",
+    "value": "Kavak (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1314,
+    "name": "Konarı",
+    "label": "Konarı (K?y)",
+    "value": "Konarı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 859918,
+    "name": "Kurtuluş",
+    "label": "Kurtuluş (Mahalle)",
+    "value": "Kurtuluş (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1021,
+    "name": "Medrese",
+    "label": "Medrese (Mahalle)",
+    "value": "Medrese (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 1315,
+    "name": "Olukpınar",
+    "label": "Olukpınar (K?y)",
+    "value": "Olukpınar (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1026,
+    "name": "Selçuklu",
+    "label": "Selçuklu (Mahalle)",
+    "value": "Selçuklu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1024,
+    "name": "Şirinevler",
+    "label": "Şirinevler (Mahalle)",
+    "value": "Şirinevler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1022,
+    "name": "Tepecik",
+    "label": "Tepecik (Mahalle)",
+    "value": "Tepecik (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 1023,
+    "name": "Zeybek",
+    "label": "Zeybek (Mahalle)",
+    "value": "Zeybek (Mahalle)"
+  }
+]

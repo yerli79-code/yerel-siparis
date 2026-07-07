@@ -1,0 +1,107 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 90737,
+    "name": "Ata",
+    "label": "Ata (Mahalle)",
+    "value": "Ata (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36375,
+    "name": "Burmadere",
+    "label": "Burmadere (K?y)",
+    "value": "Burmadere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90739,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90741,
+    "name": "Çaybaşı",
+    "label": "Çaybaşı (Mahalle)",
+    "value": "Çaybaşı (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36376,
+    "name": "Dereköy",
+    "label": "Dereköy (K?y)",
+    "value": "Dereköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36377,
+    "name": "Eskikılıç",
+    "label": "Eskikılıç (K?y)",
+    "value": "Eskikılıç (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36378,
+    "name": "İkizdere",
+    "label": "İkizdere (K?y)",
+    "value": "İkizdere (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90740,
+    "name": "İnönü",
+    "label": "İnönü (Mahalle)",
+    "value": "İnönü (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90738,
+    "name": "Kalender",
+    "label": "Kalender (Mahalle)",
+    "value": "Kalender (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90734,
+    "name": "Konuk Sever",
+    "label": "Konuk Sever (Mahalle)",
+    "value": "Konuk Sever (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90736,
+    "name": "Mustafa Kemal",
+    "label": "Mustafa Kemal (Mahalle)",
+    "value": "Mustafa Kemal (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36379,
+    "name": "Otağlı",
+    "label": "Otağlı (K?y)",
+    "value": "Otağlı (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 90735,
+    "name": "Serhat",
+    "label": "Serhat (Mahalle)",
+    "value": "Serhat (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 36380,
+    "name": "Seyitören",
+    "label": "Seyitören (K?y)",
+    "value": "Seyitören (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 36381,
+    "name": "Tepeköy",
+    "label": "Tepeköy (K?y)",
+    "value": "Tepeköy (K?y)"
+  }
+]

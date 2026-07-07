@@ -1,0 +1,184 @@
+[
+  {
+    "type": "neighborhood",
+    "id": 80982,
+    "name": "Ayiçi",
+    "label": "Ayiçi (Mahalle)",
+    "value": "Ayiçi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80986,
+    "name": "Ayiçi Merkez",
+    "label": "Ayiçi Merkez (Mahalle)",
+    "value": "Ayiçi Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80966,
+    "name": "Belediye Sitesi",
+    "label": "Belediye Sitesi (Mahalle)",
+    "value": "Belediye Sitesi (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80967,
+    "name": "Bölüm",
+    "label": "Bölüm (Mahalle)",
+    "value": "Bölüm (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80975,
+    "name": "Cuma Yanı",
+    "label": "Cuma Yanı (Mahalle)",
+    "value": "Cuma Yanı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80987,
+    "name": "Cumhuriyet",
+    "label": "Cumhuriyet (Mahalle)",
+    "value": "Cumhuriyet (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80968,
+    "name": "Çamlık",
+    "label": "Çamlık (Mahalle)",
+    "value": "Çamlık (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80969,
+    "name": "Damarlı",
+    "label": "Damarlı (Mahalle)",
+    "value": "Damarlı (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80976,
+    "name": "Doğancılar",
+    "label": "Doğancılar (Mahalle)",
+    "value": "Doğancılar (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80988,
+    "name": "Emirler",
+    "label": "Emirler (Mahalle)",
+    "value": "Emirler (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80983,
+    "name": "Esen",
+    "label": "Esen (Mahalle)",
+    "value": "Esen (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80984,
+    "name": "Gelik Merkez",
+    "label": "Gelik Merkez (Mahalle)",
+    "value": "Gelik Merkez (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34340,
+    "name": "Göbü",
+    "label": "Göbü (K?y)",
+    "value": "Göbü (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80970,
+    "name": "Güney",
+    "label": "Güney (Mahalle)",
+    "value": "Güney (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80977,
+    "name": "Hacıoğlu",
+    "label": "Hacıoğlu (Mahalle)",
+    "value": "Hacıoğlu (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80971,
+    "name": "Hisar Arkası",
+    "label": "Hisar Arkası (Mahalle)",
+    "value": "Hisar Arkası (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80972,
+    "name": "Karadon",
+    "label": "Karadon (Mahalle)",
+    "value": "Karadon (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80985,
+    "name": "Kırat",
+    "label": "Kırat (Mahalle)",
+    "value": "Kırat (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80978,
+    "name": "Kırımsa",
+    "label": "Kırımsa (Mahalle)",
+    "value": "Kırımsa (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80979,
+    "name": "Kokurdan",
+    "label": "Kokurdan (Mahalle)",
+    "value": "Kokurdan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34342,
+    "name": "Kurtköy",
+    "label": "Kurtköy (K?y)",
+    "value": "Kurtköy (K?y)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80980,
+    "name": "Kuzyaka",
+    "label": "Kuzyaka (Mahalle)",
+    "value": "Kuzyaka (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80973,
+    "name": "Merkez",
+    "label": "Merkez (Mahalle)",
+    "value": "Merkez (Mahalle)"
+  },
+  {
+    "type": "neighborhood",
+    "id": 80974,
+    "name": "Subatan",
+    "label": "Subatan (Mahalle)",
+    "value": "Subatan (Mahalle)"
+  },
+  {
+    "type": "village",
+    "id": 34345,
+    "name": "Şirinköy",
+    "label": "Şirinköy (K?y)",
+    "value": "Şirinköy (K?y)"
+  },
+  {
+    "type": "village",
+    "id": 34347,
+    "name": "Türkali",
+    "label": "Türkali (K?y)",
+    "value": "Türkali (K?y)"
+  }
+]
