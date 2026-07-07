@@ -40,23 +40,8 @@ async function readJson(response: Response) {
   return text ? JSON.parse(text) : null;
 }
 
-function safeSupabaseError(prefix: string, body: unknown) {
-  const error = body as {
-    code?: string;
-    message?: string;
-    details?: string;
-    hint?: string;
-    error?: string;
-    error_description?: string;
-  } | null;
-  const parts = [
-    error?.message || error?.error_description || error?.error,
-    error?.code ? `Kod: ${error.code}` : "",
-    error?.details ? `Detay: ${error.details}` : "",
-    error?.hint ? `Ipucu: ${error.hint}` : "",
-  ].filter(Boolean);
-
-  return parts.length > 0 ? `${prefix}: ${parts.join(" | ")}` : prefix;
+function safeSupabaseError(prefix: string, _body: unknown) {
+  return prefix;
 }
 
 function getAdminToken(request: Request) {
@@ -193,9 +178,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ business });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Isletme guncellenemedi.";
+    const message = error instanceof Error ? error.message : "";
     const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    return jsonError("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.", status);
   }
 }

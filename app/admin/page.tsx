@@ -465,8 +465,8 @@ export default function AdminPage() {
             ]),
           ),
         );
-      } catch (error) {
-        console.warn("Supabase admin businesses fetch failed", error);
+      } catch {
+        console.warn("Admin işletme listesi yenilenemedi.");
       }
     }
 
@@ -612,10 +612,9 @@ export default function AdminPage() {
     try {
       await refreshBusinessesFromSupabase();
       setMessage("İşletme listesi yenilendi.");
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
+    } catch {
       setMessage("İşletme listesi yenilenemedi.");
-      setErrorDetail(detail);
+      setErrorDetail("Liste yüklenemedi. Lütfen tekrar deneyin.");
     }
   }
 
@@ -695,10 +694,9 @@ export default function AdminPage() {
       });
       setNewBusinessForm(emptyNewBusinessForm);
       setMessage("İşletme ve giriş hesabı oluşturuldu.");
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
+    } catch {
       setMessage("Yeni işletme eklenemedi.");
-      setErrorDetail(detail);
+      setErrorDetail("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.");
     } finally {
       setIsCreatingBusiness(false);
     }
@@ -776,10 +774,9 @@ export default function AdminPage() {
       await refreshBusinessesFromSupabase();
       setEditingBusiness(null);
       setMessage("İşletme bilgileri güncellendi.");
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
+    } catch {
       setMessage("İşletme güncellenemedi.");
-      setErrorDetail(detail);
+      setErrorDetail("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.");
     } finally {
       setIsUpdatingBusiness(false);
       setSavingSlug("");
@@ -867,8 +864,8 @@ export default function AdminPage() {
             ]),
           ),
         );
-      } catch (fetchError) {
-        console.warn("Supabase businesses fetch after update failed", fetchError);
+      } catch {
+        console.warn("Admin işletme listesi güncelleme sonrası yenilenemedi.");
         setBusinesses(locallyUpdatedBusinesses);
         setManualDates((current) => ({
           ...current,
@@ -876,11 +873,10 @@ export default function AdminPage() {
         }));
       }
       setMessage(successMessage);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      console.error("Admin abonelik güncelleme hatası", error);
+    } catch {
+      console.error("Admin abonelik güncelleme hatası.");
       setMessage("Abonelik güncelleme başarısız.");
-      setErrorDetail(detail);
+      setErrorDetail("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
     } finally {
       setSavingSlug("");
     }
@@ -983,10 +979,9 @@ export default function AdminPage() {
           ? "İşletme zaten silinmiş veya bulunamadı. Liste yenilendi."
           : `${business.name} silindi.`,
       );
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
+    } catch {
       setMessage("İşletme silinemedi.");
-      setErrorDetail(detail);
+      setErrorDetail("İşletme silinemedi. Lütfen tekrar deneyin.");
     } finally {
       setSavingSlug("");
     }

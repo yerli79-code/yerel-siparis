@@ -152,8 +152,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ deleted: true, businessId: business.id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "İşletme silinemedi.";
+    const message = error instanceof Error ? error.message : "";
     const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    return jsonError("İşletme silinemedi. Lütfen tekrar deneyin.", status);
   }
 }

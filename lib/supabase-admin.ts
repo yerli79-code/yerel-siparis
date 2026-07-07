@@ -75,17 +75,6 @@ function getSupabaseConfig() {
   return { url, anonKey };
 }
 
-function formatSupabaseError(status: number, body: unknown) {
-  return JSON.stringify(
-    {
-      status,
-      supabaseError: body,
-    },
-    null,
-    2,
-  );
-}
-
 function mergeSupabaseBusiness(
   row: SupabaseBusinessRow,
   fallback?: Business,
@@ -132,49 +121,16 @@ function verifySubscriptionUpdate(
   row: SupabaseBusinessRow,
   payload: SubscriptionUpdatePayload,
 ) {
-  const mismatches: string[] = [];
-
-  if (row.subscription_status !== payload.subscription_status) {
-    mismatches.push(
-      `subscription_status beklenen=${payload.subscription_status} gelen=${row.subscription_status}`,
-    );
-  }
-
-  if (row.is_active !== payload.is_active) {
-    mismatches.push(`is_active beklenen=${payload.is_active} gelen=${row.is_active}`);
-  }
-
-  if (
+  const hasMismatch =
+    row.subscription_status !== payload.subscription_status ||
+    row.is_active !== payload.is_active ||
     nullableDateKey(row.subscription_started_at) !==
-    nullableDateKey(payload.subscription_started_at)
-  ) {
-    mismatches.push(
-      `subscription_started_at beklenen=${payload.subscription_started_at} gelen=${row.subscription_started_at}`,
-    );
-  }
-
-  if (
+      nullableDateKey(payload.subscription_started_at) ||
     nullableDateKey(row.subscription_expires_at) !==
-    nullableDateKey(payload.subscription_expires_at)
-  ) {
-    mismatches.push(
-      `subscription_expires_at beklenen=${payload.subscription_expires_at} gelen=${row.subscription_expires_at}`,
-    );
-  }
+      nullableDateKey(payload.subscription_expires_at);
 
-  if (mismatches.length > 0) {
-    throw new Error(
-      JSON.stringify(
-        {
-          message:
-            "Supabase update sonrasi SELECT eski veya beklenmeyen abonelik degerleri dondurdu.",
-          mismatches,
-          selectedRow: row,
-        },
-        null,
-        2,
-      ),
-    );
+  if (hasMismatch) {
+    throw new Error("Abonelik doğrulaması tamamlanamadı.");
   }
 }
 
@@ -198,9 +154,7 @@ export async function fetchAdminBusinessesFromSupabase(
   const body = parseSupabaseBody(text);
 
   if (!response.ok) {
-    const fullError = formatSupabaseError(response.status, body);
-    console.error("Supabase businesses fetch error", fullError);
-    throw new Error(fullError);
+    throw new Error("Liste yüklenemedi. Lütfen tekrar deneyin.");
   }
 
   const rows: SupabaseBusinessRow[] = Array.isArray(body)
@@ -241,15 +195,7 @@ export async function createBusinessWithAccount(
   const body = parseSupabaseBody(text);
 
   if (!response.ok) {
-    const message =
-      body?.message || body?.error || formatSupabaseError(response.status, body);
-    const detail =
-      typeof body?.detail === "string"
-        ? `\n${body.detail}`
-        : body?.detail
-          ? `\n${JSON.stringify(body.detail, null, 2)}`
-          : "";
-    throw new Error(`${message}${detail}`);
+    throw new Error("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.");
   }
 
   const createdRow = body?.business as SupabaseBusinessRow | undefined;
@@ -291,9 +237,7 @@ export async function deleteBusinessInSupabase(
   const body = parseSupabaseBody(text);
 
   if (!response.ok) {
-    const message =
-      body?.message || body?.error || formatSupabaseError(response.status, body);
-    throw new Error(message);
+    throw new Error("İşletme silinemedi. Lütfen tekrar deneyin.");
   }
 
   return {
@@ -327,15 +271,7 @@ export async function updateBusinessInSupabase(
   const body = parseSupabaseBody(text);
 
   if (!response.ok) {
-    const message =
-      body?.message || body?.error || formatSupabaseError(response.status, body);
-    const detail =
-      typeof body?.detail === "string"
-        ? `\n${body.detail}`
-        : body?.detail
-          ? `\n${JSON.stringify(body.detail, null, 2)}`
-          : "";
-    throw new Error(`${message}${detail}`);
+    throw new Error("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.");
   }
 
   const updatedRow = body?.business as SupabaseBusinessRow | undefined;
@@ -373,32 +309,13 @@ export async function updateBusinessSubscriptionInSupabase(
   const body = parseSupabaseBody(text);
 
   if (!response.ok) {
-    const message =
-      body?.message || body?.error || formatSupabaseError(response.status, body);
-    const detail =
-      typeof body?.detail === "string"
-        ? `\n${body.detail}`
-        : body?.detail
-          ? `\n${JSON.stringify(body.detail, null, 2)}`
-          : "";
-    throw new Error(`${message}${detail}`);
+    throw new Error("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
   }
 
   const selectedRow = body?.business as SupabaseBusinessRow | undefined;
 
   if (!selectedRow?.slug) {
-    throw new Error(
-      JSON.stringify(
-        {
-          message:
-            "Supabase update sonrasi guncellenen business kaydi donmedi.",
-          slug: business.slug,
-          body,
-        },
-        null,
-        2,
-      ),
-    );
+    throw new Error("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
   }
 
   verifySubscriptionUpdate(selectedRow, payload);

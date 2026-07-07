@@ -33,23 +33,8 @@ async function readJson(response: Response) {
   return text ? JSON.parse(text) : null;
 }
 
-function safeSupabaseError(prefix: string, body: unknown) {
-  const error = body as {
-    code?: string;
-    message?: string;
-    details?: string;
-    hint?: string;
-    error?: string;
-    error_description?: string;
-  } | null;
-  const parts = [
-    error?.message || error?.error_description || error?.error,
-    error?.code ? `Kod: ${error.code}` : "",
-    error?.details ? `Detay: ${error.details}` : "",
-    error?.hint ? `Ipucu: ${error.hint}` : "",
-  ].filter(Boolean);
-
-  return parts.length > 0 ? `${prefix}: ${parts.join(" | ")}` : prefix;
+function safeSupabaseError(prefix: string, _body: unknown) {
+  return prefix;
 }
 
 function getAdminToken(request: Request) {
@@ -84,45 +69,16 @@ function nullableDateKey(value: string | null | undefined) {
 }
 
 function verifySubscriptionUpdate(row: SubscriptionPayload, payload: SubscriptionPayload) {
-  const mismatches: string[] = [];
-
-  if (row.subscription_status !== payload.subscription_status) {
-    mismatches.push(
-      `subscription_status beklenen=${payload.subscription_status} gelen=${row.subscription_status}`,
-    );
-  }
-  if (row.is_active !== payload.is_active) {
-    mismatches.push(`is_active beklenen=${payload.is_active} gelen=${row.is_active}`);
-  }
-  if (
+  const hasMismatch =
+    row.subscription_status !== payload.subscription_status ||
+    row.is_active !== payload.is_active ||
     nullableDateKey(row.subscription_started_at) !==
-    nullableDateKey(payload.subscription_started_at)
-  ) {
-    mismatches.push(
-      `subscription_started_at beklenen=${payload.subscription_started_at} gelen=${row.subscription_started_at}`,
-    );
-  }
-  if (
+      nullableDateKey(payload.subscription_started_at) ||
     nullableDateKey(row.subscription_expires_at) !==
-    nullableDateKey(payload.subscription_expires_at)
-  ) {
-    mismatches.push(
-      `subscription_expires_at beklenen=${payload.subscription_expires_at} gelen=${row.subscription_expires_at}`,
-    );
-  }
+      nullableDateKey(payload.subscription_expires_at);
 
-  if (mismatches.length > 0) {
-    throw new Error(
-      JSON.stringify(
-        {
-          message:
-            "Supabase update sonrasi SELECT eski veya beklenmeyen abonelik degerleri dondurdu.",
-          mismatches,
-        },
-        null,
-        2,
-      ),
-    );
+  if (hasMismatch) {
+    throw new Error("Abonelik doğrulaması tamamlanamadı.");
   }
 }
 
@@ -211,9 +167,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ business });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Abonelik guncellenemedi.";
+    const message = error instanceof Error ? error.message : "";
     const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    return jsonError("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.", status);
   }
 }

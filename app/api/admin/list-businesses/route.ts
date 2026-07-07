@@ -167,9 +167,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ businesses });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Isletme listesi alinamadi.";
+    const message = error instanceof Error ? error.message : "";
     const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    return jsonError("İşletme listesi alınamadı. Lütfen tekrar deneyin.", status);
   }
 }
