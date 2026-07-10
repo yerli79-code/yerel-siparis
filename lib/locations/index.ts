@@ -82,24 +82,45 @@ export async function loadNeighborhoods(
   provinceId: number | string | null | undefined,
   districtId: number | string | null | undefined,
 ): Promise<readonly NeighborhoodOption[]> {
+  return loadNeighborhoodsFromPublicFiles(provinceId, districtId, false);
+}
+
+export async function loadNeighborhoodsOrThrow(
+  provinceId: number | string | null | undefined,
+  districtId: number | string | null | undefined,
+): Promise<readonly NeighborhoodOption[]> {
+  return loadNeighborhoodsFromPublicFiles(provinceId, districtId, true);
+}
+
+async function loadNeighborhoodsFromPublicFiles(
+  provinceId: number | string | null | undefined,
+  districtId: number | string | null | undefined,
+  shouldThrowOnFailure: boolean,
+): Promise<readonly NeighborhoodOption[]> {
   const normalizedProvinceId = toId(provinceId);
   const normalizedDistrictId = toId(districtId);
   if (normalizedProvinceId === null || normalizedDistrictId === null) return [];
 
   const cacheKey = `${normalizedProvinceId}/${normalizedDistrictId}`;
   const cached = neighborhoodCache.get(cacheKey);
-  if (cached) return cached;
+  if (cached && (!shouldThrowOnFailure || cached.length > 0)) return cached;
 
   const response = await fetch(
     `/locations/neighborhoods/${normalizedProvinceId}/${normalizedDistrictId}.json`,
   );
   if (!response.ok) {
+    if (shouldThrowOnFailure) {
+      throw new Error("Neighborhood options could not be loaded.");
+    }
     neighborhoodCache.set(cacheKey, []);
     return [];
   }
 
   const data = (await response.json()) as unknown;
   if (!Array.isArray(data)) {
+    if (shouldThrowOnFailure) {
+      throw new Error("Neighborhood options could not be loaded.");
+    }
     neighborhoodCache.set(cacheKey, []);
     return [];
   }

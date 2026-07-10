@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import DiscoveryLocationFilter, {
+  type DiscoveryLocationValue,
+} from "../components/DiscoveryLocationFilter";
 import type { Business } from "../lib/businesses";
+import { normalizeLocationLabel } from "../lib/locations";
 import { fetchPublicActiveBusinesses } from "../lib/supabase-business";
 
 type DiscoveryBusiness = Business & {
@@ -14,8 +18,6 @@ type DiscoveryBusiness = Business & {
   isOpen?: boolean;
   orderNote?: string | null;
 };
-
-const allFilterValue = "";
 
 function normalizeSearchText(value: string | null | undefined) {
   return (value ?? "")
@@ -31,14 +33,16 @@ function normalizeSearchText(value: string | null | undefined) {
     .trim();
 }
 
-function formatPrice(price: number) {
-  return `${price.toLocaleString("tr-TR")} TL`;
+function normalizeFilterValue(value: string | null | undefined) {
+  return normalizeLocationLabel(value).toLocaleLowerCase("tr-TR");
 }
 
-function uniqueSorted(values: Array<string | null | undefined>) {
-  return Array.from(
-    new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))),
-  ).sort((first, second) => first.localeCompare(second, "tr-TR"));
+function sameLocationValue(first: string | null | undefined, second: string) {
+  return normalizeFilterValue(first) === normalizeFilterValue(second);
+}
+
+function formatPrice(price: number) {
+  return `${price.toLocaleString("tr-TR")} TL`;
 }
 
 function getLogoText(business: DiscoveryBusiness) {
@@ -66,9 +70,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cityFilter, setCityFilter] = useState(allFilterValue);
-  const [districtFilter, setDistrictFilter] = useState(allFilterValue);
-  const [neighborhoodFilter, setNeighborhoodFilter] = useState(allFilterValue);
+  const [locationFilter, setLocationFilter] = useState<DiscoveryLocationValue>({
+    city: "",
+    district: "",
+    neighborhood: "",
+  });
 
   useEffect(() => {
     let isCancelled = false;
@@ -97,81 +103,57 @@ export default function Home() {
     };
   }, []);
 
-  const cityOptions = useMemo(
-    () => uniqueSorted(businesses.map((business) => business.city)),
-    [businesses],
+  const isLocationComplete = Boolean(
+    locationFilter.city && locationFilter.district && locationFilter.neighborhood,
   );
 
-  const districtOptions = useMemo(
+  const selectedLocationBusinesses = useMemo(
     () =>
-      uniqueSorted(
-        businesses
-          .filter((business) => !cityFilter || business.city === cityFilter)
-          .map((business) => business.district),
-      ),
-    [businesses, cityFilter],
-  );
-
-  const neighborhoodOptions = useMemo(
-    () =>
-      uniqueSorted(
-        businesses
-          .filter((business) => !cityFilter || business.city === cityFilter)
-          .filter((business) => !districtFilter || business.district === districtFilter)
-          .map((business) => business.neighborhood),
-      ),
-    [businesses, cityFilter, districtFilter],
+      isLocationComplete
+        ? businesses.filter(
+            (business) =>
+              sameLocationValue(business.city, locationFilter.city) &&
+              sameLocationValue(business.district, locationFilter.district) &&
+              sameLocationValue(business.neighborhood, locationFilter.neighborhood),
+          )
+        : [],
+    [businesses, isLocationComplete, locationFilter],
   );
 
   const filteredBusinesses = useMemo(() => {
     const normalizedQuery = normalizeSearchText(searchQuery);
 
-    return businesses.filter((business) => {
+    return selectedLocationBusinesses.filter((business) => {
       const searchFields = [
         business.name,
         business.city,
         business.district,
         business.neighborhood,
       ];
-      const matchesSearch =
+      return (
         !normalizedQuery ||
-        searchFields.some((field) => normalizeSearchText(field).includes(normalizedQuery));
-      const matchesCity = !cityFilter || business.city === cityFilter;
-      const matchesDistrict = !districtFilter || business.district === districtFilter;
-      const matchesNeighborhood =
-        !neighborhoodFilter || business.neighborhood === neighborhoodFilter;
-
-      return matchesSearch && matchesCity && matchesDistrict && matchesNeighborhood;
+        searchFields.some((field) => normalizeSearchText(field).includes(normalizedQuery))
+      );
     });
-  }, [businesses, cityFilter, districtFilter, neighborhoodFilter, searchQuery]);
+  }, [searchQuery, selectedLocationBusinesses]);
 
   const hasActiveFilters = Boolean(
-    searchQuery.trim() || cityFilter || districtFilter || neighborhoodFilter,
+    searchQuery.trim() ||
+      locationFilter.city ||
+      locationFilter.district ||
+      locationFilter.neighborhood,
   );
 
   const activeFilterLabels = [
     searchQuery.trim() ? `Arama: ${searchQuery.trim()}` : "",
-    cityFilter ? `Şehir: ${cityFilter}` : "",
-    districtFilter ? `İlçe: ${districtFilter}` : "",
-    neighborhoodFilter ? `Mahalle: ${neighborhoodFilter}` : "",
+    locationFilter.city ? `İl: ${locationFilter.city}` : "",
+    locationFilter.district ? `İlçe: ${locationFilter.district}` : "",
+    locationFilter.neighborhood ? `Mahalle / Köy: ${locationFilter.neighborhood}` : "",
   ].filter(Boolean);
 
   function clearFilters() {
     setSearchQuery("");
-    setCityFilter(allFilterValue);
-    setDistrictFilter(allFilterValue);
-    setNeighborhoodFilter(allFilterValue);
-  }
-
-  function updateCityFilter(value: string) {
-    setCityFilter(value);
-    setDistrictFilter(allFilterValue);
-    setNeighborhoodFilter(allFilterValue);
-  }
-
-  function updateDistrictFilter(value: string) {
-    setDistrictFilter(value);
-    setNeighborhoodFilter(allFilterValue);
+    setLocationFilter({ city: "", district: "", neighborhood: "" });
   }
 
   return (
@@ -195,59 +177,17 @@ export default function Home() {
           <label className="discovery-search">
             <span>İşletme ara</span>
             <input
-              placeholder="İşletme adı, şehir, ilçe veya mahalle ara"
+              placeholder="Seçilen konumdaki işletmelerde ara"
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
           </label>
 
-          <div className="discovery-filter-grid">
-            <label className="discovery-select">
-              <span>Şehir</span>
-              <select
-                value={cityFilter}
-                onChange={(event) => updateCityFilter(event.target.value)}
-              >
-                <option value={allFilterValue}>Tüm şehirler</option>
-                {cityOptions.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="discovery-select">
-              <span>İlçe</span>
-              <select
-                value={districtFilter}
-                onChange={(event) => updateDistrictFilter(event.target.value)}
-              >
-                <option value={allFilterValue}>Tüm ilçeler</option>
-                {districtOptions.map((district) => (
-                  <option key={district} value={district}>
-                    {district}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="discovery-select">
-              <span>Mahalle</span>
-              <select
-                value={neighborhoodFilter}
-                onChange={(event) => setNeighborhoodFilter(event.target.value)}
-              >
-                <option value={allFilterValue}>Tüm mahalleler</option>
-                {neighborhoodOptions.map((neighborhood) => (
-                  <option key={neighborhood} value={neighborhood}>
-                    {neighborhood}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <DiscoveryLocationFilter
+            value={locationFilter}
+            onChange={setLocationFilter}
+          />
         </section>
 
         {isLoading ? (
@@ -263,12 +203,11 @@ export default function Home() {
           </section>
         ) : null}
 
-        {!isLoading && !loadError ? (
+        {!isLoading && !loadError && isLocationComplete ? (
           <section className="discovery-results-header" aria-live="polite">
             <div>
               <strong>
-                Toplam {businesses.length} işletmeden {filteredBusinesses.length} tanesi
-                gösteriliyor.
+                Seçilen konumda {filteredBusinesses.length} işletme gösteriliyor.
               </strong>
               {activeFilterLabels.length > 0 ? (
                 <div className="discovery-active-filters">
@@ -293,17 +232,35 @@ export default function Home() {
           </section>
         ) : null}
 
-        {!isLoading &&
-        !loadError &&
-        businesses.length > 0 &&
-        filteredBusinesses.length === 0 ? (
+        {!isLoading && !loadError && businesses.length > 0 && !isLocationComplete ? (
           <section className="section discovery-state">
-            <h2>Aramanıza uygun işletme bulunamadı.</h2>
-            <p>Arama veya filtreleri temizleyip tekrar deneyin.</p>
+            <h2>İşletmeleri görmek için konumunuzu seçin.</h2>
+            <p>Önce il, ardından ilçe ve Mahalle / Köy seçin.</p>
           </section>
         ) : null}
 
-        {!isLoading && !loadError && filteredBusinesses.length > 0 ? (
+        {!isLoading &&
+        !loadError &&
+        isLocationComplete &&
+        selectedLocationBusinesses.length === 0 ? (
+          <section className="section discovery-state">
+            <h2>Bu konumda henüz işletme bulunmuyor.</h2>
+            <p>Yakındaki başka bir Mahalle / Köy seçerek tekrar deneyin.</p>
+          </section>
+        ) : null}
+
+        {!isLoading &&
+        !loadError &&
+        isLocationComplete &&
+        selectedLocationBusinesses.length > 0 &&
+        filteredBusinesses.length === 0 ? (
+          <section className="section discovery-state">
+            <h2>Aramanıza uygun işletme bulunamadı.</h2>
+            <p>Arama metnini temizleyip tekrar deneyin.</p>
+          </section>
+        ) : null}
+
+        {!isLoading && !loadError && isLocationComplete && filteredBusinesses.length > 0 ? (
           <section className="discovery-grid" aria-label="Aktif işletmeler">
             {filteredBusinesses.map((business) => {
               const locationText = getLocationText(business);

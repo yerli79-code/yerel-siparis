@@ -2583,6 +2583,70 @@ h1 {
   gap: 12px;
 }
 
+.discovery-location-filter {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.discovery-location-neighborhood {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.discovery-location-search {
+  min-height: 46px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 11px 12px;
+  outline: none;
+}
+
+.discovery-location-search:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+}
+
+.discovery-select select:disabled,
+.discovery-location-search:disabled {
+  background: #f5f8f6;
+  color: #7a8a80;
+  cursor: not-allowed;
+}
+
+.discovery-location-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.discovery-location-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.discovery-location-error button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 7px 10px;
+  font-weight: 900;
+}
+
 .discovery-results-header {
   display: grid;
   gap: 12px;
@@ -2758,6 +2822,10 @@ h1 {
   }
 
   .discovery-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .discovery-location-filter {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
