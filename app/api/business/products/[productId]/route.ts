@@ -12,6 +12,7 @@ import {
   getUserFromToken,
   isPlainObject,
   jsonError,
+  resolveProductRouteError,
   updateProductById,
 } from "../_utils";
 
@@ -94,14 +95,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json({ product: updatedProduct });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Urun guncellenemedi.";
-    const status =
-      error instanceof Error && error.name === "Forbidden"
-        ? 403
-        : message.includes("SUPABASE_SERVICE_ROLE_KEY")
-        ? 500
-        : 400;
-    return jsonError(message, status);
+    const safeError = resolveProductRouteError(
+      error,
+      "Ürün güncellenemedi. Lütfen tekrar deneyin.",
+    );
+    return jsonError(safeError.message, safeError.status);
   }
 }
 
@@ -139,13 +137,10 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     return NextResponse.json({ deleted: true, productId: product.id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Urun silinemedi.";
-    const status =
-      error instanceof Error && error.name === "Forbidden"
-        ? 403
-        : message.includes("SUPABASE_SERVICE_ROLE_KEY")
-        ? 500
-        : 400;
-    return jsonError(message, status);
+    const safeError = resolveProductRouteError(
+      error,
+      "Ürün silinemedi. Lütfen tekrar deneyin.",
+    );
+    return jsonError(safeError.message, safeError.status);
   }
 }

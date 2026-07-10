@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import {
+  ProductRequestError,
   UUID_PATTERN,
   bulkUpdateProductSortOrders,
   ensureProductWriteAllowed,
-  fetchBusinessById,
-  fetchProductsByIds,
+  fetchBusinessesForUser,
   getBearerToken,
   getSupabaseServerConfig,
   getUserFromToken,
   isPlainObject,
   jsonError,
+  resolveProductRouteError,
+  type SupabaseProductRow,
 } from "../_utils";
 
 type ReorderItem = {
@@ -17,16 +19,54 @@ type ReorderItem = {
   sortOrder: number;
 };
 
+const productSelect =
+  "id,business_id,client_product_id,name,price,description,category,image_label,image_url,is_active,sort_order,created_at,updated_at";
+
+async function fetchOwnedProductsByIds(
+  url: string,
+  serviceRoleKey: string,
+  businessId: string,
+  productIds: string[],
+) {
+  const response = await fetch(
+    `${url}/rest/v1/products?business_id=eq.${encodeURIComponent(
+      businessId,
+    )}&id=in.(${productIds.join(",")})&select=${productSelect}`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    },
+  );
+
+  let body: unknown;
+  try {
+    const text = await response.text();
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error("Urun bilgileri alinamadi.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Urun bilgileri alinamadi.");
+  }
+
+  return Array.isArray(body) ? (body as SupabaseProductRow[]) : [];
+}
+
 function parseReorderItems(body: Record<string, unknown>) {
   const rootKeys = Object.keys(body);
   const extraRootKeys = rootKeys.filter((key) => key !== "items");
   if (extraRootKeys.length > 0) {
-    throw new Error(
+    throw new ProductRequestError(
       `Bu alanlar urun siralama isleminde kullanilamaz: ${extraRootKeys.join(", ")}`,
     );
   }
   if (!Array.isArray(body.items) || body.items.length < 2) {
-    throw new Error("Siralama icin en az iki urun bilgisi gerekir.");
+    throw new ProductRequestError(
+      "Siralama icin en az iki urun bilgisi gerekir.",
+    );
   }
 
   const seenProductIds = new Set<string>();
@@ -34,31 +74,35 @@ function parseReorderItems(body: Record<string, unknown>) {
 
   return body.items.map((item) => {
     if (!isPlainObject(item)) {
-      throw new Error("Siralama bilgisi gecersiz.");
+      throw new ProductRequestError("Siralama bilgisi gecersiz.");
     }
     const itemKeys = Object.keys(item);
     const extraItemKeys = itemKeys.filter(
       (key) => key !== "productId" && key !== "sortOrder",
     );
     if (extraItemKeys.length > 0) {
-      throw new Error(
+      throw new ProductRequestError(
         `Bu alanlar urun siralama isleminde kullanilamaz: ${extraItemKeys.join(", ")}`,
       );
     }
     if (typeof item.productId !== "string" || !UUID_PATTERN.test(item.productId)) {
-      throw new Error("Gecersiz productId.");
+      throw new ProductRequestError("Gecersiz productId.");
     }
     if (seenProductIds.has(item.productId)) {
-      throw new Error("Ayni urun birden fazla kez siralanamaz.");
+      throw new ProductRequestError(
+        "Ayni urun birden fazla kez siralanamaz.",
+      );
     }
     seenProductIds.add(item.productId);
 
     const sortOrder = Number(item.sortOrder);
     if (!Number.isFinite(sortOrder) || !Number.isInteger(sortOrder)) {
-      throw new Error("sortOrder gecerli bir sayi olmalidir.");
+      throw new ProductRequestError("sortOrder gecerli bir sayi olmalidir.");
     }
     if (seenSortOrders.has(sortOrder)) {
-      throw new Error("Ayni sira degeri birden fazla urune verilemez.");
+      throw new ProductRequestError(
+        "Ayni sira degeri birden fazla urune verilemez.",
+      );
     }
     seenSortOrders.add(sortOrder);
 
@@ -95,25 +139,27 @@ export async function POST(request: Request) {
       return jsonError("Gecersiz veya suresi dolmus oturum.", 401);
     }
 
-    const products = await fetchProductsByIds(
+    const businesses = await fetchBusinessesForUser(
       url,
       serviceRoleKey,
+      user.id,
+    );
+    if (businesses.length !== 1) {
+      return jsonError("Bir veya daha fazla ürün bulunamadı.", 404);
+    }
+
+    const business = businesses[0];
+    ensureProductWriteAllowed(business);
+
+    const products = await fetchOwnedProductsByIds(
+      url,
+      serviceRoleKey,
+      business.id,
       items.map((item) => item.productId),
     );
     if (products.length !== items.length) {
-      return jsonError("Urun bulunamadi.", 404);
+      return jsonError("Bir veya daha fazla ürün bulunamadı.", 404);
     }
-
-    const businessId = products[0]?.business_id;
-    if (!businessId || products.some((product) => product?.business_id !== businessId)) {
-      return jsonError("Tum urunler ayni isletmeye ait olmalidir.", 400);
-    }
-
-    const business = await fetchBusinessById(url, serviceRoleKey, businessId);
-    if (!business || business.owner_id !== user.id) {
-      return jsonError("Urun bulunamadi.", 404);
-    }
-    ensureProductWriteAllowed(business);
 
     const sortOrderByProductId = new Map(
       items.map((item) => [item.productId, item.sortOrder]),
@@ -123,7 +169,7 @@ export async function POST(request: Request) {
       serviceRoleKey,
       products.map((product) => ({
         id: product.id,
-        business_id: product.business_id,
+        business_id: business.id,
         client_product_id: product.client_product_id,
         name: product.name,
         price: product.price,
@@ -145,18 +191,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ products: updatedProducts });
   } catch (error) {
-    const rawMessage =
-      error instanceof Error ? error.message : "Urun sirasi guncellenemedi.";
-    const message =
-      rawMessage.includes("Urun sirasi guncellenemedi")
-        ? "Urun sirasi guncellenemedi. Lutfen tekrar deneyin."
-        : rawMessage;
-    const status =
-      error instanceof Error && error.name === "Forbidden"
-        ? 403
-        : message.includes("SUPABASE_SERVICE_ROLE_KEY")
-        ? 500
-        : 400;
-    return jsonError(message, status);
+    const safeError = resolveProductRouteError(
+      error,
+      "Ürün sıralaması güncellenemedi. Lütfen tekrar deneyin.",
+    );
+    return jsonError(safeError.message, safeError.status);
   }
 }

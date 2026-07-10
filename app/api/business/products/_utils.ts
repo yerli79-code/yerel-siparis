@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeProductCategory } from "../../../../lib/product-categories";
 
 export type SupabaseUser = {
   id: string;
@@ -49,6 +50,16 @@ export type ProductInsertPayload = ProductUpdatePayload & {
   image_label: string;
 };
 
+export class ProductRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = "ProductRequestError";
+    this.status = status;
+  }
+}
+
 export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -90,8 +101,19 @@ const allowedProductFields = new Set([
   "sortOrder",
 ]);
 
-export function jsonError(message: string, status = 400, detail?: unknown) {
-  return NextResponse.json({ error: message, detail }, { status });
+export function jsonError(message: string, status = 400) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+export function resolveProductRouteError(
+  error: unknown,
+  fallbackMessage: string,
+) {
+  if (error instanceof ProductRequestError) {
+    return { message: error.message, status: error.status };
+  }
+
+  return { message: fallbackMessage, status: 500 };
 }
 
 export function getSupabaseServerConfig() {
@@ -114,23 +136,8 @@ export async function readJson(response: Response) {
   return text ? JSON.parse(text) : null;
 }
 
-export function safeSupabaseError(prefix: string, body: unknown) {
-  const error = body as {
-    code?: string;
-    message?: string;
-    details?: string;
-    hint?: string;
-    error?: string;
-    error_description?: string;
-  } | null;
-  const parts = [
-    error?.message || error?.error_description || error?.error,
-    error?.code ? `Kod: ${error.code}` : "",
-    error?.details ? `Detay: ${error.details}` : "",
-    error?.hint ? `Ipucu: ${error.hint}` : "",
-  ].filter(Boolean);
-
-  return parts.length > 0 ? `${prefix}: ${parts.join(" | ")}` : prefix;
+export function safeSupabaseError(prefix: string, _body: unknown) {
+  return prefix;
 }
 
 export function getBearerToken(request: Request) {
@@ -168,7 +175,9 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
 export function assertNoForbiddenFields(record: Record<string, unknown>) {
   const found = Object.keys(record).filter((key) => forbiddenFields.has(key));
   if (found.length > 0) {
-    throw new Error(`Bu alanlar urun isleminde kullanilamaz: ${found.join(", ")}`);
+    throw new ProductRequestError(
+      `Bu alanlar urun isleminde kullanilamaz: ${found.join(", ")}`,
+    );
   }
 }
 
@@ -180,7 +189,7 @@ function assertOnlyAllowedKeys(
     (key) => !allowedFields.has(key),
   );
   if (unknownFields.length > 0) {
-    throw new Error(
+    throw new ProductRequestError(
       `Bu alanlar urun isleminde kullanilamaz: ${unknownFields.join(", ")}`,
     );
   }
@@ -189,7 +198,7 @@ function assertOnlyAllowedKeys(
 export function getProductInput(body: Record<string, unknown>) {
   assertOnlyAllowedKeys(body, new Set(["input"]));
   if (!isPlainObject(body.input)) {
-    throw new Error("Urun bilgileri eksik veya gecersiz.");
+    throw new ProductRequestError("Urun bilgileri eksik veya gecersiz.");
   }
 
   const inputForbiddenFields = new Set(
@@ -199,7 +208,9 @@ export function getProductInput(body: Record<string, unknown>) {
     inputForbiddenFields.has(key),
   );
   if (found.length > 0) {
-    throw new Error(`Bu alanlar urun isleminde kullanilamaz: ${found.join(", ")}`);
+    throw new ProductRequestError(
+      `Bu alanlar urun isleminde kullanilamaz: ${found.join(", ")}`,
+    );
   }
   assertOnlyAllowedKeys(body.input, allowedProductFields);
 
@@ -221,7 +232,7 @@ function addNullableStringField(
     return;
   }
   if (typeof value !== "string") {
-    throw new Error(`${inputKey} alani metin olmalidir.`);
+    throw new ProductRequestError(`${inputKey} alani metin olmalidir.`);
   }
 
   const trimmed = value.trim();
@@ -230,37 +241,49 @@ function addNullableStringField(
 
 export function buildProductPayload(
   input: Record<string, unknown>,
-  options: { requireName?: boolean; requirePrice?: boolean } = {},
+  options: {
+    requireName?: boolean;
+    requirePrice?: boolean;
+    requireCategory?: boolean;
+  } = {},
 ) {
   const payload: ProductUpdatePayload = {};
 
   if ("name" in input) {
     const value = input.name;
     if (typeof value !== "string" || !value.trim()) {
-      throw new Error("Urun adi bos olamaz.");
+      throw new ProductRequestError("Urun adi bos olamaz.");
     }
     payload.name = value.trim();
   } else if (options.requireName) {
-    throw new Error("Urun adi bos olamaz.");
+    throw new ProductRequestError("Urun adi bos olamaz.");
   }
 
   if ("price" in input) {
     const price = Number(input.price);
     if (!Number.isFinite(price) || price < 0) {
-      throw new Error("Fiyat gecerli bir sayi olmalidir.");
+      throw new ProductRequestError("Fiyat gecerli bir sayi olmalidir.");
     }
     payload.price = price;
   } else if (options.requirePrice) {
-    throw new Error("Fiyat gecerli bir sayi olmalidir.");
+    throw new ProductRequestError("Fiyat gecerli bir sayi olmalidir.");
   }
 
   addNullableStringField(payload, input, "description", "description", "");
-  addNullableStringField(payload, input, "category", "category", "Genel");
+  if ("category" in input) {
+    const category = normalizeProductCategory(input.category);
+    if (!category) {
+      throw new ProductRequestError("Lütfen geçerli bir kategori seçin.");
+    }
+    payload.category = category;
+  } else if (options.requireCategory) {
+    throw new ProductRequestError("Lütfen geçerli bir kategori seçin.");
+  }
   if ("imageLabel" in input) {
     const value = input.imageLabel;
     if (value !== null && value !== undefined) {
       if (typeof value !== "string") {
-        throw new Error("imageLabel alani metin olmalidir.");
+        throw new ProductRequestError("imageLabel alani metin olmalidir.");
       }
       payload.image_label = value.trim();
     }
@@ -269,7 +292,7 @@ export function buildProductPayload(
 
   if ("isActive" in input) {
     if (typeof input.isActive !== "boolean") {
-      throw new Error("isActive alani boolean olmalidir.");
+      throw new ProductRequestError("isActive alani boolean olmalidir.");
     }
     payload.is_active = input.isActive;
   }
@@ -277,13 +300,13 @@ export function buildProductPayload(
   if ("sortOrder" in input) {
     const sortOrder = Number(input.sortOrder);
     if (!Number.isFinite(sortOrder)) {
-      throw new Error("sortOrder gecerli bir sayi olmalidir.");
+      throw new ProductRequestError("sortOrder gecerli bir sayi olmalidir.");
     }
     payload.sort_order = sortOrder;
   }
 
   if (Object.keys(payload).length === 0) {
-    throw new Error("Guncellenecek urun alani bulunamadi.");
+    throw new ProductRequestError("Guncellenecek urun alani bulunamadi.");
   }
 
   return payload;
@@ -321,10 +344,14 @@ export async function fetchBusinessesForUser(
 
 export function getSingleUserBusiness(businesses: BusinessAccessRow[]) {
   if (businesses.length === 0) {
-    throw new Error("Giris yapan kullaniciya ait isletme bulunamadi.");
+    throw new ProductRequestError(
+      "Giris yapan kullaniciya ait isletme bulunamadi.",
+    );
   }
   if (businesses.length > 1) {
-    throw new Error("Bu kullaniciya ait birden fazla isletme var. Islem guvenli sekilde tamamlanamadi.");
+    throw new ProductRequestError(
+      "Bu kullaniciya ait birden fazla isletme var. Islem guvenli sekilde tamamlanamadi.",
+    );
   }
 
   return businesses[0];
@@ -332,18 +359,26 @@ export function getSingleUserBusiness(businesses: BusinessAccessRow[]) {
 
 export function ensureProductWriteAllowed(business: BusinessAccessRow) {
   if (!business.is_active) {
-    throw new Error("Isletme aktif olmadigi icin urun islemi yapilamaz.");
+    throw new ProductRequestError(
+      "Isletme aktif olmadigi icin urun islemi yapilamaz.",
+    );
   }
   if (business.subscription_status !== "active") {
-    throw new Error("Abonelik aktif olmadigi icin urun islemi yapilamaz.");
+    throw new ProductRequestError(
+      "Abonelik aktif olmadigi icin urun islemi yapilamaz.",
+    );
   }
   if (!business.subscription_expires_at) {
-    throw new Error("Abonelik bitis tarihi bulunmadigi icin urun islemi yapilamaz.");
+    throw new ProductRequestError(
+      "Abonelik bitis tarihi bulunmadigi icin urun islemi yapilamaz.",
+    );
   }
 
   const expiresAt = new Date(business.subscription_expires_at).getTime();
   if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-    throw new Error("Abonelik suresi doldugu icin urun islemi yapilamaz.");
+    throw new ProductRequestError(
+      "Abonelik suresi doldugu icin urun islemi yapilamaz.",
+    );
   }
 }
 
@@ -440,12 +475,10 @@ export function ensureBusinessOwner(
   userId: string,
 ) {
   if (!business) {
-    throw new Error("Urun bulunamadi.");
+    throw new ProductRequestError("Urun bulunamadi.", 404);
   }
   if (business.owner_id !== userId) {
-    const error = new Error("Bu urun icin yetkiniz yok.");
-    error.name = "Forbidden";
-    throw error;
+    throw new ProductRequestError("Bu urun icin yetkiniz yok.", 403);
   }
 }
 

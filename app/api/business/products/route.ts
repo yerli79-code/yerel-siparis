@@ -14,6 +14,7 @@ import {
   insertProduct,
   isPlainObject,
   jsonError,
+  resolveProductRouteError,
 } from "./_utils";
 
 export async function GET(request: Request) {
@@ -41,9 +42,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ products });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Urunler alinamadi.";
-    const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    const safeError = resolveProductRouteError(
+      error,
+      "Ürünler alınamadı. Lütfen tekrar deneyin.",
+    );
+    return jsonError(safeError.message, safeError.status);
   }
 }
 
@@ -81,6 +84,7 @@ export async function POST(request: Request) {
     const payload = buildProductPayload(input, {
       requireName: true,
       requirePrice: true,
+      requireCategory: true,
     });
     if (!("image_label" in payload) || payload.image_label === null) {
       payload.image_label = "";
@@ -100,8 +104,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ product });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Urun olusturulamadi.";
-    const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError(message, status);
+    const safeError = resolveProductRouteError(
+      error,
+      "Ürün eklenemedi. Lütfen tekrar deneyin.",
+    );
+    return jsonError(safeError.message, safeError.status);
   }
 }

@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import LocationSelector from "../../components/LocationSelector";
 import {
+  getProductCategories,
+  isStandardProductCategory,
+  normalizeProductCategory,
+} from "../../lib/product-categories";
+import {
   clearBrowserAuthSession,
   getValidAccessToken,
 } from "../../lib/browser-auth-session";
@@ -92,7 +97,7 @@ const emptyForm: ProductForm = {
   name: "",
   price: "",
   description: "",
-  category: "",
+  category: "Genel",
   imageLabel: "",
   imageUrl: "",
   sortOrder: "",
@@ -188,11 +193,15 @@ function getNextSortOrder(products: BusinessProduct[]) {
 }
 
 function toForm(product: BusinessProduct): ProductForm {
+  const currentCategory = product.category?.trim() || "";
+
   return {
     name: product.name,
     price: String(product.price),
     description: product.description ?? "",
-    category: product.category ?? "",
+    category:
+      normalizeProductCategory(currentCategory) ??
+      (currentCategory ? "" : "Genel"),
     imageLabel: product.imageLabel ?? "",
     imageUrl: product.imageUrl ?? "",
     sortOrder: String(product.sortOrder),
@@ -286,6 +295,9 @@ export default function PanelPage() {
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
   const [editingProductId, setEditingProductId] = useState("");
+  const [originalProductCategory, setOriginalProductCategory] = useState("");
+  const [isProductCategoryChanged, setIsProductCategoryChanged] =
+    useState(false);
   const [expandedProductId, setExpandedProductId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -627,13 +639,30 @@ export default function PanelPage() {
   function resetForm() {
     setForm(emptyForm);
     setEditingProductId("");
+    setOriginalProductCategory("");
+    setIsProductCategoryChanged(false);
     setSelectedImageFile(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
-  function chooseCategory(category: string) {
-    if (!canManageProducts || isSaving || isUploadingImage) return;
+  function changeProductCategory(category: string) {
+    setIsProductCategoryChanged(true);
     updateForm("category", category);
+  }
+
+  function keepOriginalProductCategory() {
+    if (
+      !editingProductId ||
+      !originalProductCategory.trim() ||
+      isStandardProductCategory(originalProductCategory) ||
+      isSaving ||
+      isUploadingImage
+    ) {
+      return;
+    }
+
+    setIsProductCategoryChanged(false);
+    updateForm("category", "");
   }
 
   function clearProductEditingState() {
@@ -670,6 +699,17 @@ export default function PanelPage() {
     if (!form.name.trim()) return "Ürün adı boş olamaz.";
     if (!Number.isFinite(price) || price < 0) return "Fiyat geçerli bir sayı olmalıdır.";
     if (!Number.isFinite(sortOrder)) return "Sıralama geçerli bir sayı olmalıdır.";
+    const hasUntouchedLegacyCategory =
+      Boolean(editingProductId) &&
+      Boolean(originalProductCategory.trim()) &&
+      !isStandardProductCategory(originalProductCategory) &&
+      !isProductCategoryChanged;
+    if (
+      !hasUntouchedLegacyCategory &&
+      !isStandardProductCategory(form.category)
+    ) {
+      return "Lütfen geçerli bir kategori seçin.";
+    }
     return "";
   }
 
@@ -816,6 +856,14 @@ export default function PanelPage() {
         form,
         editingProductId ? 0 : getNextSortOrder(products),
       );
+      const hasUntouchedLegacyCategory =
+        Boolean(editingProductId) &&
+        Boolean(originalProductCategory.trim()) &&
+        !isStandardProductCategory(originalProductCategory) &&
+        !isProductCategoryChanged;
+      if (hasUntouchedLegacyCategory) {
+        delete payload.category;
+      }
       if (selectedImageFile) {
         setIsUploadingImage(true);
         const uploadedImageUrl = await uploadProductImage(
@@ -853,6 +901,8 @@ export default function PanelPage() {
     setActivePanelSection("products");
     setExpandedProductId(product.id);
     setEditingProductId(product.id);
+    setOriginalProductCategory(product.category?.trim() || "");
+    setIsProductCategoryChanged(false);
     setForm(toForm(product));
     setSelectedImageFile(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
@@ -1912,34 +1962,42 @@ export default function PanelPage() {
 
                 <div className="field">
                   <label htmlFor="category">Kategori</label>
-                  <input
+                  <select
                     disabled={!canManageProducts || isSaving || isUploadingImage}
                     id="category"
                     value={form.category}
-                    onChange={(event) => updateForm("category", event.target.value)}
-                  />
-                  {categorySummaries.length > 0 ? (
-                    <div className="panel-category-picker" aria-label="Mevcut kategoriler">
-                      <span>Mevcut kategoriler</span>
-                      <div className="panel-category-chips">
-                        {categorySummaries.map((category) => (
-                          <button
-                            className="panel-category-chip"
-                            disabled={!canManageProducts || isSaving || isUploadingImage}
-                            key={category.name}
-                            type="button"
-                            onClick={() => chooseCategory(category.name)}
-                          >
-                            {category.name} ({category.count})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="field-help">
-                      Yeni kategori yazabilir veya ürün ekledikçe buradan hızlı seçim yapabilirsiniz.
-                    </span>
-                  )}
+                    onChange={(event) =>
+                      changeProductCategory(event.target.value)
+                    }
+                  >
+                    {form.category ? null : (
+                      <option value="">Standart kategori seçin</option>
+                    )}
+                    {getProductCategories().map((category) => (
+                      <option key={category.key} value={category.label}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                  {editingProductId &&
+                  originalProductCategory.trim() &&
+                  !isStandardProductCategory(originalProductCategory) ? (
+                    <>
+                      <span className="field-help">
+                        Mevcut kategori: {originalProductCategory}
+                      </span>
+                      {isProductCategoryChanged ? (
+                        <button
+                          className="panel-category-chip"
+                          disabled={isSaving || isUploadingImage}
+                          type="button"
+                          onClick={keepOriginalProductCategory}
+                        >
+                          Mevcut kategoriyi koru
+                        </button>
+                      ) : null}
+                    </>
+                  ) : null}
                 </div>
 
                 <div className="field">
