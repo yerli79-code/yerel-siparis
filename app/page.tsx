@@ -103,21 +103,27 @@ export default function Home() {
     };
   }, []);
 
-  const isLocationComplete = Boolean(
-    locationFilter.city && locationFilter.district && locationFilter.neighborhood,
+  const hasSearchQuery = Boolean(searchQuery.trim());
+  const hasLocationFilter = Boolean(
+    locationFilter.city || locationFilter.district || locationFilter.neighborhood,
   );
+  const shouldShowBusinesses = hasSearchQuery || hasLocationFilter;
 
   const selectedLocationBusinesses = useMemo(
     () =>
-      isLocationComplete
-        ? businesses.filter(
-            (business) =>
-              sameLocationValue(business.city, locationFilter.city) &&
-              sameLocationValue(business.district, locationFilter.district) &&
-              sameLocationValue(business.neighborhood, locationFilter.neighborhood),
-          )
-        : [],
-    [businesses, isLocationComplete, locationFilter],
+      businesses.filter((business) => {
+        const matchesCity =
+          !locationFilter.city || sameLocationValue(business.city, locationFilter.city);
+        const matchesDistrict =
+          !locationFilter.district ||
+          sameLocationValue(business.district, locationFilter.district);
+        const matchesNeighborhood =
+          !locationFilter.neighborhood ||
+          sameLocationValue(business.neighborhood, locationFilter.neighborhood);
+
+        return matchesCity && matchesDistrict && matchesNeighborhood;
+      }),
+    [businesses, locationFilter],
   );
 
   const filteredBusinesses = useMemo(() => {
@@ -138,10 +144,7 @@ export default function Home() {
   }, [searchQuery, selectedLocationBusinesses]);
 
   const hasActiveFilters = Boolean(
-    searchQuery.trim() ||
-      locationFilter.city ||
-      locationFilter.district ||
-      locationFilter.neighborhood,
+    hasSearchQuery || hasLocationFilter,
   );
 
   const activeFilterLabels = [
@@ -150,6 +153,39 @@ export default function Home() {
     locationFilter.district ? `İlçe: ${locationFilter.district}` : "",
     locationFilter.neighborhood ? `Mahalle / Köy: ${locationFilter.neighborhood}` : "",
   ].filter(Boolean);
+
+  const emptyState = (() => {
+    if (isLoading || loadError || filteredBusinesses.length > 0) return null;
+
+    if (!shouldShowBusinesses) {
+      return businesses.length === 0
+        ? {
+            title: "Henüz aktif işletme bulunmuyor.",
+            description: "Yakında burada sipariş alabilen yerel işletmeler listelenecek.",
+          }
+        : {
+            title: "İşletmeleri görmek için konum seçin veya işletme adıyla arayın.",
+            description:
+              "İl seçerek bölgenizdeki işletmeleri listeleyebilir ya da işletme adını yazabilirsiniz.",
+          };
+    }
+
+    if (hasSearchQuery) {
+      return {
+        title: "Aramanıza uygun işletme bulunamadı.",
+        description: "Arama metnini temizleyip tekrar deneyin.",
+      };
+    }
+
+    if (hasLocationFilter) {
+      return {
+        title: "Bu konumda henüz işletme bulunmuyor.",
+        description: "Yakındaki başka bir Mahalle / Köy seçerek tekrar deneyin.",
+      };
+    }
+
+    return null;
+  })();
 
   function clearFilters() {
     setSearchQuery("");
@@ -177,7 +213,7 @@ export default function Home() {
           <label className="discovery-search">
             <span>İşletme ara</span>
             <input
-              placeholder="Seçilen konumdaki işletmelerde ara"
+              placeholder="İşletme adı, il, ilçe veya Mahalle / Köy ara"
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -203,11 +239,11 @@ export default function Home() {
           </section>
         ) : null}
 
-        {!isLoading && !loadError && isLocationComplete ? (
+        {!isLoading && !loadError && shouldShowBusinesses ? (
           <section className="discovery-results-header" aria-live="polite">
             <div>
               <strong>
-                Seçilen konumda {filteredBusinesses.length} işletme gösteriliyor.
+                {filteredBusinesses.length} işletme gösteriliyor.
               </strong>
               {activeFilterLabels.length > 0 ? (
                 <div className="discovery-active-filters">
@@ -225,42 +261,14 @@ export default function Home() {
           </section>
         ) : null}
 
-        {!isLoading && !loadError && businesses.length === 0 ? (
+        {emptyState ? (
           <section className="section discovery-state">
-            <h2>Henüz aktif işletme bulunmuyor.</h2>
-            <p>Yakında burada sipariş alabilen yerel işletmeler listelenecek.</p>
+            <h2>{emptyState.title}</h2>
+            <p>{emptyState.description}</p>
           </section>
         ) : null}
 
-        {!isLoading && !loadError && businesses.length > 0 && !isLocationComplete ? (
-          <section className="section discovery-state">
-            <h2>İşletmeleri görmek için konumunuzu seçin.</h2>
-            <p>Önce il, ardından ilçe ve Mahalle / Köy seçin.</p>
-          </section>
-        ) : null}
-
-        {!isLoading &&
-        !loadError &&
-        isLocationComplete &&
-        selectedLocationBusinesses.length === 0 ? (
-          <section className="section discovery-state">
-            <h2>Bu konumda henüz işletme bulunmuyor.</h2>
-            <p>Yakındaki başka bir Mahalle / Köy seçerek tekrar deneyin.</p>
-          </section>
-        ) : null}
-
-        {!isLoading &&
-        !loadError &&
-        isLocationComplete &&
-        selectedLocationBusinesses.length > 0 &&
-        filteredBusinesses.length === 0 ? (
-          <section className="section discovery-state">
-            <h2>Aramanıza uygun işletme bulunamadı.</h2>
-            <p>Arama metnini temizleyip tekrar deneyin.</p>
-          </section>
-        ) : null}
-
-        {!isLoading && !loadError && isLocationComplete && filteredBusinesses.length > 0 ? (
+        {!isLoading && !loadError && shouldShowBusinesses && filteredBusinesses.length > 0 ? (
           <section className="discovery-grid" aria-label="Aktif işletmeler">
             {filteredBusinesses.map((business) => {
               const locationText = getLocationText(business);
