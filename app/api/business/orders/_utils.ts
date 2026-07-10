@@ -25,6 +25,7 @@ export type BusinessAccessRow = {
 export type OrderRow = {
   id: string;
   order_number: number | string;
+  business_order_number?: number | string | null;
   business_id: string;
   status: OrderStatus;
   order_type: OrderType;
@@ -85,6 +86,8 @@ export const orderStatuses: OrderStatus[] = [
 export const orderTypes: OrderType[] = ["delivery", "pickup"];
 
 const orderSelect =
+  "id,order_number,business_order_number,business_id,status,order_type,customer_name,customer_phone,customer_address,customer_note,total_amount,currency,created_at,updated_at";
+const legacyOrderSelect =
   "id,order_number,business_id,status,order_type,customer_name,customer_phone,customer_address,customer_note,total_amount,currency,created_at,updated_at";
 const orderItemSelect =
   "id,order_id,product_id,product_name,unit_price,quantity,line_total,created_at";
@@ -172,6 +175,13 @@ export function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
+function isMissingBusinessOrderNumberError(body: unknown) {
+  if (!isPlainObject(body)) return false;
+
+  const code = typeof body.code === "string" ? body.code : "";
+  return code === "42703" || code === "PGRST204";
+}
+
 export function isBusinessOperational(business: BusinessAccessRow) {
   if (!business.is_active) return false;
   if (business.subscription_status !== "active") return false;
@@ -182,9 +192,14 @@ export function isBusinessOperational(business: BusinessAccessRow) {
 }
 
 export function mapOrder(row: OrderRow, items: OrderItemRow[] = []) {
+  const displayOrderNumber =
+    row.business_order_number === null || row.business_order_number === undefined
+      ? row.order_number
+      : row.business_order_number;
+
   return {
     id: row.id,
-    orderNumber: Number(row.order_number),
+    orderNumber: Number(displayOrderNumber),
     status: row.status,
     orderType: row.order_type,
     customerName: row.customer_name,
@@ -312,18 +327,34 @@ export async function fetchOrdersForBusiness(
   businessId: string,
   options: { status?: OrderStatus; limit: number },
 ) {
-  const statusFilter = options.status ? `&status=eq.${options.status}` : "";
-  const response = await fetch(
-    `${url}/rest/v1/orders?business_id=eq.${encodeURIComponent(
-      businessId,
-    )}${statusFilter}&select=${orderSelect}&order=created_at.desc&limit=${options.limit}`,
-    {
-      headers: serviceHeaders(serviceRoleKey),
-    },
-  );
-  const body = await readJson(response);
+  async function requestOrders(select: string) {
+    const statusFilter = options.status ? `&status=eq.${options.status}` : "";
+    const response = await fetch(
+      `${url}/rest/v1/orders?business_id=eq.${encodeURIComponent(
+        businessId,
+      )}${statusFilter}&select=${select}&order=created_at.desc&limit=${options.limit}`,
+      {
+        headers: serviceHeaders(serviceRoleKey),
+      },
+    );
+    const body = await readJson(response);
 
+    return { response, body };
+  }
+
+  const { response, body } = await requestOrders(orderSelect);
   if (!response.ok) {
+    if (isMissingBusinessOrderNumberError(body)) {
+      const legacyResult = await requestOrders(legacyOrderSelect);
+      if (!legacyResult.response.ok) {
+        throw new Error("Siparisler alinamadi.");
+      }
+
+      return Array.isArray(legacyResult.body)
+        ? (legacyResult.body as OrderRow[])
+        : [];
+    }
+
     throw new Error("Siparisler alinamadi.");
   }
 
@@ -358,17 +389,33 @@ export async function fetchOrderById(
   serviceRoleKey: string,
   orderId: string,
 ) {
-  const response = await fetch(
-    `${url}/rest/v1/orders?id=eq.${encodeURIComponent(
-      orderId,
-    )}&select=${orderSelect}&limit=1`,
-    {
-      headers: serviceHeaders(serviceRoleKey),
-    },
-  );
-  const body = await readJson(response);
+  async function requestOrder(select: string) {
+    const response = await fetch(
+      `${url}/rest/v1/orders?id=eq.${encodeURIComponent(
+        orderId,
+      )}&select=${select}&limit=1`,
+      {
+        headers: serviceHeaders(serviceRoleKey),
+      },
+    );
+    const body = await readJson(response);
 
+    return { response, body };
+  }
+
+  const { response, body } = await requestOrder(orderSelect);
   if (!response.ok) {
+    if (isMissingBusinessOrderNumberError(body)) {
+      const legacyResult = await requestOrder(legacyOrderSelect);
+      if (!legacyResult.response.ok) {
+        throw new Error("Siparis bilgisi alinamadi.");
+      }
+
+      return Array.isArray(legacyResult.body)
+        ? (legacyResult.body[0] as OrderRow | undefined)
+        : null;
+    }
+
     throw new Error("Siparis bilgisi alinamadi.");
   }
 
@@ -385,26 +432,24 @@ export async function updateOrderStatusById(
   const response = await fetch(
     `${url}/rest/v1/orders?id=eq.${encodeURIComponent(
       orderId,
-    )}&business_id=eq.${encodeURIComponent(businessId)}&select=${orderSelect}`,
+    )}&business_id=eq.${encodeURIComponent(businessId)}`,
     {
       method: "PATCH",
       headers: {
         ...serviceHeaders(serviceRoleKey, true),
-        Prefer: "return=representation",
       },
       body: JSON.stringify({ status }),
     },
   );
-  const body = await readJson(response);
 
   if (!response.ok) {
     throw new Error("Siparis durumu guncellenemedi.");
   }
 
-  const order = Array.isArray(body) ? body[0] : body;
-  if (!order?.id) {
+  const order = await fetchOrderById(url, serviceRoleKey, orderId);
+  if (!order?.id || order.business_id !== businessId) {
     throw new Error("Siparis durumu guncellendi ancak bilgi donmedi.");
   }
 
-  return order as OrderRow;
+  return order;
 }
