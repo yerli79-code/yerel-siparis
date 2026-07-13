@@ -278,6 +278,8 @@ export default function AdminPage() {
   const [newBusinessForm, setNewBusinessForm] = useState<NewBusinessForm>(
     emptyNewBusinessForm,
   );
+  const [isNewBusinessSlugTouched, setIsNewBusinessSlugTouched] =
+    useState(false);
   const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
   const [createdBusinessCredentials, setCreatedBusinessCredentials] =
     useState<CreatedBusinessCredentials | null>(null);
@@ -502,9 +504,17 @@ export default function AdminPage() {
     setMessage("");
     setErrorDetail("");
     setCreatedBusinessCredentials(null);
+    if (field === "slug" && typeof value === "string") {
+      setIsNewBusinessSlugTouched(true);
+    }
+
     setNewBusinessForm((current) => {
-      if (field === "name" && typeof value === "string" && !current.slug.trim()) {
-        return { ...current, name: value, slug: slugify(value) };
+      if (field === "name" && typeof value === "string") {
+        return {
+          ...current,
+          name: value,
+          slug: isNewBusinessSlugTouched ? current.slug : slugify(value),
+        };
       }
 
       if (field === "slug" && typeof value === "string") {
@@ -653,7 +663,7 @@ export default function AdminPage() {
     setMessage("");
     setErrorDetail("");
 
-    const slug = slugify(newBusinessForm.slug || newBusinessForm.name);
+    const slug = slugify(newBusinessForm.slug);
     if (!newBusinessForm.name.trim()) {
       setMessage("İşletme adı zorunludur.");
       return;
@@ -731,6 +741,7 @@ export default function AdminPage() {
         temporaryPassword: newBusinessForm.temporaryPassword,
       });
       setNewBusinessForm(emptyNewBusinessForm);
+      setIsNewBusinessSlugTouched(false);
       setMessage("İşletme ve giriş hesabı oluşturuldu.");
     } catch {
       setMessage("Yeni işletme eklenemedi.");
