@@ -6,6 +6,11 @@ import { readBusinesses } from "../../../lib/business-storage";
 import type { Business, Product, ProductCategory } from "../../../lib/businesses";
 import { getAccessMessage } from "../../../lib/subscription";
 import {
+  getProductCategories,
+  normalizeProductCategory,
+  type StandardProductCategory,
+} from "../../../lib/product-categories";
+import {
   PublicOrderRequestError,
   createPublicOrder,
   type PublicOrderCreateInput,
@@ -59,6 +64,15 @@ type DisplayBusiness = Business & {
   coverImageUrl?: string | null;
 };
 
+type DisplayProductCategory = ProductCategory & {
+  filterKey: string;
+};
+
+type ProductCatalog = {
+  categories: DisplayProductCategory[];
+  products: Product[];
+};
+
 const initialCustomer: Customer = {
   fullName: "",
   phone: "",
@@ -67,15 +81,12 @@ const initialCustomer: Customer = {
 };
 
 const pageFetchTimeoutMs = 10000;
-const allCategoriesFilter = "Tümü";
+const ALL_CATEGORY_KEY = "all";
+const allCategoriesLabel = "Tümü";
 const customerDetailsStorageKey = "yerel-siparis:customer-details:v1";
 
 function formatPrice(price: number) {
   return `${price.toLocaleString("tr-TR")} TL`;
-}
-
-function normalizeCategoryName(name?: string | null) {
-  return name?.trim() || "Genel";
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs = pageFetchTimeoutMs) {
@@ -201,29 +212,72 @@ function openMobileWhatsApp(appLink: string, fallbackLink: string) {
   window.location.href = appLink;
 }
 
-function groupSupabaseProducts(products: BusinessProduct[]): ProductCategory[] {
-  const categories = new Map<string, Product[]>();
+function organizeProductCategories(
+  sourceCategories: ProductCategory[],
+): ProductCatalog {
+  const productsByCategory = new Map<StandardProductCategory, Product[]>();
+  const products: Product[] = [];
 
-  products.forEach((product) => {
-    const categoryName = normalizeCategoryName(product.category);
-    const categoryProducts = categories.get(categoryName) ?? [];
-    categoryProducts.push({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      description: product.description ?? "",
-      imageLabel: product.imageLabel || categoryName,
-      imageUrl: product.imageUrl,
-      isActive: product.isActive,
-    });
-    categories.set(categoryName, categoryProducts);
+  sourceCategories.forEach((category) => {
+    const sourceCategoryName = category.name?.trim() || "Genel";
+    const standardCategory = normalizeProductCategory(sourceCategoryName);
+    const categoryProducts = category.products.map((product) => ({
+      ...product,
+      imageLabel: product.imageLabel || sourceCategoryName,
+    }));
+
+    products.push(...categoryProducts);
+
+    if (!standardCategory) return;
+    const existingProducts = productsByCategory.get(standardCategory) ?? [];
+    existingProducts.push(...categoryProducts);
+    productsByCategory.set(standardCategory, existingProducts);
   });
 
-  return Array.from(categories.entries()).map(([name, categoryProducts], index) => ({
-    id: `supabase-${index}-${name.toLowerCase().replaceAll(" ", "-")}`,
-    name,
-    products: categoryProducts,
-  }));
+  return {
+    categories: getProductCategories().flatMap((category) => {
+      const categoryProducts = productsByCategory.get(category.label) ?? [];
+      if (categoryProducts.length === 0) return [];
+
+      const filterKey = `standard:${category.key}`;
+      return [
+        {
+          id: filterKey,
+          name: category.label,
+          products: categoryProducts,
+          filterKey,
+        },
+      ];
+    }),
+    products,
+  };
+}
+
+function groupSupabaseProducts(
+  products: BusinessProduct[],
+): ProductCatalog {
+  const sourceCategories: ProductCategory[] = [];
+
+  products.forEach((product, index) => {
+    const categoryName = product.category?.trim() || "Genel";
+    sourceCategories.push({
+      id: `supabase-source-${index}`,
+      name: categoryName,
+      products: [
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          description: product.description ?? "",
+          imageLabel: product.imageLabel || categoryName,
+          imageUrl: product.imageUrl,
+          isActive: product.isActive,
+        },
+      ],
+    });
+  });
+
+  return organizeProductCategories(sourceCategories);
 }
 
 export default function BusinessPage({
@@ -233,7 +287,9 @@ export default function BusinessPage({
 }) {
   const { slug } = use(params);
   const [business, setBusiness] = useState<Business | null>(null);
-  const [supabaseCategories, setSupabaseCategories] = useState<ProductCategory[] | null>(null);
+  const [supabaseCatalog, setSupabaseCatalog] = useState<ProductCatalog | null>(
+    null,
+  );
   const [isLoadingBusiness, setIsLoadingBusiness] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -248,7 +304,7 @@ export default function BusinessPage({
   const [fallbackWhatsAppMessage, setFallbackWhatsAppMessage] = useState("");
   const [isRecordingOrder, setIsRecordingOrder] = useState(false);
   const [showCartOnMobile, setShowCartOnMobile] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(allCategoriesFilter);
+  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY_KEY);
   const cartSectionRef = useRef<HTMLElement | null>(null);
   const cartCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const cartTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -274,7 +330,7 @@ export default function BusinessPage({
     let isCancelled = false;
 
     setBusiness(null);
-    setSupabaseCategories(null);
+    setSupabaseCatalog(null);
     setLoadError("");
     setIsLoadingBusiness(true);
 
@@ -301,11 +357,11 @@ export default function BusinessPage({
       try {
         const products = await withTimeout(fetchPublicProductsByBusinessSlug(slug));
         if (isCancelled) return;
-        setSupabaseCategories(
+        setSupabaseCatalog(
           products.length > 0 ? groupSupabaseProducts(products) : null,
         );
       } catch {
-        if (!isCancelled) setSupabaseCategories(null);
+        if (!isCancelled) setSupabaseCatalog(null);
       }
     }
 
@@ -377,6 +433,38 @@ export default function BusinessPage({
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart],
   );
+  const fallbackCatalog = useMemo(() => {
+    if (!business) return { categories: [], products: [] };
+
+    return organizeProductCategories(
+      business.productCategories
+        .map((category) => ({
+          ...category,
+          products: category.products.filter(
+            (product) => product.isActive !== false,
+          ),
+        }))
+        .filter((category) => category.products.length > 0),
+    );
+  }, [business]);
+  const catalog = supabaseCatalog ?? fallbackCatalog;
+  const categories = catalog.categories;
+  const allProducts = catalog.products;
+
+  useEffect(() => {
+    if (
+      isLoadingBusiness ||
+      !business ||
+      selectedCategory === ALL_CATEGORY_KEY
+    ) {
+      return;
+    }
+
+    const selectedCategoryExists = categories.some(
+      (category) => category.filterKey === selectedCategory,
+    );
+    if (!selectedCategoryExists) setSelectedCategory(ALL_CATEGORY_KEY);
+  }, [business, categories, isLoadingBusiness, selectedCategory]);
 
   function openCartOnMobile() {
     setShowCartOnMobile(true);
@@ -412,29 +500,16 @@ export default function BusinessPage({
 
   const currentBusiness = business;
   const accessMessage = getAccessMessage(currentBusiness);
-  const fallbackCategories = currentBusiness.productCategories
-    .map((category) => ({
-      ...category,
-      name: normalizeCategoryName(category.name),
-      products: category.products.filter((product) => product.isActive !== false),
-    }))
-    .filter((category) => category.products.length > 0);
-  const categories = supabaseCategories ?? fallbackCategories;
-  const totalProductCount = categories.reduce(
-    (count, category) => count + category.products.length,
-    0,
-  );
+  const totalProductCount = allProducts.length;
   const hasAnyProducts = totalProductCount > 0;
-  const selectedCategoryExists =
-    selectedCategory === allCategoriesFilter ||
-    categories.some((category) => category.name === selectedCategory);
-  const effectiveSelectedCategory = selectedCategoryExists
-    ? selectedCategory
-    : allCategoriesFilter;
-  const visibleCategories =
-    effectiveSelectedCategory === allCategoriesFilter
-      ? categories
-      : categories.filter((category) => category.name === effectiveSelectedCategory);
+  const visibleCategories: ProductCategory[] =
+    selectedCategory === ALL_CATEGORY_KEY
+      ? allProducts.length > 0
+        ? [{ id: ALL_CATEGORY_KEY, name: "", products: allProducts }]
+        : []
+      : categories.filter(
+          (category) => category.filterKey === selectedCategory,
+        );
   const displayBusiness = currentBusiness as DisplayBusiness;
   const coverImageUrl = displayBusiness.coverImageUrl?.trim();
   const addressText = [
@@ -988,21 +1063,21 @@ export default function BusinessPage({
                 >
                   <button
                     className={`menu-category-tab public-order-category-tab ${
-                      effectiveSelectedCategory === allCategoriesFilter ? "selected" : ""
+                      selectedCategory === ALL_CATEGORY_KEY ? "selected" : ""
                     }`}
                     type="button"
-                    onClick={() => setSelectedCategory(allCategoriesFilter)}
+                    onClick={() => setSelectedCategory(ALL_CATEGORY_KEY)}
                   >
-                    {allCategoriesFilter} ({totalProductCount})
+                    {allCategoriesLabel} ({totalProductCount})
                   </button>
                   {categories.map((category) => (
                     <button
                       className={`menu-category-tab public-order-category-tab ${
-                        effectiveSelectedCategory === category.name ? "selected" : ""
+                        selectedCategory === category.filterKey ? "selected" : ""
                       }`}
                       key={category.id}
                       type="button"
-                      onClick={() => setSelectedCategory(category.name)}
+                      onClick={() => setSelectedCategory(category.filterKey)}
                     >
                       {category.name} ({category.products.length})
                     </button>
@@ -1022,9 +1097,11 @@ export default function BusinessPage({
               ) : null}
               {visibleCategories.map((category) => (
                 <div className="category public-order-category" key={category.id}>
-                  <h3 className="category-title public-order-category-title">
-                    {category.name}
-                  </h3>
+                  {category.name ? (
+                    <h3 className="category-title public-order-category-title">
+                      {category.name}
+                    </h3>
+                  ) : null}
                   <div className="products public-order-products">
                     {category.products.map((product) => (
                       <article
