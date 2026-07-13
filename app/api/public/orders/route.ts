@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPaymentMethod } from "../../../../lib/payment-methods";
 import {
   OrderRpcError,
   UUID_PATTERN,
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
     assertOnlyKeys(body, [
       "businessSlug",
       "orderType",
+      "paymentMethod",
       "customer",
       "items",
       "idempotencyKey",
@@ -127,6 +129,10 @@ export async function POST(request: Request) {
       return jsonError("Siparis turu gecersiz.", 400);
     }
     const orderType = body.orderType;
+    if (!isPaymentMethod(body.paymentMethod)) {
+      return jsonError("Odeme yontemi gecersiz.", 400);
+    }
+    const paymentMethod = body.paymentMethod;
 
     if (!isPlainObject(body.customer)) {
       return jsonError("Musteri bilgileri eksik.", 400);
@@ -177,6 +183,7 @@ export async function POST(request: Request) {
         quantity: item.quantity,
       })),
       p_idempotency_key: idempotencyKey,
+      p_payment_method: paymentMethod,
     });
 
     return NextResponse.json({
@@ -208,6 +215,13 @@ export async function POST(request: Request) {
           "Isletme su anda siparis alamiyor.",
           "BUSINESS_NOT_AVAILABLE",
           403,
+        );
+      }
+      if (error.reason === "payment_method_not_available") {
+        return publicOrderError(
+          "Seçilen ödeme yöntemi bu işletmede kullanılamıyor. Lütfen ödeme yöntemini kontrol edin.",
+          "PAYMENT_METHOD_NOT_AVAILABLE",
+          400,
         );
       }
       if (error.reason === "validation") {

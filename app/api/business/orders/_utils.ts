@@ -62,6 +62,7 @@ export class OrderRpcError extends Error {
     | "business_not_found"
     | "products_not_available"
     | "business_not_available"
+    | "payment_method_not_available"
     | "validation"
     | "failed";
 
@@ -298,6 +299,9 @@ export async function createOrderWithItemsRpc(
     }
     if (errorMessage.includes("business_not_available")) {
       throw new OrderRpcError("business_not_available");
+    }
+    if (errorMessage.includes("payment_method_not_available")) {
+      throw new OrderRpcError("payment_method_not_available");
     }
     if (
       errorMessage.includes("minimum_order_not_met") ||

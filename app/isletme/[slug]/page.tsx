@@ -11,6 +11,13 @@ import {
   type StandardProductCategory,
 } from "../../../lib/product-categories";
 import {
+  getInitialPaymentMethod,
+  getPaymentMethodModeOrDefault,
+  isPaymentMethod,
+  PAYMENT_METHODS,
+  type PaymentMethod,
+} from "../../../lib/payment-methods";
+import {
   PublicOrderRequestError,
   createPublicOrder,
   type PublicOrderCreateInput,
@@ -295,6 +302,8 @@ export default function BusinessPage({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [orderType, setOrderType] = useState<OrderType>("delivery");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [paymentMethodError, setPaymentMethodError] = useState("");
   const [rememberCustomerDetails, setRememberCustomerDetails] = useState(false);
   const [hasSavedCustomerDetails, setHasSavedCustomerDetails] = useState(false);
   const [warning, setWarning] = useState("");
@@ -333,6 +342,8 @@ export default function BusinessPage({
     setSupabaseCatalog(null);
     setLoadError("");
     setIsLoadingBusiness(true);
+    setPaymentMethod("");
+    setPaymentMethodError("");
 
     async function loadBusinessPage() {
       const fallbackBusiness = readFallbackBusiness(slug);
@@ -343,10 +354,20 @@ export default function BusinessPage({
 
         const nextBusiness = supabaseBusiness ?? fallbackBusiness;
         setBusiness(nextBusiness);
+        setPaymentMethod(
+          getInitialPaymentMethod(
+            getPaymentMethodModeOrDefault(nextBusiness?.paymentMethodMode),
+          ),
+        );
         if (!nextBusiness) setLoadError("İşletme bulunamadı.");
       } catch {
         if (isCancelled) return;
         setBusiness(fallbackBusiness);
+        setPaymentMethod(
+          getInitialPaymentMethod(
+            getPaymentMethodModeOrDefault(fallbackBusiness?.paymentMethodMode),
+          ),
+        );
         if (!fallbackBusiness) {
           setLoadError("İşletme bilgisi alınamadı.");
         }
@@ -499,6 +520,14 @@ export default function BusinessPage({
   }
 
   const currentBusiness = business;
+  const paymentMethodMode = getPaymentMethodModeOrDefault(
+    currentBusiness.paymentMethodMode,
+  );
+  const fixedPaymentOption =
+    paymentMethodMode === "cash_or_card"
+      ? null
+      : PAYMENT_METHODS.find((option) => option.value === paymentMethodMode) ??
+        PAYMENT_METHODS[0];
   const accessMessage = getAccessMessage(currentBusiness);
   const totalProductCount = allProducts.length;
   const hasAnyProducts = totalProductCount > 0;
@@ -568,6 +597,14 @@ export default function BusinessPage({
     setOrderRecordWarning("");
     setOrderRecoveryMode("none");
     setFallbackWhatsAppMessage("");
+  }
+
+  function updatePaymentMethod(nextPaymentMethod: PaymentMethod) {
+    if (isRecordingOrderRef.current) return;
+    setPaymentMethod(nextPaymentMethod);
+    setPaymentMethodError("");
+    setWarning("");
+    clearPendingOrderAttempt();
   }
 
   function addToCart(product: Product) {
@@ -745,6 +782,7 @@ export default function BusinessPage({
     setOrderRecordWarning("");
     setOrderRecoveryMode("none");
     setFallbackWhatsAppMessage("");
+    setPaymentMethodError("");
     if (!isOrderingOpen) {
       setWarning("Bu işletme şu an sipariş almıyor.");
       return;
@@ -755,6 +793,10 @@ export default function BusinessPage({
     }
     if (minimumOrderWarning) {
       setWarning(minimumOrderWarning);
+      return;
+    }
+    if (!isPaymentMethod(paymentMethod)) {
+      setPaymentMethodError("Lütfen ödeme yöntemini seçin.");
       return;
     }
     if (!customer.fullName.trim() || !customer.phone.trim()) {
@@ -787,6 +829,7 @@ export default function BusinessPage({
     const attemptFingerprint = JSON.stringify({
       businessSlug: currentBusiness.slug,
       orderType,
+      paymentMethod,
       customer: normalizedCustomer,
       items: normalizedItems,
     });
@@ -810,6 +853,7 @@ export default function BusinessPage({
         payload: {
           businessSlug: currentBusiness.slug,
           orderType,
+          paymentMethod,
           customer: normalizedCustomer,
           items: normalizedItems,
           idempotencyKey,
@@ -1235,6 +1279,52 @@ export default function BusinessPage({
                       </button>
                     </div>
                   </div>
+
+                  <fieldset className="public-order-payment-field">
+                    <legend>Ödeme yöntemi</legend>
+                    {fixedPaymentOption ? (
+                      <div className="public-order-payment-fixed">
+                        <strong>{fixedPaymentOption.displayLabel}</strong>
+                        <span>
+                          {fixedPaymentOption.value === "card"
+                            ? "Ödeme teslimat veya gel-al sırasında fiziksel POS ile yapılır. Online ödeme alınmaz."
+                            : "Bu işletme yalnız nakit ödeme kabul ediyor."}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="public-order-payment-options">
+                          {PAYMENT_METHODS.map((option) => (
+                            <label
+                              className={`public-order-payment-option${
+                                paymentMethod === option.value ? " selected" : ""
+                              }`}
+                              key={option.value}
+                            >
+                              <input
+                                checked={paymentMethod === option.value}
+                                disabled={isRecordingOrder}
+                                name="paymentMethod"
+                                type="radio"
+                                value={option.value}
+                                onChange={() => updatePaymentMethod(option.value)}
+                              />
+                              <span>{option.displayLabel}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <p className="public-order-payment-help">
+                          Kart ödemesi teslimat veya gel-al sırasında fiziksel POS ile
+                          yapılır. Online ödeme alınmaz.
+                        </p>
+                      </>
+                    )}
+                    {paymentMethodError ? (
+                      <p className="public-order-payment-error" role="alert">
+                        {paymentMethodError}
+                      </p>
+                    ) : null}
+                  </fieldset>
 
                   <div className="cart public-order-cart-items">
                     {cart.length === 0 ? (

@@ -1,3 +1,5 @@
+import type { PaymentMethod } from "./payment-methods";
+
 export type OrderStatus =
   | "new"
   | "preparing"
@@ -22,6 +24,7 @@ export type PublicOrderCustomerInput = {
 export type PublicOrderCreateInput = {
   businessSlug: string;
   orderType: OrderType;
+  paymentMethod: PaymentMethod;
   customer: PublicOrderCustomerInput;
   items: PublicOrderItemInput[];
   idempotencyKey: string;

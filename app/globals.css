@@ -3298,6 +3298,97 @@ h1 {
   min-height: 48px;
 }
 
+.public-order-payment-field {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.public-order-payment-field legend {
+  margin-bottom: 8px;
+  color: var(--public-order-ink);
+  font-weight: 800;
+}
+
+.public-order-payment-options {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.public-order-payment-option {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  border: 1px solid var(--public-order-line);
+  border-radius: 8px;
+  background: var(--public-order-surface);
+  color: var(--public-order-ink);
+  cursor: pointer;
+}
+
+.public-order-payment-option.selected {
+  border-color: var(--green);
+  background: var(--public-order-soft);
+  box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.12);
+}
+
+.public-order-payment-option input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.public-order-payment-option span,
+.public-order-payment-fixed span,
+.public-order-payment-help,
+.public-order-payment-error {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.public-order-payment-fixed {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--public-order-line);
+  border-radius: 8px;
+  background: var(--public-order-soft);
+}
+
+.public-order-payment-fixed strong {
+  color: var(--green-dark);
+}
+
+.public-order-payment-fixed span,
+.public-order-payment-help {
+  color: var(--public-order-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.public-order-payment-help,
+.public-order-payment-error {
+  margin: 0;
+}
+
+.public-order-payment-error {
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .public-order-cart-items {
   padding-top: 4px;
 }
@@ -3681,6 +3772,10 @@ h1 {
 
   .public-order-type-button {
     min-height: 50px;
+  }
+
+  .public-order-payment-options {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .public-order-cart-items {

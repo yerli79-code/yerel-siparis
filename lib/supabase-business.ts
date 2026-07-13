@@ -146,6 +146,7 @@ const publicBusinessSelect = [
   "neighborhood",
   "address",
   "delivery_status",
+  "payment_method_mode",
   "minimum_order_amount",
   "preparation_time_minutes",
   "is_open",
