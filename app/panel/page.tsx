@@ -10,6 +10,12 @@ import {
   normalizeProductCategory,
 } from "../../lib/product-categories";
 import {
+  DEFAULT_PAYMENT_METHOD_MODE,
+  isPaymentMethodMode,
+  PAYMENT_METHOD_MODES,
+  type PaymentMethodMode,
+} from "../../lib/payment-methods";
+import {
   clearBrowserAuthSession,
   getValidAccessToken,
 } from "../../lib/browser-auth-session";
@@ -76,6 +82,7 @@ type ProfileForm = {
   neighborhood: string;
   address: string;
   deliveryStatus: string;
+  paymentMethodMode: PaymentMethodMode;
   minimumOrderAmount: string;
   preparationTimeMinutes: string;
   isOpen: boolean;
@@ -113,6 +120,7 @@ const emptyProfileForm: ProfileForm = {
   neighborhood: "",
   address: "",
   deliveryStatus: "",
+  paymentMethodMode: DEFAULT_PAYMENT_METHOD_MODE,
   minimumOrderAmount: "",
   preparationTimeMinutes: "",
   isOpen: true,
@@ -236,6 +244,7 @@ function toProfileForm(business: BusinessPanelBusiness): ProfileForm {
     neighborhood: business.neighborhood,
     address: business.address,
     deliveryStatus: business.deliveryStatus ?? "",
+    paymentMethodMode: business.paymentMethodMode,
     minimumOrderAmount:
       typeof business.minimumOrderAmount === "number"
         ? String(business.minimumOrderAmount)
@@ -275,6 +284,7 @@ function toProfileInput(form: ProfileForm): BusinessProfileInput {
     neighborhood: form.neighborhood.trim() || null,
     address: form.address.trim() || null,
     deliveryStatus: form.deliveryStatus.trim() || null,
+    paymentMethodMode: form.paymentMethodMode,
     minimumOrderAmount,
     preparationTimeMinutes,
     isOpen: form.isOpen,
@@ -725,6 +735,9 @@ export default function PanelPage() {
       : null;
 
     if (!profileForm.name.trim()) return "İşletme adı boş olamaz.";
+    if (!isPaymentMethodMode(profileForm.paymentMethodMode)) {
+      return "Lütfen geçerli bir ödeme kabul yöntemi seçin.";
+    }
     if (radius !== null && (!Number.isFinite(radius) || radius < 0)) {
       return "Servis yarıçapı geçerli bir sayı olmalıdır.";
     }
@@ -1716,6 +1729,33 @@ export default function PanelPage() {
                       updateProfileForm("deliveryStatus", event.target.value)
                     }
                   />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="businessPaymentMethodMode">
+                    Ödeme kabul yöntemi
+                  </label>
+                  <select
+                    disabled={isSavingProfile}
+                    id="businessPaymentMethodMode"
+                    required
+                    value={profileForm.paymentMethodMode}
+                    onChange={(event) => {
+                      if (isPaymentMethodMode(event.target.value)) {
+                        updateProfileForm("paymentMethodMode", event.target.value);
+                      }
+                    }}
+                  >
+                    {PAYMENT_METHOD_MODES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="field-help">
+                    Kart seçeneği, teslimatta veya gel-al sırasında fiziksel POS
+                    cihazıyla ödeme anlamına gelir. Online ödeme alınmaz.
+                  </span>
                 </div>
 
                 <div className="field">

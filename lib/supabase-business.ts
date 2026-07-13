@@ -1,4 +1,8 @@
 import type { Business } from "./businesses";
+import {
+  getPaymentMethodModeOrDefault,
+  type PaymentMethodMode,
+} from "./payment-methods";
 
 export type BusinessProduct = {
   id: string;
@@ -20,6 +24,7 @@ export type BusinessPanelBusiness = Business & {
   id: string;
   ownerId: string | null;
   city: string | null;
+  paymentMethodMode: PaymentMethodMode;
   latitude: number | null;
   longitude: number | null;
   serviceRadiusKm: number | null;
@@ -48,6 +53,7 @@ export type BusinessProfileInput = {
   neighborhood?: string | null;
   address?: string | null;
   deliveryStatus?: string | null;
+  paymentMethodMode: PaymentMethodMode;
   minimumOrderAmount?: number | null;
   preparationTimeMinutes?: number | null;
   isOpen?: boolean;
@@ -72,6 +78,7 @@ type SupabaseBusinessRow = {
   neighborhood: string | null;
   address: string | null;
   delivery_status: string | null;
+  payment_method_mode?: string | null;
   minimum_order_amount?: number | string | null;
   preparation_time_minutes?: number | null;
   is_open?: boolean | null;
@@ -255,6 +262,7 @@ function mapBusiness(row: SupabaseBusinessRow): BusinessPanelBusiness {
     neighborhood: row.neighborhood ?? "",
     address: row.address ?? "",
     deliveryStatus: row.delivery_status ?? "",
+    paymentMethodMode: getPaymentMethodModeOrDefault(row.payment_method_mode),
     minimumOrderAmount: toNullableNumber(row.minimum_order_amount),
     preparationTimeMinutes:
       typeof row.preparation_time_minutes === "number"
@@ -449,6 +457,7 @@ export async function updateBusinessProfile(
     neighborhood: input.neighborhood?.trim() || "",
     address: input.address?.trim() || "",
     delivery_status: input.deliveryStatus?.trim() || null,
+    payment_method_mode: input.paymentMethodMode,
     minimum_order_amount:
       typeof input.minimumOrderAmount === "number" &&
       Number.isFinite(input.minimumOrderAmount)

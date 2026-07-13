@@ -4,6 +4,7 @@ import {
   isValidStandardBusinessLocation,
   type BusinessLocationInput,
 } from "../../../../lib/locations/server";
+import { isPaymentMethodMode } from "../../../../lib/payment-methods";
 
 type SupabaseUser = {
   id: string;
@@ -24,6 +25,7 @@ const allowedProfileFields = [
   "neighborhood",
   "address",
   "delivery_status",
+  "payment_method_mode",
   "minimum_order_amount",
   "preparation_time_minutes",
   "is_open",
@@ -223,6 +225,22 @@ function addNullableNumberField(
   payload[key] = value;
 }
 
+function addPaymentMethodModeField(
+  payload: ProfileUpdatePayload,
+  input: Record<string, unknown>,
+) {
+  if (!("payment_method_mode" in input)) return;
+
+  const value = input.payment_method_mode;
+  if (!isPaymentMethodMode(value)) {
+    throw new PublicRouteError(
+      "Lütfen geçerli bir ödeme kabul yöntemi seçin.",
+      400,
+    );
+  }
+  payload.payment_method_mode = value;
+}
+
 function buildProfilePayload(input: Record<string, unknown>) {
   assertNoForbiddenFields(input);
 
@@ -238,6 +256,7 @@ function buildProfilePayload(input: Record<string, unknown>) {
   addNullableStringField(payload, input, "cover_image_url");
   addLimitedStringField(payload, input, "delivery_status", 120, "Teslimat bilgisi");
   addLimitedStringField(payload, input, "order_note", 300, "Siparis notu");
+  addPaymentMethodModeField(payload, input);
 
   addNullableNumberField(
     payload,

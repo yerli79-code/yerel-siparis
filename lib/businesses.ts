@@ -1,3 +1,5 @@
+import type { PaymentMethodMode } from "./payment-methods";
+
 export type Product = {
   id: string;
   name: string;
@@ -28,6 +30,7 @@ export type Business = {
   neighborhood: string;
   address: string;
   deliveryStatus: string;
+  paymentMethodMode?: PaymentMethodMode;
   minimumOrderAmount?: number | null;
   preparationTimeMinutes?: number | null;
   isOpen?: boolean;
@@ -57,6 +60,7 @@ export function getSeedBusinesses(): Business[] {
       neighborhood: "Caferağa",
       address: "Moda Caddesi No: 12/A",
       deliveryStatus: "Paket servis uygun",
+      paymentMethodMode: "cash",
       minimumOrderAmount: null,
       preparationTimeMinutes: null,
       isOpen: true,
@@ -121,6 +125,7 @@ export function getSeedBusinesses(): Business[] {
       neighborhood: "Mimar Sinan",
       address: "Hakimiyet Caddesi No: 8",
       deliveryStatus: "Yakın bölgelere teslimat",
+      paymentMethodMode: "cash",
       minimumOrderAmount: null,
       preparationTimeMinutes: null,
       isOpen: true,

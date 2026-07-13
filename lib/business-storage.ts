@@ -1,6 +1,14 @@
 import { type Business, getSeedBusinesses } from "./businesses";
+import { getPaymentMethodModeOrDefault } from "./payment-methods";
 
 const key = "yerel-siparis-businesses-v2";
+
+function withPaymentMethodDefault(business: Business): Business {
+  return {
+    ...business,
+    paymentMethodMode: getPaymentMethodModeOrDefault(business.paymentMethodMode),
+  };
+}
 
 export function readBusinesses() {
   if (typeof window === "undefined") return getSeedBusinesses();
@@ -14,7 +22,9 @@ export function readBusinesses() {
 
   try {
     const parsed = JSON.parse(stored) as Business[];
-    return Array.isArray(parsed) ? parsed : getSeedBusinesses();
+    return Array.isArray(parsed)
+      ? parsed.map(withPaymentMethodDefault)
+      : getSeedBusinesses();
   } catch {
     return getSeedBusinesses();
   }
