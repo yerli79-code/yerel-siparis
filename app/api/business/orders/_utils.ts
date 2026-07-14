@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPaymentMethod } from "../../../../lib/payment-methods";
 
 export type OrderStatus =
   | "new"
@@ -29,6 +30,7 @@ export type OrderRow = {
   business_id: string;
   status: OrderStatus;
   order_type: OrderType;
+  payment_method?: string | null;
   customer_name: string;
   customer_phone: string;
   customer_address: string | null;
@@ -87,9 +89,9 @@ export const orderStatuses: OrderStatus[] = [
 export const orderTypes: OrderType[] = ["delivery", "pickup"];
 
 const orderSelect =
-  "id,order_number,business_order_number,business_id,status,order_type,customer_name,customer_phone,customer_address,customer_note,total_amount,currency,created_at,updated_at";
+  "id,order_number,business_order_number,business_id,status,order_type,payment_method,customer_name,customer_phone,customer_address,customer_note,total_amount,currency,created_at,updated_at";
 const legacyOrderSelect =
-  "id,order_number,business_id,status,order_type,customer_name,customer_phone,customer_address,customer_note,total_amount,currency,created_at,updated_at";
+  "id,order_number,business_id,status,order_type,payment_method,customer_name,customer_phone,customer_address,customer_note,total_amount,currency,created_at,updated_at";
 const orderItemSelect =
   "id,order_id,product_id,product_name,unit_price,quantity,line_total,created_at";
 
@@ -203,6 +205,9 @@ export function mapOrder(row: OrderRow, items: OrderItemRow[] = []) {
     orderNumber: Number(displayOrderNumber),
     status: row.status,
     orderType: row.order_type,
+    paymentMethod: isPaymentMethod(row.payment_method)
+      ? row.payment_method
+      : null,
     customerName: row.customer_name,
     customerPhone: row.customer_phone,
     customerAddress: row.customer_address,

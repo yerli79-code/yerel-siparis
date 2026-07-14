@@ -11,6 +11,7 @@ import {
 } from "../../lib/product-categories";
 import {
   DEFAULT_PAYMENT_METHOD_MODE,
+  getPaymentMethodDisplayLabel,
   isPaymentMethodMode,
   PAYMENT_METHOD_MODES,
   type PaymentMethodMode,
@@ -1442,6 +1443,14 @@ export default function PanelPage() {
                                 <p>
                                   <strong>Sipariş türü</strong>
                                   <span>{orderTypeLabel}</span>
+                                </p>
+                                <p>
+                                  <strong>Ödeme yöntemi</strong>
+                                  <span>
+                                    {getPaymentMethodDisplayLabel(
+                                      order.paymentMethod,
+                                    )}
+                                  </span>
                                 </p>
                                 <p>
                                   <strong>Durum</strong>

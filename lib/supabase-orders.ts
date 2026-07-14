@@ -74,6 +74,7 @@ export type BusinessOrder = {
   orderNumber: number;
   status: OrderStatus;
   orderType: OrderType;
+  paymentMethod: PaymentMethod | null;
   customerName: string;
   customerPhone: string;
   customerAddress: string | null;

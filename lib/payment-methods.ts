@@ -15,6 +15,8 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number]["value"];
 
+export const LEGACY_PAYMENT_METHOD_LABEL = "Belirtilmedi (eski sipariş)";
+
 export function isPaymentMethodMode(value: unknown): value is PaymentMethodMode {
   return PAYMENT_METHOD_MODES.some((option) => option.value === value);
 }
@@ -25,6 +27,15 @@ export function getPaymentMethodModeOrDefault(value: unknown): PaymentMethodMode
 
 export function isPaymentMethod(value: unknown): value is PaymentMethod {
   return PAYMENT_METHODS.some((option) => option.value === value);
+}
+
+export function getPaymentMethodDisplayLabel(value: unknown) {
+  if (!isPaymentMethod(value)) return LEGACY_PAYMENT_METHOD_LABEL;
+
+  return (
+    PAYMENT_METHODS.find((option) => option.value === value)?.displayLabel ??
+    LEGACY_PAYMENT_METHOD_LABEL
+  );
 }
 
 export function getInitialPaymentMethod(

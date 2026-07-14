@@ -11,6 +11,7 @@ import {
   type StandardProductCategory,
 } from "../../../lib/product-categories";
 import {
+  getPaymentMethodDisplayLabel,
   getInitialPaymentMethod,
   getPaymentMethodModeOrDefault,
   isPaymentMethod,
@@ -721,6 +722,9 @@ export default function BusinessPage({
       `Ad Soyad: ${attempt.message.customer.fullName}`,
       `Telefon: ${attempt.message.customer.phone}`,
       `Sipariş Türü: ${orderTypeLabel}`,
+      `Ödeme Yöntemi: ${getPaymentMethodDisplayLabel(
+        attempt.payload.paymentMethod,
+      )}`,
       ...(attempt.message.orderType === "delivery"
         ? [`Adres: ${attempt.message.customer.address}`]
         : []),
