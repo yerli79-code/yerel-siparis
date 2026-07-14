@@ -1,7 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, use, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import PublicOrderCheckout, {
+  type PublicOrderCartItem as CartItem,
+  type PublicOrderCustomer as Customer,
+  type PublicOrderRecoveryMode as OrderRecoveryMode,
+  type PublicOrderType as OrderType,
+} from "../../../components/PublicOrderCheckout";
+import PublicOrderMenu from "../../../components/PublicOrderMenu";
 import { readBusinesses } from "../../../lib/business-storage";
 import type { Business, Product, ProductCategory } from "../../../lib/businesses";
 import { getAccessMessage } from "../../../lib/subscription";
@@ -29,17 +44,6 @@ import {
   type BusinessProduct,
 } from "../../../lib/supabase-business";
 
-type CartItem = Product & { quantity: number };
-
-type Customer = {
-  fullName: string;
-  phone: string;
-  address: string;
-  note: string;
-};
-
-type OrderType = "delivery" | "pickup";
-
 type SavedCustomerDetails = Pick<Customer, "fullName" | "phone" | "address">;
 
 type PendingOrderAttempt = {
@@ -59,12 +63,7 @@ type PendingOrderAttempt = {
   };
 };
 
-type OrderRecoveryMode =
-  | "none"
-  | "saved"
-  | "definitive"
-  | "uncertain"
-  | "conflict";
+type PublicOrderView = "menu" | "checkout";
 
 type DisplayBusiness = Business & {
   city?: string | null;
@@ -92,6 +91,7 @@ const pageFetchTimeoutMs = 10000;
 const ALL_CATEGORY_KEY = "all";
 const allCategoriesLabel = "Tümü";
 const customerDetailsStorageKey = "yerel-siparis:customer-details:v1";
+const checkoutHistoryStateKey = "yerelSiparisCheckout";
 
 function formatPrice(price: number) {
   return `${price.toLocaleString("tr-TR")} TL`;
@@ -313,7 +313,8 @@ export default function BusinessPage({
     useState<OrderRecoveryMode>("none");
   const [fallbackWhatsAppMessage, setFallbackWhatsAppMessage] = useState("");
   const [isRecordingOrder, setIsRecordingOrder] = useState(false);
-  const [showCartOnMobile, setShowCartOnMobile] = useState(false);
+  const [view, setView] = useState<PublicOrderView>("menu");
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY_KEY);
   const cartSectionRef = useRef<HTMLElement | null>(null);
   const cartCloseButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -321,6 +322,15 @@ export default function BusinessPage({
   const pendingOrderAttemptRef = useRef<PendingOrderAttempt | null>(null);
   const activeOrderRequestRef = useRef<PendingOrderAttempt | null>(null);
   const isRecordingOrderRef = useRef(false);
+  const checkoutHistoryEntryRef = useRef(false);
+
+  const returnToMenu = useCallback(() => {
+    checkoutHistoryEntryRef.current = false;
+    setView("menu");
+    window.setTimeout(() => {
+      cartTriggerRef.current?.focus();
+    }, 0);
+  }, []);
 
   useEffect(() => {
     const savedDetails = readSavedCustomerDetails();
@@ -395,29 +405,41 @@ export default function BusinessPage({
   }, [slug]);
 
   useEffect(() => {
-    if (cart.length === 0) setShowCartOnMobile(false);
-  }, [cart.length]);
+    const mobileViewport = window.matchMedia("(max-width: 759px)");
+    const updateViewport = () => setIsMobileViewport(mobileViewport.matches);
+    updateViewport();
+    mobileViewport.addEventListener("change", updateViewport);
+    return () => mobileViewport.removeEventListener("change", updateViewport);
+  }, []);
 
   useEffect(() => {
-    if (!showCartOnMobile) return;
+    const handlePopState = () => {
+      if (!checkoutHistoryEntryRef.current) return;
+      returnToMenu();
+    };
 
-    const mobileViewport = window.matchMedia("(max-width: 759px)");
-    if (!mobileViewport.matches) {
-      setShowCartOnMobile(false);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [returnToMenu]);
+
+  useEffect(() => {
+    if (view !== "checkout" || cart.length > 0) return;
+    if (checkoutHistoryEntryRef.current) {
+      window.history.back();
       return;
     }
+    returnToMenu();
+  }, [cart.length, returnToMenu, view]);
 
+  useEffect(() => {
+    if (view !== "checkout" || !isMobileViewport) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     cartCloseButtonRef.current?.focus();
 
-    const handleViewportChange = (event: MediaQueryListEvent) => {
-      if (!event.matches) setShowCartOnMobile(false);
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        closeCartOnMobile();
+        closeCheckout();
         return;
       }
 
@@ -438,14 +460,12 @@ export default function BusinessPage({
       }
     };
 
-    mobileViewport.addEventListener("change", handleViewportChange);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
-      mobileViewport.removeEventListener("change", handleViewportChange);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showCartOnMobile]);
+  }, [isMobileViewport, view]);
 
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -488,15 +508,30 @@ export default function BusinessPage({
     if (!selectedCategoryExists) setSelectedCategory(ALL_CATEGORY_KEY);
   }, [business, categories, isLoadingBusiness, selectedCategory]);
 
-  function openCartOnMobile() {
-    setShowCartOnMobile(true);
+  function openCheckout() {
+    if (view === "checkout" || cart.length === 0) return;
+    if (!checkoutHistoryEntryRef.current) {
+      const currentHistoryState =
+        typeof window.history.state === "object" && window.history.state !== null
+          ? (window.history.state as Record<string, unknown>)
+          : {};
+      window.history.pushState(
+        { ...currentHistoryState, [checkoutHistoryStateKey]: true },
+        "",
+        window.location.href,
+      );
+      checkoutHistoryEntryRef.current = true;
+    }
+    setView("checkout");
   }
 
-  function closeCartOnMobile() {
-    setShowCartOnMobile(false);
-    window.setTimeout(() => {
-      cartTriggerRef.current?.focus();
-    }, 0);
+  function closeCheckout() {
+    if (view !== "checkout") return;
+    if (checkoutHistoryEntryRef.current) {
+      window.history.back();
+      return;
+    }
+    returnToMenu();
   }
 
   if (isLoadingBusiness) {
@@ -1024,512 +1059,77 @@ export default function BusinessPage({
   return (
     <main className="page public-order-page">
       <div className="shell public-order-shell">
-        <header className="hero business-hero public-order-hero" style={heroStyle}>
-          <div className="hero-content business-hero-content public-order-hero-content">
-            <div className="business-topline public-order-topline">
-              <Link className="eyebrow business-back-link" href="/">
-                ← İşletmeler
-              </Link>
-            </div>
-
-            <div className="business-identity public-order-identity">
-              {displayBusiness.logoUrl ? (
-                <img
-                  alt={currentBusiness.name}
-                  className="business-logo public-order-logo"
-                  src={displayBusiness.logoUrl}
-                />
-              ) : (
-                <span className="business-logo-text public-order-logo">
-                  {getLogoText(currentBusiness)}
-                </span>
-              )}
-              <div className="public-order-identity-copy">
-                <h1>{currentBusiness.name}</h1>
-                <p>{currentBusiness.description}</p>
-              </div>
-            </div>
-
-            <div className="business-meta public-order-location">
-              {addressText ? <span>{addressText}</span> : null}
-              {currentBusiness.address ? <span>{currentBusiness.address}</span> : null}
-            </div>
-          </div>
-        </header>
-
-        {orderInfoItems.length > 0 || orderNote ? (
-          <section
-            className="business-order-info public-order-info"
-            aria-label="Sipariş bilgileri"
-          >
-            {orderInfoItems.length > 0 ? (
-              <div className="business-order-badges public-order-badges">
-                {orderInfoItems.map((item) => (
-                  <span
-                    className={`business-order-badge public-order-badge ${
-                      item === "Şu an kapalı" ? "closed" : ""
-                    }`}
-                    key={item}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {orderNote ? (
-              <p className="business-order-note public-order-note">
-                <strong>Sipariş notu:</strong> {orderNote}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
-
-        {accessMessage ? (
-          <section className="section access-message public-order-access-message">
-            <h2>Sipariş alınamıyor</h2>
-            <p>{accessMessage}</p>
-          </section>
+        {view === "menu" ? (
+          <PublicOrderMenu
+            accessMessage={accessMessage}
+            addressText={addressText}
+            allCategoriesLabel={allCategoriesLabel}
+            allCategoryKey={ALL_CATEGORY_KEY}
+            business={displayBusiness}
+            cartItemCount={cartItemCount}
+            cartLength={cart.length}
+            cartTriggerRef={cartTriggerRef}
+            categories={categories}
+            formatPrice={formatPrice}
+            hasAnyProducts={hasAnyProducts}
+            heroStyle={heroStyle}
+            isMobileViewport={isMobileViewport}
+            isOrderingOpen={isOrderingOpen}
+            isRecordingOrder={isRecordingOrder}
+            logoText={getLogoText(currentBusiness)}
+            orderInfoItems={orderInfoItems}
+            orderNote={orderNote}
+            selectedCategory={selectedCategory}
+            total={total}
+            totalProductCount={totalProductCount}
+            visibleCategories={visibleCategories}
+            onAddItem={addToCart}
+            onOpenCheckout={openCheckout}
+            onSelectCategory={setSelectedCategory}
+          />
         ) : (
-          <div className="layout public-order-layout">
-            <section className="section menu-section public-order-menu">
-              {!isOrderingOpen ? (
-                <p className="manual-order-warning public-order-rule-warning">
-                  Bu işletme şu an sipariş almıyor.
-                </p>
-              ) : null}
-              <div className="menu-heading public-order-menu-heading">
-                <div>
-                  <span className="menu-kicker">Menü</span>
-                  <h2>Ürünler</h2>
-                </div>
-                <span>{categories.length} kategori</span>
-              </div>
-              {hasAnyProducts ? (
-                <div
-                  className="menu-category-tabs public-order-category-tabs"
-                  aria-label="Kategori menüsü"
-                >
-                  <button
-                    className={`menu-category-tab public-order-category-tab ${
-                      selectedCategory === ALL_CATEGORY_KEY ? "selected" : ""
-                    }`}
-                    type="button"
-                    onClick={() => setSelectedCategory(ALL_CATEGORY_KEY)}
-                  >
-                    {allCategoriesLabel} ({totalProductCount})
-                  </button>
-                  {categories.map((category) => (
-                    <button
-                      className={`menu-category-tab public-order-category-tab ${
-                        selectedCategory === category.filterKey ? "selected" : ""
-                      }`}
-                      key={category.id}
-                      type="button"
-                      onClick={() => setSelectedCategory(category.filterKey)}
-                    >
-                      {category.name} ({category.products.length})
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {!hasAnyProducts ? (
-                <div className="menu-empty-state public-order-empty-state">
-                  <strong>Menü henüz hazır değil.</strong>
-                  <p>Bu işletme ürünlerini eklediğinde burada görünecek.</p>
-                </div>
-              ) : visibleCategories.length === 0 ? (
-                <div className="menu-empty-state public-order-empty-state">
-                  <strong>Bu kategoride ürün yok.</strong>
-                  <p>Başka bir kategori seçerek menüye göz atabilirsiniz.</p>
-                </div>
-              ) : null}
-              {visibleCategories.map((category) => (
-                <div className="category public-order-category" key={category.id}>
-                  {category.name ? (
-                    <h3 className="category-title public-order-category-title">
-                      {category.name}
-                    </h3>
-                  ) : null}
-                  <div className="products public-order-products">
-                    {category.products.map((product) => (
-                      <article
-                        className="product-card menu-product-card public-order-product"
-                        key={product.id}
-                      >
-                        <div className="product-card-body public-order-product-body">
-                          {product.imageUrl ? (
-                            <img
-                              alt={product.name}
-                              className="product-card-image public-order-product-image"
-                              src={product.imageUrl}
-                            />
-                          ) : (
-                            <span className="product-image-placeholder public-order-product-image">
-                              {product.imageLabel || category.name}
-                            </span>
-                          )}
-                          <div className="product-copy public-order-product-copy">
-                            <p className="product-name">{product.name}</p>
-                            {product.description ? (
-                              <p className="product-description">{product.description}</p>
-                            ) : null}
-                            <span className="price">{formatPrice(product.price)}</span>
-                          </div>
-                        </div>
-                        <button
-                          className="add-button public-order-add-button"
-                          disabled={!isOrderingOpen || isRecordingOrder}
-                          type="button"
-                          onClick={() => addToCart(product)}
-                        >
-                          {isOrderingOpen ? "+ Ekle" : "Kapalı"}
-                        </button>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </section>
-
-            {cart.length > 0 && showCartOnMobile ? (
-              <button
-                aria-hidden="true"
-                className="public-order-cart-backdrop"
-                tabIndex={-1}
-                type="button"
-                onClick={closeCartOnMobile}
-              />
-            ) : null}
-            <aside
-              aria-labelledby="public-order-cart-title"
-              aria-modal={showCartOnMobile ? true : undefined}
-              className={`order-panel public-order-cart-panel ${
-                showCartOnMobile ? "public-order-cart-panel-open" : ""
-              } ${
-                cart.length > 0 && showCartOnMobile ? "" : "mobile-cart-hidden"
-              }`}
-              id="public-order-cart-panel"
-              ref={cartSectionRef}
-              role={showCartOnMobile ? "dialog" : undefined}
-            >
-              <div className="order-inner section order-card public-order-cart-sheet">
-                <div className="section-title public-order-cart-header">
-                  <div>
-                    <span className="public-order-cart-grip" aria-hidden="true" />
-                    <h2 id="public-order-cart-title">Sepetim</h2>
-                    <span>{cartItemCount} adet ürün</span>
-                  </div>
-                  <button
-                    aria-label="Sepeti kapat"
-                    className="public-order-cart-close"
-                    ref={cartCloseButtonRef}
-                    type="button"
-                    onClick={closeCartOnMobile}
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <form
-                  className="customer-form public-order-checkout-form"
-                  onSubmit={submitOrder}
-                >
-                  {!isOrderingOpen ? (
-                    <p className="order-rule-warning public-order-rule-warning">
-                      Bu işletme şu an sipariş almıyor.
-                    </p>
-                  ) : minimumOrderWarning ? (
-                    <p className="order-rule-warning public-order-rule-warning">
-                      {minimumOrderWarning}
-                    </p>
-                  ) : null}
-
-                  <div className="field public-order-type-field">
-                    <span className="order-type-label">Sipariş Türü</span>
-                    <div
-                      className="order-type-toggle public-order-type-toggle"
-                      role="group"
-                      aria-label="Sipariş türü"
-                    >
-                      <button
-                        aria-pressed={orderType === "delivery"}
-                        className={`order-type-button public-order-type-button ${
-                          orderType === "delivery" ? "selected" : ""
-                        }`}
-                        disabled={isRecordingOrder}
-                        type="button"
-                        onClick={() => {
-                          setWarning("");
-                          clearPendingOrderAttempt();
-                          setOrderType("delivery");
-                        }}
-                      >
-                        Teslimat
-                      </button>
-                      <button
-                        aria-pressed={orderType === "pickup"}
-                        className={`order-type-button public-order-type-button ${
-                          orderType === "pickup" ? "selected" : ""
-                        }`}
-                        disabled={isRecordingOrder}
-                        type="button"
-                        onClick={() => {
-                          setWarning("");
-                          clearPendingOrderAttempt();
-                          setOrderType("pickup");
-                        }}
-                      >
-                        Gel-al
-                      </button>
-                    </div>
-                  </div>
-
-                  <fieldset className="public-order-payment-field">
-                    <legend>Ödeme yöntemi</legend>
-                    {fixedPaymentOption ? (
-                      <div className="public-order-payment-fixed">
-                        <strong>{fixedPaymentOption.displayLabel}</strong>
-                        <span>
-                          {fixedPaymentOption.value === "card"
-                            ? "Ödeme teslimat veya gel-al sırasında fiziksel POS ile yapılır. Online ödeme alınmaz."
-                            : "Bu işletme yalnız nakit ödeme kabul ediyor."}
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="public-order-payment-options">
-                          {PAYMENT_METHODS.map((option) => (
-                            <label
-                              className={`public-order-payment-option${
-                                paymentMethod === option.value ? " selected" : ""
-                              }`}
-                              key={option.value}
-                            >
-                              <input
-                                checked={paymentMethod === option.value}
-                                disabled={isRecordingOrder}
-                                name="paymentMethod"
-                                type="radio"
-                                value={option.value}
-                                onChange={() => updatePaymentMethod(option.value)}
-                              />
-                              <span>{option.displayLabel}</span>
-                            </label>
-                          ))}
-                        </div>
-                        <p className="public-order-payment-help">
-                          Kart ödemesi teslimat veya gel-al sırasında fiziksel POS ile
-                          yapılır. Online ödeme alınmaz.
-                        </p>
-                      </>
-                    )}
-                    {paymentMethodError ? (
-                      <p className="public-order-payment-error" role="alert">
-                        {paymentMethodError}
-                      </p>
-                    ) : null}
-                  </fieldset>
-
-                  <div className="cart public-order-cart-items">
-                    {cart.length === 0 ? (
-                      <p className="empty-cart">Sepetiniz boş.</p>
-                    ) : (
-                      cart.map((item) => (
-                        <div className="cart-item public-order-cart-item" key={item.id}>
-                          <div className="cart-line public-order-cart-line">
-                            <strong>{item.name}</strong>
-                            <span>{formatPrice(item.price * item.quantity)}</span>
-                          </div>
-                          <div className="cart-actions">
-                            <div className="quantity public-order-quantity">
-                              <button
-                                aria-label={`${item.name} adedini azalt`}
-                                className="quantity-button public-order-quantity-button"
-                                disabled={!isOrderingOpen || isRecordingOrder}
-                                type="button"
-                                onClick={() => decrease(item.id)}
-                              >
-                                −
-                              </button>
-                              <strong aria-label={`${item.quantity} adet`}>
-                                {item.quantity}
-                              </strong>
-                              <button
-                                aria-label={`${item.name} adedini artır`}
-                                className="quantity-button public-order-quantity-button"
-                                disabled={!isOrderingOpen || isRecordingOrder}
-                                type="button"
-                                onClick={() => increase(item.id)}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="cart-total public-order-cart-total">
-                    <span>Genel Toplam</span>
-                    <strong>{formatPrice(total)}</strong>
-                  </div>
-
-                  <div className="public-order-form-heading">
-                    <span>Siparişi tamamla</span>
-                    <p>Bilgilerinizi girin, siparişinizi güvenle oluşturalım.</p>
-                  </div>
-                  <div className="field public-order-field">
-                    <label htmlFor="fullName">Ad Soyad *</label>
-                    <input
-                      autoComplete="name"
-                      disabled={isRecordingOrder}
-                      id="fullName"
-                      value={customer.fullName}
-                      onChange={(event) => updateCustomer("fullName", event.target.value)}
-                    />
-                  </div>
-                  <div className="field public-order-field">
-                    <label htmlFor="phone">Telefon *</label>
-                    <input
-                      autoComplete="tel"
-                      disabled={isRecordingOrder}
-                      id="phone"
-                      inputMode="tel"
-                      value={customer.phone}
-                      onChange={(event) => updateCustomer("phone", event.target.value)}
-                    />
-                  </div>
-                  {orderType === "delivery" ? (
-                    <div className="field public-order-field">
-                      <label htmlFor="address">Teslimat Adresi *</label>
-                      <textarea
-                        autoComplete="street-address"
-                        disabled={isRecordingOrder}
-                        id="address"
-                        value={customer.address}
-                        onChange={(event) => updateCustomer("address", event.target.value)}
-                      />
-                    </div>
-                  ) : (
-                    <p className="pickup-address-hint public-order-pickup-hint">
-                      Gel-al siparişlerinde adres gerekmez.
-                    </p>
-                  )}
-                  <div className="customer-remember-panel public-order-remember-panel">
-                    <label className="customer-remember-option public-order-remember-option">
-                      <input
-                        checked={rememberCustomerDetails}
-                        className="customer-remember-checkbox"
-                        disabled={isRecordingOrder}
-                        type="checkbox"
-                        onChange={(event) =>
-                          toggleRememberCustomerDetails(event.target.checked)
-                        }
-                      />
-                      <span>Bilgilerimi bu cihazda hatırla</span>
-                    </label>
-                    <p>Ortak cihazlarda bilgilerinizi kaydetmeyin.</p>
-                    {hasSavedCustomerDetails ? (
-                      <button
-                        className="clear-saved-customer-button"
-                        disabled={isRecordingOrder}
-                        type="button"
-                        onClick={clearSavedCustomerDetails}
-                      >
-                        Kaydedilen bilgileri sil
-                      </button>
-                    ) : null}
-                  </div>
-                  <p className="order-data-note public-order-data-note">
-                    Siparişinizi hazırlamak ve takip etmek için adınız, telefonunuz,
-                    teslimat adresiniz ve sipariş notunuz işletmenin sipariş panelinde
-                    siparişin oluşturulmasından 180 gün sonra periyodik olarak silinir.
-                    Gel-al siparişlerinde adres kaydedilmez.
-                  </p>
-                  <div className="field public-order-field">
-                    <label htmlFor="note">Sipariş Notu</label>
-                    <textarea
-                      disabled={isRecordingOrder}
-                      id="note"
-                      value={customer.note}
-                      onChange={(event) => updateCustomer("note", event.target.value)}
-                    />
-                  </div>
-                  {warning ? (
-                    <p className="alert public-order-alert" role="alert">
-                      {warning}
-                    </p>
-                  ) : null}
-                  {orderRecordWarning ? (
-                    <div
-                      className={`order-record-fallback public-order-recovery${
-                        orderRecoveryMode === "uncertain"
-                          ? " order-record-uncertain"
-                          : ""
-                      }`}
-                    >
-                      <p>{orderRecordWarning}</p>
-                      {orderRecoveryMode === "uncertain" ? (
-                        <button
-                          className="submit-button order-retry-button public-order-retry-button"
-                          disabled={isRecordingOrder}
-                          type="button"
-                          onClick={retryPendingOrder}
-                        >
-                          {isRecordingOrder
-                            ? "Sipariş kontrol ediliyor..."
-                            : "Siparişi tekrar dene"}
-                        </button>
-                      ) : null}
-                      {orderRecoveryMode !== "conflict" &&
-                      fallbackWhatsAppMessage ? (
-                        <button
-                          className="submit-button secondary-whatsapp-button public-order-secondary-button"
-                          disabled={isRecordingOrder}
-                          type="button"
-                          onClick={() => {
-                            setOrderRecordWarning("");
-                            sendWhatsAppMessage(fallbackWhatsAppMessage);
-                          }}
-                        >
-                          {orderRecoveryMode === "uncertain"
-                            ? "Yine de numarasız WhatsApp ile gönder"
-                            : orderRecoveryMode === "saved"
-                              ? "WhatsApp ile devam et"
-                            : "WhatsApp ile yine de gönder"}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <button
-                    className="submit-button public-order-submit-button"
-                    disabled={isOrderSubmitDisabled}
-                    type="submit"
-                  >
-                    {isRecordingOrder
-                      ? "Sipariş kaydediliyor..."
-                      : "WhatsApp ile Sipariş Oluştur"}
-                  </button>
-                </form>
-              </div>
-            </aside>
-            {cart.length > 0 && !showCartOnMobile && isOrderingOpen ? (
-              <button
-                aria-controls="public-order-cart-panel"
-                aria-expanded={showCartOnMobile}
-                className="mobile-cart-shortcut public-order-cart-bar"
-                ref={cartTriggerRef}
-                type="button"
-                onClick={openCartOnMobile}
-              >
-                <span>
-                  <strong>Sepette {cartItemCount} ürün</strong>
-                  <small>Toplam: {formatPrice(total)}</small>
-                </span>
-                <b>Sepeti Gör</b>
-              </button>
-            ) : null}
-          </div>
+          <PublicOrderCheckout
+            cart={cart}
+            cartCloseButtonRef={cartCloseButtonRef}
+            cartItemCount={cartItemCount}
+            cartSectionRef={cartSectionRef}
+            customer={customer}
+            fallbackWhatsAppMessage={fallbackWhatsAppMessage}
+            fixedPaymentOption={fixedPaymentOption}
+            formatPrice={formatPrice}
+            hasSavedCustomerDetails={hasSavedCustomerDetails}
+            isMobileViewport={isMobileViewport}
+            isOrderSubmitDisabled={isOrderSubmitDisabled}
+            isOrderingOpen={isOrderingOpen}
+            isRecordingOrder={isRecordingOrder}
+            minimumOrderWarning={minimumOrderWarning}
+            orderRecordWarning={orderRecordWarning}
+            orderRecoveryMode={orderRecoveryMode}
+            orderType={orderType}
+            paymentMethod={paymentMethod}
+            paymentMethodError={paymentMethodError}
+            rememberCustomerDetails={rememberCustomerDetails}
+            total={total}
+            warning={warning}
+            onClearSavedCustomerDetails={clearSavedCustomerDetails}
+            onCloseCheckout={closeCheckout}
+            onDecreaseItem={decrease}
+            onIncreaseItem={increase}
+            onRetryPendingOrder={retryPendingOrder}
+            onSendFallbackWhatsApp={() => {
+              setOrderRecordWarning("");
+              sendWhatsAppMessage(fallbackWhatsAppMessage);
+            }}
+            onSubmitOrder={submitOrder}
+            onToggleRememberCustomerDetails={toggleRememberCustomerDetails}
+            onUpdateCustomer={updateCustomer}
+            onUpdateOrderType={(nextOrderType) => {
+              setWarning("");
+              clearPendingOrderAttempt();
+              setOrderType(nextOrderType);
+            }}
+            onUpdatePaymentMethod={updatePaymentMethod}
+          />
         )}
       </div>
     </main>
