@@ -532,14 +532,7 @@ export async function uploadProductImage(
   });
 
   if (!response.ok) {
-    let detail = "";
-    try {
-      const body = await response.json();
-      detail = body?.message ? ` ${body.message}` : "";
-    } catch {
-      detail = "";
-    }
-    throw new Error(`Urun gorseli yuklenemedi.${detail}`);
+    throw new Error("Urun gorseli yuklenemedi. Lutfen tekrar deneyin.");
   }
 
   return `${url}/storage/v1/object/public/product-images/${objectPath}`;
@@ -580,14 +573,7 @@ export async function uploadBusinessImage(
   });
 
   if (!response.ok) {
-    let detail = "";
-    try {
-      const body = await response.json();
-      detail = body?.message ? ` ${body.message}` : "";
-    } catch {
-      detail = "";
-    }
-    throw new Error(`Isletme gorseli yuklenemedi.${detail}`);
+    throw new Error("Isletme gorseli yuklenemedi. Lutfen tekrar deneyin.");
   }
 
   return `${url}/storage/v1/object/public/business-images/${objectPath}`;

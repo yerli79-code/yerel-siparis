@@ -785,10 +785,13 @@ export default function PanelPage() {
     }
 
     setIsSavingProfile(true);
+    let profileFailureMessage =
+      "İşletme bilgileri kaydedilemedi. Lütfen tekrar deneyin.";
 
     try {
       const profilePayload = toProfileInput(profileForm);
       if (selectedLogoFile) {
+        profileFailureMessage = "Görsel yüklenemedi. Lütfen tekrar deneyin.";
         setProfileUploadStatus("Logo yükleniyor...");
         const uploadedLogoUrl = await uploadBusinessImage(
           business.id,
@@ -798,8 +801,11 @@ export default function PanelPage() {
         );
         profilePayload.logoUrl = uploadedLogoUrl;
         setProfileForm((current) => ({ ...current, logoUrl: uploadedLogoUrl }));
+        profileFailureMessage =
+          "İşletme bilgileri kaydedilemedi. Lütfen tekrar deneyin.";
       }
       if (selectedCoverFile) {
+        profileFailureMessage = "Görsel yüklenemedi. Lütfen tekrar deneyin.";
         setProfileUploadStatus("Kapak görseli yükleniyor...");
         const uploadedCoverUrl = await uploadBusinessImage(
           business.id,
@@ -812,6 +818,8 @@ export default function PanelPage() {
           ...current,
           coverImageUrl: uploadedCoverUrl,
         }));
+        profileFailureMessage =
+          "İşletme bilgileri kaydedilemedi. Lütfen tekrar deneyin.";
       }
       const updatedBusiness = await updateBusinessProfile(
         business.id,
@@ -827,12 +835,8 @@ export default function PanelPage() {
       if (logoInputRef.current) logoInputRef.current.value = "";
       if (coverInputRef.current) coverInputRef.current.value = "";
       setMessage("İşletme bilgileri kaydedildi.");
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "İşletme bilgileri kaydedilirken bir hata oluştu.",
-      );
+    } catch {
+      setError(profileFailureMessage);
     } finally {
       setProfileUploadStatus("");
       setIsSavingProfile(false);
@@ -864,6 +868,8 @@ export default function PanelPage() {
     }
 
     setIsSaving(true);
+    let productFailureMessage =
+      "Ürün kaydedilemedi. Lütfen tekrar deneyin.";
 
     try {
       const payload = toProductInput(
@@ -879,6 +885,7 @@ export default function PanelPage() {
         delete payload.category;
       }
       if (selectedImageFile) {
+        productFailureMessage = "Görsel yüklenemedi. Lütfen tekrar deneyin.";
         setIsUploadingImage(true);
         const uploadedImageUrl = await uploadProductImage(
           business.id,
@@ -887,6 +894,7 @@ export default function PanelPage() {
         );
         payload.imageUrl = uploadedImageUrl;
         setForm((current) => ({ ...current, imageUrl: uploadedImageUrl }));
+        productFailureMessage = "Ürün kaydedilemedi. Lütfen tekrar deneyin.";
       }
       if (editingProductId) {
         await updateProduct(editingProductId, payload, token);
@@ -898,12 +906,8 @@ export default function PanelPage() {
       }
       resetForm();
       await refreshProducts();
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Ürün kaydedilirken bir hata oluştu.",
-      );
+    } catch {
+      setError(productFailureMessage);
     } finally {
       setIsUploadingImage(false);
       setIsSaving(false);
