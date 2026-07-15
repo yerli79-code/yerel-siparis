@@ -320,7 +320,7 @@ export default function BusinessPage({
   const [orderRecordWarning, setOrderRecordWarning] = useState("");
   const [orderRecoveryMode, setOrderRecoveryMode] =
     useState<OrderRecoveryMode>("none");
-  const [fallbackWhatsAppMessage, setFallbackWhatsAppMessage] = useState("");
+  const [verifiedWhatsAppMessage, setVerifiedWhatsAppMessage] = useState("");
   const [isRecordingOrder, setIsRecordingOrder] = useState(false);
   const [view, setView] = useState<PublicOrderView>("menu");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -647,7 +647,7 @@ export default function BusinessPage({
     pendingOrderAttemptRef.current = null;
     setOrderRecordWarning("");
     setOrderRecoveryMode("none");
-    setFallbackWhatsAppMessage("");
+    setVerifiedWhatsAppMessage("");
   }
 
   function updatePaymentMethod(nextPaymentMethod: PaymentMethod) {
@@ -759,7 +759,7 @@ export default function BusinessPage({
     }));
   }
 
-  function createMessage(attempt: PendingOrderAttempt, orderNumber?: number) {
+  function createMessage(attempt: PendingOrderAttempt, orderNumber: number) {
     const lines = attempt.message.items
       .map(
         (item) =>
@@ -783,7 +783,7 @@ export default function BusinessPage({
 
     return [
       "Yeni Sipariş",
-      ...(orderNumber ? [`Sipariş No: #${orderNumber}`] : []),
+      `Sipariş No: #${orderNumber}`,
       `İşletme: ${attempt.message.businessName}`,
       "",
       "Müşteri Bilgileri:",
@@ -835,7 +835,7 @@ export default function BusinessPage({
     if (isRecordingOrderRef.current) return;
     setOrderRecordWarning("");
     setOrderRecoveryMode("none");
-    setFallbackWhatsAppMessage("");
+    setVerifiedWhatsAppMessage("");
     setPaymentMethodError("");
     if (!isOrderingOpen) {
       setWarning("Bu işletme şu an sipariş almıyor.");
@@ -947,6 +947,13 @@ export default function BusinessPage({
         preparedWhatsAppWindow?.close();
         return;
       }
+      if (!Number.isSafeInteger(result.orderNumber) || result.orderNumber <= 0) {
+        throw new PublicOrderRequestError(
+          "uncertain",
+          "INVALID_ORDER_RESPONSE",
+          200,
+        );
+      }
       pendingOrderAttemptRef.current = null;
       setWarning("");
       const whatsappOpened = sendWhatsAppMessage(
@@ -955,7 +962,7 @@ export default function BusinessPage({
       );
       if (!whatsappOpened) {
         setOrderRecoveryMode("saved");
-        setFallbackWhatsAppMessage(createMessage(attempt, result.orderNumber));
+        setVerifiedWhatsAppMessage(createMessage(attempt, result.orderNumber));
         setOrderRecordWarning(
           "Sipariş kaydedildi. WhatsApp penceresini açmak için aşağıdaki butonu kullanın.",
         );
@@ -969,7 +976,6 @@ export default function BusinessPage({
         return;
       }
       setWarning("");
-      setFallbackWhatsAppMessage(createMessage(attempt));
       if (
         error instanceof PublicOrderRequestError &&
         error.kind === "uncertain"
@@ -983,14 +989,14 @@ export default function BusinessPage({
         error.code === "IDEMPOTENCY_CONFLICT"
       ) {
         setOrderRecoveryMode("conflict");
-        setFallbackWhatsAppMessage("");
+        setVerifiedWhatsAppMessage("");
         setOrderRecordWarning(
           "Sipariş bilgileri bu deneme sırasında değişti. Lütfen sayfayı yenileyip tekrar deneyin.",
         );
       } else {
         setOrderRecoveryMode("definitive");
         setOrderRecordWarning(
-          "Sipariş panel kaydı oluşturulamadı. WhatsApp ile yine de gönderebilirsiniz.",
+          "Sipariş panel kaydı oluşturulamadı. Lütfen tekrar deneyin.",
         );
       }
     } finally {
@@ -1026,9 +1032,16 @@ export default function BusinessPage({
       ) {
         return;
       }
+      if (!Number.isSafeInteger(result.orderNumber) || result.orderNumber <= 0) {
+        throw new PublicOrderRequestError(
+          "uncertain",
+          "INVALID_ORDER_RESPONSE",
+          200,
+        );
+      }
       pendingOrderAttemptRef.current = null;
       setOrderRecoveryMode("saved");
-      setFallbackWhatsAppMessage(createMessage(attempt, result.orderNumber));
+      setVerifiedWhatsAppMessage(createMessage(attempt, result.orderNumber));
       setOrderRecordWarning(
         "Sipariş kaydedildi. WhatsApp ile devam etmek için aşağıdaki butonu kullanın.",
       );
@@ -1045,21 +1058,21 @@ export default function BusinessPage({
       ) {
         setOrderRecoveryMode("uncertain");
         setOrderRecordWarning(
-          "Sipariş sonucu hâlâ doğrulanamadı. Aynı siparişi yeniden kontrol edebilir veya uyarıyı dikkate alarak numarasız gönderebilirsiniz.",
+          "Sipariş sonucu hâlâ doğrulanamadı. Aynı siparişi yeniden kontrol edin.",
         );
       } else if (
         error instanceof PublicOrderRequestError &&
         error.code === "IDEMPOTENCY_CONFLICT"
       ) {
         setOrderRecoveryMode("conflict");
-        setFallbackWhatsAppMessage("");
+        setVerifiedWhatsAppMessage("");
         setOrderRecordWarning(
           "Sipariş bilgileri bu deneme sırasında değişti. Lütfen sayfayı yenileyip tekrar deneyin.",
         );
       } else {
         setOrderRecoveryMode("definitive");
         setOrderRecordWarning(
-          "Sipariş kaydı oluşturulamadı. WhatsApp ile yine de gönderebilirsiniz.",
+          "Sipariş kaydı oluşturulamadı. Lütfen tekrar deneyin.",
         );
       }
     } finally {
@@ -1113,7 +1126,7 @@ export default function BusinessPage({
             cartItemCount={cartItemCount}
             cartSectionRef={cartSectionRef}
             customer={customer}
-            fallbackWhatsAppMessage={fallbackWhatsAppMessage}
+            verifiedWhatsAppMessage={verifiedWhatsAppMessage}
             fixedPaymentOption={fixedPaymentOption}
             formatPrice={formatPrice}
             hasSavedCustomerDetails={hasSavedCustomerDetails}
@@ -1135,9 +1148,15 @@ export default function BusinessPage({
             onDecreaseItem={decrease}
             onIncreaseItem={increase}
             onRetryPendingOrder={retryPendingOrder}
-            onSendFallbackWhatsApp={() => {
+            onSendVerifiedWhatsApp={() => {
+              if (
+                orderRecoveryMode !== "saved" ||
+                !verifiedWhatsAppMessage
+              ) {
+                return;
+              }
               setOrderRecordWarning("");
-              sendWhatsAppMessage(fallbackWhatsAppMessage);
+              sendWhatsAppMessage(verifiedWhatsAppMessage);
             }}
             onSubmitOrder={submitOrder}
             onToggleRememberCustomerDetails={toggleRememberCustomerDetails}

@@ -39,7 +39,7 @@ type PublicOrderCheckoutProps = {
   warning: string;
   orderRecordWarning: string;
   orderRecoveryMode: PublicOrderRecoveryMode;
-  fallbackWhatsAppMessage: string;
+  verifiedWhatsAppMessage: string;
   minimumOrderWarning: string;
   isOrderingOpen: boolean;
   isRecordingOrder: boolean;
@@ -57,7 +57,7 @@ type PublicOrderCheckoutProps = {
   onToggleRememberCustomerDetails: (shouldRemember: boolean) => void;
   onClearSavedCustomerDetails: () => void;
   onRetryPendingOrder: () => void;
-  onSendFallbackWhatsApp: () => void;
+  onSendVerifiedWhatsApp: () => void;
   onSubmitOrder: FormEventHandler<HTMLFormElement>;
 };
 
@@ -75,7 +75,7 @@ export default function PublicOrderCheckout({
   warning,
   orderRecordWarning,
   orderRecoveryMode,
-  fallbackWhatsAppMessage,
+  verifiedWhatsAppMessage,
   minimumOrderWarning,
   isOrderingOpen,
   isRecordingOrder,
@@ -92,7 +92,7 @@ export default function PublicOrderCheckout({
   onToggleRememberCustomerDetails,
   onClearSavedCustomerDetails,
   onRetryPendingOrder,
-  onSendFallbackWhatsApp,
+  onSendVerifiedWhatsApp,
   onSubmitOrder,
 }: PublicOrderCheckoutProps) {
   return (
@@ -416,18 +416,14 @@ export default function PublicOrderCheckout({
                       : "Siparişi tekrar dene"}
                   </button>
                 ) : null}
-                {orderRecoveryMode !== "conflict" && fallbackWhatsAppMessage ? (
+                {orderRecoveryMode === "saved" && verifiedWhatsAppMessage ? (
                   <button
                     className="submit-button secondary-whatsapp-button public-order-secondary-button"
                     disabled={isRecordingOrder}
                     type="button"
-                    onClick={onSendFallbackWhatsApp}
+                    onClick={onSendVerifiedWhatsApp}
                   >
-                    {orderRecoveryMode === "uncertain"
-                      ? "Yine de numarasız WhatsApp ile gönder"
-                      : orderRecoveryMode === "saved"
-                        ? "WhatsApp ile devam et"
-                        : "WhatsApp ile yine de gönder"}
+                    WhatsApp ile devam et
                   </button>
                 ) : null}
               </div>
