@@ -442,40 +442,20 @@ export default function BusinessPage({
   }, [cart.length, returnToMenu, view]);
 
   useEffect(() => {
-    if (view !== "checkout" || !isMobileViewport) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (view !== "checkout") return;
     cartCloseButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         closeCheckout();
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-      const focusableElements = cartSectionRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href]',
-      );
-      if (!focusableElements?.length) return;
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isMobileViewport, view]);
+  }, [view]);
 
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
