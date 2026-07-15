@@ -97,6 +97,15 @@ function formatPrice(price: number) {
   return `${price.toLocaleString("tr-TR")} TL`;
 }
 
+function normalizeProductSearchValue(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replaceAll("ı", "i")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs = pageFetchTimeoutMs) {
   return new Promise<T>((resolve, reject) => {
     const timeoutId = window.setTimeout(() => {
@@ -316,6 +325,7 @@ export default function BusinessPage({
   const [view, setView] = useState<PublicOrderView>("menu");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY_KEY);
+  const [searchQuery, setSearchQuery] = useState("");
   const cartSectionRef = useRef<HTMLElement | null>(null);
   const cartCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const cartTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -567,7 +577,7 @@ export default function BusinessPage({
   const accessMessage = getAccessMessage(currentBusiness);
   const totalProductCount = allProducts.length;
   const hasAnyProducts = totalProductCount > 0;
-  const visibleCategories: ProductCategory[] =
+  const categoryFilteredCategories: ProductCategory[] =
     selectedCategory === ALL_CATEGORY_KEY
       ? allProducts.length > 0
         ? [{ id: ALL_CATEGORY_KEY, name: "", products: allProducts }]
@@ -575,6 +585,31 @@ export default function BusinessPage({
       : categories.filter(
           (category) => category.filterKey === selectedCategory,
         );
+  const normalizedSearchQuery = normalizeProductSearchValue(searchQuery);
+  const standardCategoryNamesByProductId = new Map(
+    categories.flatMap((category) =>
+      category.products.map(
+        (product) => [product.id, category.name] as const,
+      ),
+    ),
+  );
+  const visibleCategories: ProductCategory[] = normalizedSearchQuery
+    ? categoryFilteredCategories.flatMap((category) => {
+        const products = category.products.filter((product) =>
+          normalizeProductSearchValue(
+            [
+              product.name,
+              product.description,
+              standardCategoryNamesByProductId.get(product.id),
+            ]
+              .filter(Boolean)
+              .join(" "),
+          ).includes(normalizedSearchQuery),
+        );
+
+        return products.length > 0 ? [{ ...category, products }] : [];
+      })
+    : categoryFilteredCategories;
   const displayBusiness = currentBusiness as DisplayBusiness;
   const coverImageUrl = displayBusiness.coverImageUrl?.trim();
   const addressText = [
@@ -1066,6 +1101,7 @@ export default function BusinessPage({
             allCategoriesLabel={allCategoriesLabel}
             allCategoryKey={ALL_CATEGORY_KEY}
             business={displayBusiness}
+            cart={cart}
             cartItemCount={cartItemCount}
             cartLength={cart.length}
             cartTriggerRef={cartTriggerRef}
@@ -1073,18 +1109,21 @@ export default function BusinessPage({
             formatPrice={formatPrice}
             hasAnyProducts={hasAnyProducts}
             heroStyle={heroStyle}
-            isMobileViewport={isMobileViewport}
             isOrderingOpen={isOrderingOpen}
             isRecordingOrder={isRecordingOrder}
             logoText={getLogoText(currentBusiness)}
             orderInfoItems={orderInfoItems}
             orderNote={orderNote}
+            searchQuery={searchQuery}
             selectedCategory={selectedCategory}
             total={total}
             totalProductCount={totalProductCount}
             visibleCategories={visibleCategories}
             onAddItem={addToCart}
+            onDecreaseItem={decrease}
+            onIncreaseItem={increase}
             onOpenCheckout={openCheckout}
+            onSearchQueryChange={setSearchQuery}
             onSelectCategory={setSelectedCategory}
           />
         ) : (
