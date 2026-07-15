@@ -80,16 +80,23 @@ export default function PublicOrderMenu({
 }: PublicOrderMenuProps) {
   const hasActiveSearch = searchQuery.trim().length > 0;
   const shouldShowCartBar = cartLength > 0 && isOrderingOpen;
+  const businessSecondaryText =
+    [addressText, business.address].filter(Boolean).join(" · ") ||
+    business.description;
 
   return (
     <>
       <header className="hero business-hero public-order-hero" style={heroStyle}>
         <div className="hero-content business-hero-content public-order-hero-content">
-          <div className="business-topline public-order-topline">
-            <Link className="eyebrow business-back-link" href="/">
-              ← İşletmeler
-            </Link>
-          </div>
+          <Link
+            aria-label="İşletmelere dön"
+            className="public-order-back-link"
+            href="/"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </Link>
 
           <div className="business-identity public-order-identity">
             {business.logoUrl ? (
@@ -103,13 +110,8 @@ export default function PublicOrderMenu({
             )}
             <div className="public-order-identity-copy">
               <h1>{business.name}</h1>
-              <p>{business.description}</p>
+              {businessSecondaryText ? <p>{businessSecondaryText}</p> : null}
             </div>
-          </div>
-
-          <div className="business-meta public-order-location">
-            {addressText ? <span>{addressText}</span> : null}
-            {business.address ? <span>{business.address}</span> : null}
           </div>
         </div>
       </header>
@@ -159,15 +161,20 @@ export default function PublicOrderMenu({
               </p>
             ) : null}
             <div className="menu-heading public-order-menu-heading">
-              <div>
-                <span className="menu-kicker">Menü</span>
-                <h2>Ürünler</h2>
-              </div>
-              <span>{categories.length} kategori</span>
+              <h2>Menü</h2>
+              <span>{totalProductCount} ürün</span>
             </div>
             {hasAnyProducts ? (
               <label className="public-order-search">
                 <span className="public-order-search-label">Menüde ürün ara</span>
+                <svg
+                  aria-hidden="true"
+                  className="public-order-search-icon"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-4-4" />
+                </svg>
                 <input
                   type="search"
                   value={searchQuery}
@@ -241,18 +248,18 @@ export default function PublicOrderMenu({
                         className="product-card menu-product-card public-order-product"
                         key={product.id}
                       >
-                        <div className="product-card-body public-order-product-body">
-                          {product.imageUrl ? (
-                            <img
-                              alt={product.name}
-                              className="product-card-image public-order-product-image"
-                              src={product.imageUrl}
-                            />
-                          ) : (
-                            <span className="product-image-placeholder public-order-product-image">
-                              {product.imageLabel || category.name}
-                            </span>
-                          )}
+                        {product.imageUrl ? (
+                          <img
+                            alt={product.name}
+                            className="product-card-image public-order-product-image"
+                            src={product.imageUrl}
+                          />
+                        ) : (
+                          <span className="product-image-placeholder public-order-product-image">
+                            {product.imageLabel || category.name}
+                          </span>
+                        )}
+                        <div className="public-order-product-details">
                           <div className="product-copy public-order-product-copy">
                             <p className="product-name">{product.name}</p>
                             {product.description ? (
@@ -260,43 +267,46 @@ export default function PublicOrderMenu({
                                 {product.description}
                               </p>
                             ) : null}
-                            <span className="price">{formatPrice(product.price)}</span>
                           </div>
-                        </div>
-                        <div className="public-order-product-actions">
-                          {quantity > 0 ? (
-                            <div
-                              className="public-order-product-stepper"
-                              aria-label={`${product.name} adet kontrolü`}
-                            >
-                              <button
-                                aria-label={`${product.name} adetini azalt`}
-                                disabled={!isOrderingOpen || isRecordingOrder}
-                                type="button"
-                                onClick={() => onDecreaseItem(product.id)}
-                              >
-                                −
-                              </button>
-                              <output aria-live="polite">{quantity}</output>
-                              <button
-                                aria-label={`${product.name} adetini artır`}
-                                disabled={!isOrderingOpen || isRecordingOrder}
-                                type="button"
-                                onClick={() => onIncreaseItem(product.id)}
-                              >
-                                +
-                              </button>
+                          <div className="public-order-product-footer">
+                            <span className="price">{formatPrice(product.price)}</span>
+                            <div className="public-order-product-actions">
+                              {quantity > 0 ? (
+                                <div
+                                  className="public-order-product-stepper"
+                                  aria-label={`${product.name} adet kontrolü`}
+                                >
+                                  <button
+                                    aria-label={`${product.name} adetini azalt`}
+                                    disabled={!isOrderingOpen || isRecordingOrder}
+                                    type="button"
+                                    onClick={() => onDecreaseItem(product.id)}
+                                  >
+                                    −
+                                  </button>
+                                  <output aria-live="polite">{quantity}</output>
+                                  <button
+                                    aria-label={`${product.name} adetini artır`}
+                                    disabled={!isOrderingOpen || isRecordingOrder}
+                                    type="button"
+                                    onClick={() => onIncreaseItem(product.id)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  aria-label={`${product.name} sepete ekle`}
+                                  className="add-button public-order-add-button"
+                                  disabled={!isOrderingOpen || isRecordingOrder}
+                                  type="button"
+                                  onClick={() => onAddItem(product)}
+                                >
+                                  +
+                                </button>
+                              )}
                             </div>
-                          ) : (
-                            <button
-                              className="add-button public-order-add-button"
-                              disabled={!isOrderingOpen || isRecordingOrder}
-                              type="button"
-                              onClick={() => onAddItem(product)}
-                            >
-                              {isOrderingOpen ? "+ Ekle" : "Kapalı"}
-                            </button>
-                          )}
+                          </div>
                         </div>
                       </article>
                     );
@@ -308,6 +318,7 @@ export default function PublicOrderMenu({
 
           {shouldShowCartBar ? (
             <button
+              aria-label="Siparişi Tamamla"
               aria-controls="public-order-cart-panel"
               aria-expanded={false}
               className="public-order-cart-bar"
@@ -316,11 +327,22 @@ export default function PublicOrderMenu({
               type="button"
               onClick={onOpenCheckout}
             >
+              <svg
+                aria-hidden="true"
+                className="public-order-cart-icon"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="9" cy="20" r="1" />
+                <circle cx="19" cy="20" r="1" />
+                <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H7" />
+              </svg>
               <span className="public-order-cart-summary">
-                <strong>{cartItemCount} ürün</strong>
-                <small>{formatPrice(total)}</small>
+                <strong>Sepetim · {cartItemCount} ürün</strong>
               </span>
-              <b>Siparişi Tamamla</b>
+              <b>{formatPrice(total)}</b>
+              <span aria-hidden="true" className="public-order-cart-arrow">
+                ›
+              </span>
             </button>
           ) : null}
         </div>
