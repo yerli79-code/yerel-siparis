@@ -134,6 +134,7 @@ export function getBearerToken(request: Request) {
 function serviceHeaders(serviceRoleKey: string, contentType = false) {
   return {
     apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
     ...(contentType ? { "Content-Type": "application/json" } : {}),
   };
 }
