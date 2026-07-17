@@ -91,6 +91,65 @@ button {
   font-weight: 700;
 }
 
+.platform-brand-shell {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.platform-brand-on-dark {
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 16px;
+  background: #fff;
+  padding: 10px 14px;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
+}
+
+.platform-brand {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 15 / 4;
+  object-fit: contain;
+}
+
+.discovery-platform-brand {
+  width: clamp(230px, 46vw, 310px);
+  padding-block: 4px;
+  margin-bottom: 4px;
+}
+
+.auth-platform-brand,
+.admin-platform-brand {
+  width: clamp(185px, 38vw, 220px);
+  margin-bottom: 4px;
+}
+
+.panel-platform-brand {
+  width: clamp(170px, 30vw, 205px);
+  margin-bottom: 4px;
+}
+
+@media (max-width: 480px) {
+  .platform-brand-on-dark {
+    border-radius: 14px;
+    padding: 8px 11px;
+  }
+
+  .discovery-platform-brand {
+    width: min(250px, 82vw);
+    padding-block: 4px;
+  }
+
+  .auth-platform-brand,
+  .admin-platform-brand {
+    width: min(200px, 70vw);
+  }
+}
+
 h1,
 h2,
 h3,

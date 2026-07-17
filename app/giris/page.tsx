@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import PlatformBrand from "../../components/PlatformBrand";
 import {
   getValidAccessToken,
   signInWithPassword,
@@ -96,6 +97,7 @@ export default function LoginPage() {
       <div className="shell auth-shell">
         <header className="hero auth-hero">
           <div className="hero-content auth-hero-content">
+            <PlatformBrand className="auth-platform-brand" onDark />
             <Link className="eyebrow auth-back-link" href="/">
               Ana sayfa
             </Link>

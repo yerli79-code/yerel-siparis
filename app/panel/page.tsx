@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import LocationSelector from "../../components/LocationSelector";
+import PlatformBrand from "../../components/PlatformBrand";
 import {
   getProductCategories,
   isStandardProductCategory,
@@ -1053,6 +1054,7 @@ export default function PanelPage() {
       <div className="shell business-panel-shell">
         <header className="business-panel-header">
           <div className="business-panel-header-copy">
+            <PlatformBrand className="panel-platform-brand" />
             <span className="business-panel-eyebrow">İşletme Paneli</span>
             <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
             <p>Günlük siparişlerinizi ve işletmenizi tek ekrandan yönetin.</p>

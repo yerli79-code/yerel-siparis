@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Demo Kebap | QR Siparis",
-  description: "Demo Kebap icin QR ile hizli siparis sayfasi",
+  title: "Yerel Sipariş",
+  description:
+    "Yerel işletmelerden kolayca sipariş vermenizi sağlayan hızlı ve pratik sipariş platformu.",
 };
 
 export const viewport: Viewport = {

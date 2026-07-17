@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="yerelsiparis.com">
+  <g transform="translate(10 0) scale(0.58)">
+    <g fill="none" stroke="#1266E9" stroke-linecap="round">
+      <path d="M58 224h78" stroke-width="22"/>
+      <path d="M36 272h100" stroke-width="22"/>
+      <path d="M74 320h62" stroke-width="22"/>
+    </g>
+    <path fill="#1266E9" d="M196 112c0-59 47-106 106-106s106 47 106 106v18h18c30 0 54 24 54 54v94c0 42-19 82-51 110l-118 104a14 14 0 0 1-18 0L175 388c-32-28-51-68-51-110v-94c0-30 24-54 54-54h18v-18zm42 0v18h128v-18c0-36-29-64-64-64s-64 28-64 64z"/>
+    <path fill="#111827" fill-rule="evenodd" d="M196 130v-18C196 53 243 6 302 6s106 47 106 106v18h-42v-18c0-36-29-64-64-64s-64 28-64 64v18h-42z"/>
+    <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M201 205h202l-18 59H219l-18-59z" stroke-width="18"/>
+      <path d="M229 264v96h146v-96" stroke-width="18"/>
+      <path d="M250 205l-6 59M287 205l-2 59M324 205l2 59M361 205l6 59" stroke-width="14"/>
+      <path d="M210 264c0 19 15 34 34 34s34-15 34-34c0 19 15 34 34 34s34-15 34-34c0 19 15 34 34 34s34-15 34-34" stroke-width="14"/>
+      <rect x="285" y="309" width="40" height="51" rx="4" stroke-width="14"/>
+    </g>
+  </g>
+  <text x="350" y="202" font-family="Arial, Helvetica, sans-serif" font-size="102" font-weight="700" letter-spacing="-4"><tspan fill="#1266E9">yerelsiparis</tspan><tspan fill="#111827">.com</tspan></text>
+</svg>

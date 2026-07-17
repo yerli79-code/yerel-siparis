@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import DiscoveryLocationFilter, {
   type DiscoveryLocationValue,
 } from "../components/DiscoveryLocationFilter";
+import PlatformBrand from "../components/PlatformBrand";
 import type { Business } from "../lib/businesses";
 import { normalizeLocationLabel } from "../lib/locations";
 import { fetchPublicActiveBusinesses } from "../lib/supabase-business";
@@ -197,7 +198,7 @@ export default function Home() {
       <div className="shell discovery-shell">
         <header className="discovery-hero">
           <div className="discovery-hero-copy">
-            <span className="eyebrow">Yerel Sipariş</span>
+            <PlatformBrand className="discovery-platform-brand" onDark />
             <h1>Yakınındaki işletmelerden kolayca sipariş ver</h1>
             <p>
               İşletme adı veya konum bilgisiyle arayın, menüyü inceleyin ve

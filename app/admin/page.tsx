@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import LocationSelector from "../../components/LocationSelector";
+import PlatformBrand from "../../components/PlatformBrand";
 import {
   readBusinesses,
   updateBusiness,
@@ -1062,6 +1063,7 @@ export default function AdminPage() {
         <div className="shell admin-auth-shell">
           <header className="hero admin-hero">
             <div className="hero-content admin-hero-content">
+              <PlatformBrand className="admin-platform-brand" onDark />
               <span className="eyebrow">Sistem Admin</span>
               <h1>Admin Paneli</h1>
               <p>Abonelik yönetimine erişmek için yetkili admin hesabınızla giriş yapın.</p>
@@ -1118,6 +1120,7 @@ export default function AdminPage() {
       <div className="shell">
         <header className="hero admin-hero">
           <div className="hero-content admin-hero-content">
+            <PlatformBrand className="admin-platform-brand" onDark />
             <div className="admin-hero-top">
               <span className="eyebrow">Sistem Admin</span>
               <button className="panel-logout-button" type="button" onClick={logoutAdmin}>
