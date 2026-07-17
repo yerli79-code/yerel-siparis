@@ -3381,6 +3381,13 @@ h1 {
   object-fit: cover;
 }
 
+img.public-order-product-image {
+  box-sizing: border-box;
+  padding: 8px;
+  background: var(--public-order-soft);
+  object-fit: contain;
+}
+
 .public-order-product-copy {
   display: grid;
   min-width: 0;
