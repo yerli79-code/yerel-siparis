@@ -575,7 +575,7 @@ export default function BusinessPage({
     .join(" / ");
   const heroStyle = coverImageUrl
     ? {
-        backgroundImage: `linear-gradient(135deg, rgba(23, 33, 27, 0.68), rgba(17, 130, 59, 0.78)), url("${coverImageUrl.replaceAll('"', "%22")}")`,
+        backgroundImage: `linear-gradient(135deg, rgba(23, 33, 27, 0.68), rgba(var(--primary-hover-rgb), 0.78)), url("${coverImageUrl.replaceAll('"', "%22")}")`,
       }
     : undefined;
   const minimumOrderAmount =

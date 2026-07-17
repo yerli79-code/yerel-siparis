@@ -429,7 +429,7 @@ export default function PublicOrderCheckout({
               </div>
             ) : null}
             <button
-              className="submit-button public-order-submit-button"
+              className="submit-button public-order-submit-button whatsapp-order-submit"
               disabled={isOrderSubmitDisabled}
               type="submit"
             >
