@@ -203,32 +203,6 @@ function isMobileDevice() {
   return /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
 }
 
-function openMobileWhatsApp(appLink: string, fallbackLink: string) {
-  let fallbackTimer: number | undefined;
-
-  const cleanup = () => {
-    if (fallbackTimer) window.clearTimeout(fallbackTimer);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-    window.removeEventListener("pagehide", cleanup);
-    window.removeEventListener("blur", cleanup);
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.hidden) cleanup();
-  };
-
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  window.addEventListener("pagehide", cleanup, { once: true });
-  window.addEventListener("blur", cleanup, { once: true });
-
-  fallbackTimer = window.setTimeout(() => {
-    cleanup();
-    window.location.href = fallbackLink;
-  }, 1800);
-
-  window.location.href = appLink;
-}
-
 function organizeProductCategories(
   sourceCategories: ProductCategory[],
 ): ProductCatalog {
@@ -823,10 +797,7 @@ export default function BusinessPage({
       }
     }
 
-    openMobileWhatsApp(
-      `whatsapp://send?phone=${phone}&text=${encodedMessage}`,
-      webLink,
-    );
+    window.location.assign(webLink);
     return true;
   }
 
