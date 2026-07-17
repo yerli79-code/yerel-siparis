@@ -56,7 +56,7 @@ export default function LoginPage() {
     setError("");
 
     if (!email.trim() || !password) {
-      setError("Lutfen e-posta ve sifre alanlarini doldurun.");
+      setError("Lütfen e-posta ve şifre alanlarını doldurun.");
       return;
     }
 
@@ -70,13 +70,13 @@ export default function LoginPage() {
       );
 
       if (!session) {
-        setError("Giris basarisiz. E-posta veya sifreyi kontrol edin.");
+        setError("Giriş başarısız. E-posta veya şifreyi kontrol edin.");
         return;
       }
 
       router.replace("/panel");
     } catch {
-      setError("Giris sirasinda bir hata olustu. Lutfen tekrar deneyin.");
+      setError("Giriş sırasında bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {
       setIsLoading(false);
     }
@@ -101,14 +101,14 @@ export default function LoginPage() {
             <Link className="eyebrow auth-back-link" href="/">
               Ana sayfa
             </Link>
-            <h1>Isletme Girisi</h1>
-            <p>Isletme panelinize erismek icin e-posta ve sifrenizle guvenli giris yapin.</p>
+            <h1>İşletme Girişi</h1>
+            <p>İşletme panelinize erişmek için e-posta ve şifrenizle güvenli giriş yapın.</p>
           </div>
         </header>
 
         <section className="section auth-card">
           <div className="section-title auth-card-title">
-            <h2>Panel girisi</h2>
+            <h2>Panel girişi</h2>
             <span>Supabase Auth</span>
           </div>
 
@@ -126,7 +126,7 @@ export default function LoginPage() {
             </div>
 
             <div className="field">
-              <label htmlFor="password">Sifre</label>
+              <label htmlFor="password">Şifre</label>
               <input
                 autoComplete="current-password"
                 id="password"
@@ -139,7 +139,7 @@ export default function LoginPage() {
             {error ? <p className="alert">{error}</p> : null}
 
             <button className="submit-button auth-primary-action" disabled={isLoading} type="submit">
-              {isLoading ? "Giris yapiliyor..." : "Giris Yap"}
+              {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}
             </button>
             <Link className="link-button auth-secondary-link" href="/sifre-yenile">
               Şifremi unuttum
