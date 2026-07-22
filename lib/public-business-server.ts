@@ -165,3 +165,79 @@ async function fetchPublicBusinessBySlug(
 }
 
 export const getPublicBusinessBySlug = cache(fetchPublicBusinessBySlug);
+
+function isValidPublicBusinessSlug(slug: string): boolean {
+  return (
+    slug !== "." &&
+    slug !== ".." &&
+    !/[\\/?#\u0000-\u001F\u007F]/.test(slug)
+  );
+}
+
+export async function getPublicBusinessSlugs(): Promise<string[]> {
+  const { url, anonKey } = getPublicSupabaseConfig();
+  const requestUrl = new URL(`${url}/rest/v1/businesses`);
+  requestUrl.searchParams.set("select", "slug");
+  requestUrl.searchParams.set("order", "slug.asc");
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    publicBusinessRequestTimeoutMs,
+  );
+
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl, {
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      signal: controller.signal,
+      next: { revalidate: 1800 },
+    });
+  } catch (error) {
+    throw new Error("Public business slug request could not be completed.", {
+      cause: error,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Public business slug request failed with status ${response.status}.`,
+    );
+  }
+
+  let rows: Array<{ slug?: unknown }>;
+
+  try {
+    rows = (await response.json()) as Array<{ slug?: unknown }>;
+  } catch (error) {
+    throw new Error("Public business slug request returned invalid JSON.", {
+      cause: error,
+    });
+  }
+
+  if (!Array.isArray(rows)) {
+    throw new Error("Public business slug request did not return a list.");
+  }
+
+  const uniqueSlugs = new Set<string>();
+
+  for (const row of rows) {
+    if (!row || typeof row.slug !== "string") continue;
+
+    const slug = row.slug.trim();
+    if (!slug || !isValidPublicBusinessSlug(slug)) continue;
+
+    uniqueSlugs.add(slug);
+  }
+
+  return [...uniqueSlugs].sort((left, right) => {
+    if (left === right) return 0;
+    return left < right ? -1 : 1;
+  });
+}
