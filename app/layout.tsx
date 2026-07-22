@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://yerelsiparis.com"),
   title: "Yerel Sipariş",
   description:
     "Yerel işletmelerden kolayca sipariş vermenizi sağlayan hızlı ve pratik sipariş platformu.",
