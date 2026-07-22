@@ -7,6 +7,23 @@ export const metadata: Metadata = {
   },
 };
 
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Yerel Sipariş",
+  url: "https://yerelsiparis.com/",
+};
+
 export default function HomePage() {
-  return <HomePageClient />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <HomePageClient />
+    </>
+  );
 }
