@@ -1,4 +1,10 @@
 :root {
+  --brand-primary: #095d27;
+  --brand-accent: #23912f;
+  --brand-dark: #112c1e;
+  --brand-surface: #f4f5f2;
+  --brand-soft: #dcebc7;
+  --brand-card: #ffffff;
   --bg: #f3f6f2;
   --panel: #ffffff;
   --panel-soft: #eef7ef;
@@ -2568,6 +2574,22 @@ h1 {
 .discovery-shell {
   display: grid;
   gap: 16px;
+  color: var(--brand-dark);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+.page:has(> .discovery-shell) {
+  background: var(--brand-surface);
+}
+
+.discovery-shell :where(h1, h2, h3),
+.public-order-page :where(h1, h2, h3) {
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+}
+
+.discovery-shell :where(button, input, select, textarea),
+.public-order-page :where(button, input, select, textarea) {
+  font-family: inherit;
 }
 
 .discovery-hero {
@@ -3161,7 +3183,9 @@ h1 {
   --public-order-ink: #14231a;
   --public-order-muted: #617067;
   --public-order-line: #dce9df;
-  background: #f4f7f4;
+  background: var(--brand-surface);
+  color: var(--brand-dark);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 .public-order-shell,
