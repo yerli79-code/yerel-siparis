@@ -198,7 +198,7 @@ export default function Home() {
       <div className="shell discovery-shell">
         <header className="discovery-hero">
           <div className="discovery-hero-copy">
-            <PlatformBrand className="discovery-platform-brand" onDark />
+            <PlatformBrand className="discovery-platform-brand" publicVariant />
             <h1>Yakınındaki işletmelerden kolayca sipariş ver</h1>
             <p>
               İşletme adı veya konum bilgisiyle arayın, menüyü inceleyin ve
@@ -211,9 +211,13 @@ export default function Home() {
         </header>
 
         <section className="discovery-filter-card" aria-label="İşletme arama ve filtreleme">
-          <label className="discovery-search">
+          <label
+            className="discovery-search"
+            data-mobile-placeholder="İşletme veya konum ara"
+          >
             <span>İşletme ara</span>
             <input
+              aria-label="İşletme ara"
               placeholder="İşletme adı, il, ilçe veya Mahalle / Köy ara"
               type="search"
               value={searchQuery}
