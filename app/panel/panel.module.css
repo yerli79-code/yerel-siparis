@@ -1,0 +1,1173 @@
+.panelScope {
+  --panel-primary: var(--brand-primary);
+  --panel-accent: var(--brand-accent);
+  --panel-dark: var(--brand-dark);
+  --panel-surface: var(--brand-surface);
+  --panel-soft: var(--brand-soft);
+  --panel-card: var(--brand-card);
+  --panel-line: rgba(9, 93, 39, 0.16);
+  --panel-line-strong: rgba(9, 93, 39, 0.28);
+  --panel-muted: #5f6f65;
+  --panel-danger: #b42318;
+  --panel-danger-soft: #fff1f0;
+  --panel-focus: rgba(35, 145, 47, 0.28);
+  --panel-shadow: 0 18px 48px rgba(17, 44, 30, 0.09);
+  --panel-shadow-soft: 0 10px 28px rgba(17, 44, 30, 0.07);
+
+  min-width: 0;
+  min-height: 100vh;
+  overflow-x: clip;
+  background:
+    radial-gradient(circle at 0 0, rgba(220, 235, 199, 0.72), transparent 30rem),
+    radial-gradient(circle at 100% 8%, rgba(35, 145, 47, 0.1), transparent 26rem),
+    var(--panel-surface);
+  color: var(--panel-dark);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  padding: 16px 12px calc(124px + env(safe-area-inset-bottom));
+}
+
+.panelScope,
+.panelScope :where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+
+.panelScope :where(button, input, select, textarea) {
+  font-family: inherit;
+}
+
+.panelScope :where(h1, h2, h3) {
+  color: var(--panel-dark);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.panelScope
+  :where(
+    h1,
+    h2,
+    h3,
+    p,
+    span,
+    strong,
+    small,
+    a,
+    label,
+    button
+  ) {
+  overflow-wrap: anywhere;
+}
+
+.panelScope > :global(.shell.section) {
+  border: 1px solid var(--panel-line);
+  border-radius: 20px;
+  background: var(--panel-card);
+  padding: 24px;
+  box-shadow: var(--panel-shadow-soft);
+}
+
+.panelScope > :global(.shell.section) p {
+  margin: 0;
+  color: var(--panel-muted);
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-shell) {
+  width: min(100%, 1440px);
+}
+
+.panelScope :global(.business-panel-header) {
+  gap: 16px;
+  border: 1px solid var(--panel-line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 20px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.panelScope :global(.business-panel-header-copy) {
+  gap: 6px;
+}
+
+.panelScope :global(.panel-platform-brand.platform-brand-public) {
+  width: fit-content;
+  max-width: 100%;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.panelScope
+  :global(.panel-platform-brand)
+  :global(.platform-brand-public-mark) {
+  width: 42px;
+  filter: drop-shadow(0 8px 14px rgba(9, 93, 39, 0.16));
+}
+
+.panelScope
+  :global(.panel-platform-brand)
+  :global(.platform-brand-public-wordmark) {
+  min-width: 0;
+  color: var(--panel-primary);
+  font-size: clamp(23px, 7vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.panelScope :global(.business-panel-eyebrow),
+.panelScope :global(.business-panel-section-kicker) {
+  color: var(--panel-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.panelScope :global(.business-panel-header-copy h1) {
+  margin: 2px 0 0;
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 700;
+  line-height: 1.14;
+}
+
+.panelScope :global(.business-panel-header-copy p) {
+  max-width: 640px;
+  color: var(--panel-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.panelScope :global(.business-panel-header-status) {
+  gap: 8px;
+}
+
+.panelScope :global(.business-panel-status-chip),
+.panelScope :global(.order-status-badge),
+.panelScope :global(.panel-product-status),
+.panelScope :global(.panel-category-badge) {
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.panelScope :global(.business-panel-status-chip) {
+  border-color: var(--panel-line);
+  background: #f8fbf9;
+  color: var(--panel-dark);
+}
+
+.panelScope :global(.business-panel-status-chip.open),
+.panelScope :global(.business-panel-status-chip.active) {
+  border-color: rgba(35, 145, 47, 0.24);
+  background: rgba(220, 235, 199, 0.62);
+  color: var(--panel-primary);
+}
+
+.panelScope :global(.business-panel-status-chip.closed),
+.panelScope :global(.business-panel-status-chip.inactive) {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+.panelScope :global(.business-panel-logout) {
+  min-height: 44px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 14px;
+  background: var(--panel-card);
+  color: var(--panel-primary);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-workspace) {
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.panelScope :global(.business-panel-content) {
+  gap: 20px;
+}
+
+.panelScope :global(.business-panel-nav) {
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  gap: 4px;
+  border: 1px solid var(--panel-line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.97);
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+  box-shadow: 0 16px 42px rgba(17, 44, 30, 0.17);
+  backdrop-filter: blur(20px);
+}
+
+.panelScope :global(.business-panel-nav button) {
+  min-height: 54px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--panel-muted);
+  padding: 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.panelScope :global(.business-panel-nav button.active) {
+  border-color: rgba(9, 93, 39, 0.13);
+  background: linear-gradient(180deg, rgba(220, 235, 199, 0.9), #eef6e5);
+  color: var(--panel-primary);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.panelScope :global(.business-panel-nav-badge) {
+  top: 1px;
+  right: max(2px, calc(50% - 38px));
+  min-width: 20px;
+  min-height: 20px;
+  border: 2px solid var(--panel-card);
+  background: #dc2626;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.panelScope :global(.business-panel-sidebar-membership) {
+  border: 1px solid var(--panel-line);
+  border-radius: 18px;
+  background: var(--panel-card);
+  padding: 16px;
+  box-shadow: var(--panel-shadow-soft);
+}
+
+.panelScope :global(.business-panel-sidebar-membership span) {
+  color: var(--panel-muted);
+  font-weight: 500;
+}
+
+.panelScope :global(.business-panel-sidebar-membership strong) {
+  color: var(--panel-primary);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  font-weight: 700;
+}
+
+.panelScope :global(.business-panel-sidebar-membership button) {
+  min-height: 42px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  color: var(--panel-primary);
+  padding: 9px 10px;
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-section),
+.panelScope :global(.business-panel-recent-orders),
+.panelScope :global(.business-panel-membership-card),
+.panelScope :global(.panel-qr-card),
+.panelScope :global(.panel-order-card),
+.panelScope :global(.panel-product-card),
+.panelScope :global(.business-panel-form-group),
+.panelScope :global(.renewal-card) {
+  border-color: var(--panel-line);
+  background: var(--panel-card);
+  box-shadow: var(--panel-shadow-soft);
+}
+
+.panelScope :global(.business-panel-section) {
+  border-radius: 22px;
+  padding: 20px;
+}
+
+.panelScope :global(.business-panel-recent-orders),
+.panelScope :global(.business-panel-membership-card),
+.panelScope :global(.panel-qr-card),
+.panelScope :global(.business-panel-form-group),
+.panelScope :global(.renewal-card) {
+  border-radius: 18px;
+}
+
+.panelScope :global(.business-panel-recent-orders),
+.panelScope :global(.business-panel-membership-card) {
+  padding: 16px;
+}
+
+.panelScope :global(.business-panel-section-heading),
+.panelScope :global(.business-panel-card-heading) {
+  gap: 16px;
+}
+
+.panelScope :global(.business-panel-section-heading h2) {
+  color: var(--panel-dark);
+  font-size: clamp(22px, 4vw, 28px);
+  font-weight: 700;
+}
+
+.panelScope :global(.business-panel-card-heading h3),
+.panelScope :global(.business-panel-form-group-heading h3) {
+  color: var(--panel-dark);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-section-heading small),
+.panelScope :global(.business-panel-card-heading p),
+.panelScope :global(.business-panel-form-group-heading p),
+.panelScope :global(.business-panel-membership-card p) {
+  color: var(--panel-muted);
+  line-height: 1.5;
+}
+
+.panelScope :global(.business-panel-operations),
+.panelScope :global(.business-panel-quick-actions) {
+  gap: 12px;
+}
+
+.panelScope :global(.business-panel-operation-card) {
+  gap: 8px;
+  border-color: var(--panel-line);
+  border-radius: 18px;
+  background: #fbfdfb;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(17, 44, 30, 0.05);
+}
+
+.panelScope :global(.business-panel-operation-card.priority) {
+  border-color: rgba(9, 93, 39, 0.24);
+  background:
+    linear-gradient(135deg, rgba(220, 235, 199, 0.9), rgba(244, 245, 242, 0.72));
+}
+
+.panelScope :global(.business-panel-operation-card span),
+.panelScope :global(.business-panel-operation-card small) {
+  color: var(--panel-muted);
+  font-weight: 500;
+}
+
+.panelScope :global(.business-panel-operation-card strong) {
+  color: var(--panel-primary);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.panelScope :global(.business-panel-operation-card button) {
+  color: var(--panel-primary);
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-recent-order),
+.panelScope :global(.business-panel-quick-actions button) {
+  border-color: var(--panel-line);
+  border-radius: 16px;
+  background: #fbfdfb;
+  color: var(--panel-dark);
+}
+
+.panelScope :global(.business-panel-recent-order) {
+  padding: 12px;
+}
+
+.panelScope :global(.business-panel-recent-order.new),
+.panelScope :global(.business-panel-order-new) {
+  border-left-color: #2563eb;
+  background: #f7faff;
+}
+
+.panelScope :global(.business-panel-recent-order b) {
+  color: var(--panel-primary);
+}
+
+.panelScope :global(.business-panel-quick-actions button) {
+  min-height: 72px;
+  padding: 14px;
+}
+
+.panelScope :global(.business-panel-quick-actions span) {
+  color: var(--panel-muted);
+  line-height: 1.4;
+}
+
+.panelScope :global(.business-panel-inline-state),
+.panelScope :global(.empty-cart) {
+  border: 1px dashed var(--panel-line-strong);
+  border-radius: 16px;
+  background: #f8fbf9;
+  color: var(--panel-muted);
+  padding: 16px;
+  line-height: 1.5;
+}
+
+.panelScope :global(.business-panel-inline-state.error) {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+.panelScope :global(.panel-order-card),
+.panelScope :global(.panel-product-card) {
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.panelScope :global(.panel-order-row),
+.panelScope :global(.panel-compact-row) {
+  gap: 12px;
+  padding: 14px;
+}
+
+.panelScope :global(.panel-order-detail),
+.panelScope :global(.panel-compact-detail) {
+  gap: 16px;
+  border-top-color: var(--panel-line);
+  background: #fbfdfb;
+  padding: 16px;
+}
+
+.panelScope :global(.panel-order-detail-grid p),
+.panelScope :global(.panel-order-address),
+.panelScope :global(.panel-order-note),
+.panelScope :global(.panel-order-item),
+.panelScope :global(.info-grid) {
+  border-radius: 14px;
+}
+
+.panelScope :global(.panel-order-item),
+.panelScope :global(.info-grid) {
+  border-color: var(--panel-line);
+  background: var(--panel-card);
+}
+
+.panelScope :global(.panel-order-toggle),
+.panelScope :global(.panel-compact-toggle) {
+  border-radius: 999px;
+  background: rgba(220, 235, 199, 0.72);
+  color: var(--panel-primary);
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-order-filters),
+.panelScope :global(.panel-category-filter) {
+  gap: 8px;
+  scroll-padding-inline: 8px;
+}
+
+.panelScope :global(.business-panel-order-filters button),
+.panelScope :global(.panel-category-chip) {
+  min-height: 42px;
+  border-color: var(--panel-line-strong);
+  background: var(--panel-card);
+  color: var(--panel-dark);
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-order-filters button.active),
+.panelScope :global(.panel-category-chip.selected) {
+  border-color: var(--panel-primary);
+  background: var(--panel-primary);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(9, 93, 39, 0.16);
+}
+
+.panelScope :global(.business-panel-product-search) {
+  color: var(--panel-dark);
+  font-weight: 600;
+}
+
+.panelScope :global(.business-panel-form-group) {
+  gap: 16px;
+  background: #fbfdfb;
+  padding: 16px;
+}
+
+.panelScope :global(.panel-form) {
+  gap: 16px;
+}
+
+.panelScope :global(.panel-form .field) {
+  min-width: 0;
+  gap: 8px;
+  border-color: var(--panel-line);
+  border-radius: 16px;
+  background: var(--panel-card);
+  padding: 14px;
+}
+
+.panelScope :global(.field label),
+.panelScope :global(.field > span:first-child) {
+  color: var(--panel-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panelScope :global(.field input),
+.panelScope :global(.field select),
+.panelScope :global(.field textarea),
+.panelScope :global(.business-panel-product-search input),
+.panelScope :global(.panel-order-detail select) {
+  min-width: 0;
+  min-height: 46px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 12px;
+  background: var(--panel-card);
+  color: var(--panel-dark);
+  padding: 11px 13px;
+  font-size: 15px;
+  font-weight: 400;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.panelScope :global(.field textarea) {
+  min-height: 104px;
+  line-height: 1.5;
+}
+
+.panelScope :global(.field input[type="file"]) {
+  min-height: 50px;
+  padding: 9px;
+}
+
+.panelScope :global(.field input[type="checkbox"]),
+.panelScope :global(.field input[type="radio"]) {
+  min-height: 20px;
+  width: 20px;
+  accent-color: var(--panel-primary);
+}
+
+.panelScope :global(.field-help),
+.panelScope :global(.location-selector-note) {
+  color: var(--panel-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.panelScope :global(.business-panel-save-bar) {
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  gap: 8px;
+  border-color: var(--panel-line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.97);
+  padding: 12px;
+  box-shadow: 0 -12px 30px rgba(17, 44, 30, 0.11);
+  backdrop-filter: blur(18px);
+}
+
+.panelScope :global(.submit-button),
+.panelScope :global(.business-panel-primary-command),
+.panelScope :global(.business-panel-secondary-command),
+.panelScope :global(.business-panel-card-heading button),
+.panelScope :global(.business-panel-membership-card button),
+.panelScope :global(.panel-qr-actions button),
+.panelScope :global(.renewal-copy-row button) {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.panelScope :global(.submit-button),
+.panelScope :global(.panel-primary-action),
+.panelScope :global(.business-panel-primary-command) {
+  border: 1px solid var(--panel-primary);
+  background: var(--panel-primary);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(9, 93, 39, 0.16);
+}
+
+.panelScope :global(.panel-secondary-action),
+.panelScope :global(.business-panel-secondary-command),
+.panelScope :global(.business-panel-card-heading button),
+.panelScope :global(.business-panel-membership-card button),
+.panelScope :global(.panel-qr-actions button),
+.panelScope :global(.renewal-copy-row button) {
+  border: 1px solid var(--panel-line-strong);
+  background: var(--panel-card);
+  color: var(--panel-primary);
+  box-shadow: none;
+}
+
+.panelScope :global(.danger-button),
+.panelScope :global(.admin-actions .danger-button) {
+  border-color: #fecaca;
+  background: var(--panel-danger-soft);
+  color: var(--panel-danger);
+  box-shadow: none;
+}
+
+.panelScope :global(.admin-actions) {
+  gap: 8px;
+}
+
+.panelScope :global(.admin-actions button) {
+  min-height: 42px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 12px;
+  background: var(--panel-card);
+  color: var(--panel-primary);
+  padding: 9px 12px;
+  font-weight: 600;
+}
+
+.panelScope :global(.alert) {
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.panelScope :global(.alert.success) {
+  border-color: rgba(35, 145, 47, 0.24);
+  background: rgba(220, 235, 199, 0.5);
+  color: var(--panel-primary);
+}
+
+.panelScope :global(.panel-warning) {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #854d0e;
+}
+
+.panelScope :global(button:disabled),
+.panelScope :global(input:disabled),
+.panelScope :global(select:disabled),
+.panelScope :global(textarea:disabled) {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.panelScope
+  :where(
+    button,
+    a,
+    input,
+    select,
+    textarea
+  ):focus-visible {
+  outline: 3px solid var(--panel-focus);
+  outline-offset: 3px;
+}
+
+.panelScope :global(.field input:focus),
+.panelScope :global(.field select:focus),
+.panelScope :global(.field textarea:focus),
+.panelScope :global(.business-panel-product-search input:focus),
+.panelScope :global(.panel-order-detail select:focus) {
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 4px var(--panel-focus);
+}
+
+@media (hover: hover) {
+  .panelScope :global(.business-panel-nav button:hover),
+  .panelScope :global(.business-panel-logout:hover),
+  .panelScope :global(.business-panel-secondary-command:hover),
+  .panelScope :global(.business-panel-card-heading button:hover),
+  .panelScope :global(.business-panel-membership-card button:hover),
+  .panelScope :global(.panel-secondary-action:hover),
+  .panelScope :global(.panel-qr-actions button:hover),
+  .panelScope :global(.renewal-copy-row button:hover),
+  .panelScope :global(.admin-actions button:hover) {
+    border-color: var(--panel-accent);
+    background: rgba(220, 235, 199, 0.5);
+    color: var(--panel-primary);
+  }
+
+  .panelScope :global(.submit-button:hover),
+  .panelScope :global(.panel-primary-action:hover),
+  .panelScope :global(.business-panel-primary-command:hover) {
+    border-color: var(--panel-accent);
+    background: var(--panel-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(9, 93, 39, 0.2);
+  }
+
+  .panelScope :global(.business-panel-recent-order:hover),
+  .panelScope :global(.business-panel-quick-actions button:hover),
+  .panelScope :global(.panel-order-row:hover),
+  .panelScope :global(.panel-compact-row:hover) {
+    background: rgba(220, 235, 199, 0.34);
+  }
+}
+
+@media (min-width: 768px) {
+  .panelScope {
+    padding: 24px 20px 40px;
+  }
+
+  .panelScope :global(.business-panel-header) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 22px 24px;
+  }
+
+  .panelScope :global(.business-panel-logout) {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .panelScope :global(.business-panel-workspace) {
+    grid-template-columns: 192px minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .panelScope :global(.business-panel-sidebar) {
+    position: sticky;
+    top: 20px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .panelScope :global(.business-panel-nav) {
+    position: static;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    border: 1px solid var(--panel-line);
+    border-radius: 20px;
+    background: var(--panel-card);
+    padding: 10px;
+    box-shadow: var(--panel-shadow-soft);
+    backdrop-filter: none;
+  }
+
+  .panelScope :global(.business-panel-nav button) {
+    min-height: 46px;
+    padding: 10px 12px;
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .panelScope :global(.business-panel-nav-short) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-nav-long) {
+    display: inline;
+  }
+
+  .panelScope :global(.business-panel-nav-badge) {
+    top: 12px;
+    right: 10px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-membership) {
+    display: grid;
+  }
+
+  .panelScope :global(.business-panel-save-bar) {
+    position: static;
+    bottom: auto;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .panelScope :global(.business-panel-section) {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .panelScope {
+    padding: 28px 24px 48px;
+  }
+
+  .panelScope :global(.business-panel-header) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .panelScope :global(.business-panel-logout) {
+    grid-column: auto;
+  }
+
+  .panelScope :global(.business-panel-workspace) {
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .panelScope :global(.business-panel-workspace) {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .panelScope {
+    padding: 12px 10px calc(146px + env(safe-area-inset-bottom));
+  }
+
+  .panelScope :global(.business-panel-header) {
+    gap: 10px;
+    border-radius: 20px;
+    padding: 14px;
+  }
+
+  .panelScope :global(.business-panel-header-copy) {
+    gap: 3px;
+  }
+
+  .panelScope :global(.panel-platform-brand.platform-brand-public) {
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .panelScope
+    :global(.panel-platform-brand)
+    :global(.platform-brand-public-mark) {
+    width: 36px;
+  }
+
+  .panelScope
+    :global(.panel-platform-brand)
+    :global(.platform-brand-public-wordmark) {
+    font-size: clamp(21px, 6vw, 24px);
+  }
+
+  .panelScope :global(.business-panel-eyebrow) {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .panelScope :global(.business-panel-header-copy h1) {
+    margin-top: 1px;
+    font-size: clamp(21px, 6vw, 25px);
+    line-height: 1.12;
+  }
+
+  .panelScope :global(.business-panel-header-copy p) {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .panelScope :global(.business-panel-header-status) {
+    gap: 6px;
+  }
+
+  .panelScope :global(.business-panel-status-chip) {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .panelScope :global(.business-panel-logout) {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .panelScope :global(.business-panel-workspace) {
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .panelScope :global(.business-panel-content) {
+    gap: 14px;
+    padding-bottom: 10px;
+  }
+
+  .panelScope :global(.business-panel-section) {
+    padding: 16px;
+  }
+
+  .panelScope :global(.business-panel-section-heading) {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panelScope :global(.business-panel-section-heading > button) {
+    max-width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .panelScope
+    :global(.business-panel-operations > .business-panel-operation-card:last-child) {
+    grid-column: 1 / -1;
+  }
+
+  .panelScope :global(.business-panel-operation-card) {
+    min-height: 110px;
+    align-content: start;
+    gap: 4px;
+    padding: 12px;
+  }
+
+  .panelScope :global(.business-panel-operation-card strong) {
+    font-size: 26px;
+    line-height: 1.15;
+  }
+
+  .panelScope :global(.business-panel-order-filters),
+  .panelScope :global(.panel-category-filter) {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 2px 20px 8px 1px;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: 1px 20px;
+    scrollbar-color: transparent transparent;
+    scrollbar-width: none !important;
+    touch-action: pan-x;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 28px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 28px),
+      transparent 100%
+    );
+  }
+
+  .panelScope
+    :global(.business-panel-order-filters::-webkit-scrollbar),
+  .panelScope :global(.panel-category-filter::-webkit-scrollbar) {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent;
+  }
+
+  .panelScope
+    :global(.business-panel-order-filters::-webkit-scrollbar-track),
+  .panelScope
+    :global(.business-panel-order-filters::-webkit-scrollbar-thumb) {
+    border: 0;
+    background: transparent;
+  }
+
+  .panelScope :global(.business-panel-order-filters button),
+  .panelScope :global(.panel-category-chip) {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.panel-order-row) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px 12px;
+    padding: 12px;
+  }
+
+  .panelScope :global(.panel-order-main) {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .panelScope :global(.panel-order-meta) {
+    grid-column: 2;
+    min-width: 0;
+    justify-items: end;
+    text-align: right;
+  }
+
+  .panelScope :global(.panel-order-meta strong),
+  .panelScope :global(.panel-order-meta span) {
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.panel-order-row > .order-status-badge) {
+    grid-column: 1;
+    min-height: 28px;
+    align-self: center;
+    justify-self: start;
+    padding: 5px 9px;
+  }
+
+  .panelScope :global(.panel-order-toggle) {
+    grid-column: 2;
+    display: inline-flex;
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 40px;
+    align-self: center;
+    align-items: center;
+    flex: 0 0 auto;
+    justify-content: center;
+    justify-self: end;
+    border: 1px solid var(--panel-line-strong);
+    border-radius: 999px;
+    background: rgba(220, 235, 199, 0.72);
+    padding: 8px 12px;
+    text-align: center;
+  }
+
+  .panelScope :global(.panel-compact-row) {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .panelScope :global(.panel-compact-row .panel-product-thumb) {
+    grid-row: 1 / span 2;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  .panelScope :global(.panel-compact-main) {
+    grid-row: 1;
+    grid-column: 2 / -1;
+  }
+
+  .panelScope :global(.panel-compact-meta) {
+    grid-row: 2;
+    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .panelScope :global(.panel-compact-toggle) {
+    grid-row: 2;
+    grid-column: 3;
+    min-height: 38px;
+    align-self: center;
+    justify-self: end;
+    padding: 6px 10px;
+  }
+
+  .panelScope :global(.panel-product-status) {
+    min-height: 28px;
+    align-items: center;
+  }
+
+  .panelScope :global(.panel-form .field) {
+    max-width: 100%;
+    scroll-margin-bottom: calc(136px + env(safe-area-inset-bottom));
+  }
+
+  .panelScope
+    :global(.panel-form > .business-panel-form-group:last-of-type) {
+    margin-bottom: 58px;
+  }
+
+  .panelScope :global(.field input),
+  .panelScope :global(.field select),
+  .panelScope :global(.field textarea) {
+    max-width: 100%;
+  }
+
+  .panelScope :global(.business-panel-save-bar) {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    gap: 4px;
+    border-radius: 12px;
+    padding: 6px;
+  }
+
+  .panelScope :global(.business-panel-save-bar .submit-button) {
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .panelScope :global(.business-panel-nav) {
+    right: 6px;
+    bottom: 6px;
+    left: 6px;
+    gap: 3px;
+    border-radius: 18px;
+    padding: 5px 6px calc(5px + env(safe-area-inset-bottom));
+  }
+
+  .panelScope :global(.business-panel-nav button) {
+    min-height: 48px;
+    padding: 6px 2px;
+    font-size: 11px;
+    line-height: 1.15;
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.business-panel-nav-badge) {
+    top: 1px;
+    right: 3px;
+    max-width: 28px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 430px) {
+  .panelScope {
+    padding-inline: 10px;
+  }
+
+  .panelScope :global(.business-panel-header) {
+    padding: 13px;
+  }
+
+  .panelScope
+    :global(.panel-platform-brand)
+    :global(.platform-brand-public-wordmark) {
+    font-size: 21px;
+  }
+
+  .panelScope :global(.business-panel-status-chip) {
+    padding-inline: 7px;
+  }
+
+  .panelScope :global(.business-panel-nav button) {
+    font-size: 10.75px;
+  }
+
+  .panelScope :global(.business-panel-nav-badge) {
+    right: 2px;
+  }
+
+  .panelScope :global(.business-panel-operation-card),
+  .panelScope :global(.business-panel-form-group),
+  .panelScope :global(.panel-form .field) {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 370px) {
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panelScope
+    :global(.business-panel-operations > .business-panel-operation-card:last-child) {
+    grid-column: auto;
+  }
+
+  .panelScope :global(.business-panel-operation-card) {
+    min-height: 100px;
+  }
+}
+
+@media print {
+  .panelScope {
+    background: #fff;
+    color: #111;
+    padding: 0;
+  }
+}

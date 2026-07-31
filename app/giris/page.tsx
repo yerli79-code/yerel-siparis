@@ -8,6 +8,7 @@ import {
   getValidAccessToken,
   signInWithPassword,
 } from "../../lib/browser-auth-session";
+import styles from "./giris.module.css";
 
 const sessionKey = "yerel-siparis-business-session";
 
@@ -84,8 +85,8 @@ export default function LoginPage() {
 
   if (isCheckingSession) {
     return (
-      <main className="page">
-        <div className="shell section">
+      <main className={styles.loginPage}>
+        <div className={styles.loadingCard}>
           <p>Oturum kontrol ediliyor...</p>
         </div>
       </main>
@@ -93,27 +94,36 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="page auth-page">
-      <div className="shell auth-shell">
-        <header className="hero auth-hero">
-          <div className="hero-content auth-hero-content">
-            <PlatformBrand className="auth-platform-brand" onDark />
-            <Link className="eyebrow auth-back-link" href="/">
-              Ana sayfa
-            </Link>
+    <main className={styles.loginPage}>
+      <div className={styles.loginShell}>
+        <header className={styles.brandPanel}>
+          <Link className={styles.backLink} href="/">
+            <span aria-hidden="true">←</span>
+            Ana sayfaya dön
+          </Link>
+
+          <div className={styles.brandContent}>
+            <PlatformBrand className={styles.brand} publicVariant />
+            <span className={styles.eyebrow}>İşletme yönetim merkezi</span>
             <h1>İşletme Girişi</h1>
-            <p>İşletme panelinize erişmek için e-posta ve şifrenizle güvenli giriş yapın.</p>
+            <p>
+              İşletme panelinize erişmek için e-posta ve şifrenizle güvenli
+              giriş yapın.
+            </p>
           </div>
         </header>
 
-        <section className="section auth-card">
-          <div className="section-title auth-card-title">
-            <h2>Panel girişi</h2>
-            <span>Supabase Auth</span>
+        <section className={styles.formPanel}>
+          <div className={styles.formHeading}>
+            <div>
+              <span className={styles.formKicker}>Hesabınıza erişin</span>
+              <h2>Panel girişi</h2>
+            </div>
+            <span className={styles.securityBadge}>Güvenli giriş</span>
           </div>
 
-          <form className="customer-form auth-form" onSubmit={handleSubmit}>
-            <div className="field">
+          <form className={styles.loginForm} onSubmit={handleSubmit}>
+            <div className={styles.field}>
               <label htmlFor="email">E-posta</label>
               <input
                 autoComplete="email"
@@ -125,7 +135,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="field">
+            <div className={styles.field}>
               <label htmlFor="password">Şifre</label>
               <input
                 autoComplete="current-password"
@@ -136,12 +146,16 @@ export default function LoginPage() {
               />
             </div>
 
-            {error ? <p className="alert">{error}</p> : null}
+            {error ? <p className={styles.alert}>{error}</p> : null}
 
-            <button className="submit-button auth-primary-action" disabled={isLoading} type="submit">
+            <button
+              className={styles.primaryAction}
+              disabled={isLoading}
+              type="submit"
+            >
               {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}
             </button>
-            <Link className="link-button auth-secondary-link" href="/sifre-yenile">
+            <Link className={styles.secondaryLink} href="/sifre-yenile">
               Şifremi unuttum
             </Link>
           </form>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import LocationSelector from "../../components/LocationSelector";
 import PlatformBrand from "../../components/PlatformBrand";
+import styles from "./panel.module.css";
 import {
   getProductCategories,
   isStandardProductCategory,
@@ -1041,7 +1042,7 @@ export default function PanelPage() {
 
   if (isLoading) {
     return (
-      <main className="page">
+      <main className={`page ${styles.panelScope}`}>
         <div className="shell section">
           <p>Panel yükleniyor...</p>
         </div>
@@ -1050,11 +1051,13 @@ export default function PanelPage() {
   }
 
   return (
-    <main className="page panel-qr-print-root business-panel-page">
+    <main
+      className={`page panel-qr-print-root business-panel-page ${styles.panelScope}`}
+    >
       <div className="shell business-panel-shell">
         <header className="business-panel-header">
           <div className="business-panel-header-copy">
-            <PlatformBrand className="panel-platform-brand" />
+            <PlatformBrand className="panel-platform-brand" publicVariant />
             <span className="business-panel-eyebrow">İşletme Paneli</span>
             <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
             <p>Günlük siparişlerinizi ve işletmenizi tek ekrandan yönetin.</p>
@@ -1894,7 +1897,7 @@ export default function PanelPage() {
                 </div>
 
                 <div className="field">
-                  <label htmlFor="businessCoverUrl">Kapak g?rseli URL</label>
+                  <label htmlFor="businessCoverUrl">Kapak görseli URL</label>
                   {profileForm.coverImageUrl ? (
                     <img
                       alt="İşletme kapak görseli"
@@ -1986,7 +1989,8 @@ export default function PanelPage() {
 
               {!canManageProducts ? (
                 <p className="alert panel-warning">
-                  Aboneli?iniz aktif de?il. ?r?n ekleme ve d?zenleme i?lemleri kapal?..
+                  Aboneliğiniz aktif değil. Ürün ekleme ve düzenleme işlemleri
+                  kapalıdır.
                 </p>
               ) : null}
 
