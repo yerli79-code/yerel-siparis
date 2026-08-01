@@ -409,6 +409,16 @@
   color: #991b1b;
 }
 
+.panelScope :global(.panel-orders-error) {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.panelScope :global(.panel-orders-error p) {
+  margin: 0;
+}
+
 .panelScope :global(.panel-order-card),
 .panelScope :global(.panel-product-card) {
   overflow: hidden;

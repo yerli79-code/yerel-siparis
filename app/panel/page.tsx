@@ -325,6 +325,7 @@ export default function PanelPage() {
     useState<OrderStatus | "all">("all");
   const [expandedOrderId, setExpandedOrderId] = useState("");
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
   const [isLoadingOverviewOrders, setIsLoadingOverviewOrders] = useState(false);
   const [overviewOrdersError, setOverviewOrdersError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState("");
@@ -538,18 +539,20 @@ export default function PanelPage() {
     if (!token) return;
 
     setIsLoadingOrders(true);
+    setOrdersError("");
     try {
       const freshOrders = await fetchBusinessOrders(
         token,
         statusFilter === "all" ? undefined : statusFilter,
       );
       setOrders(freshOrders);
+      setOrdersError("");
       if (statusFilter === "all") {
         setOverviewOrders(freshOrders);
         setOverviewOrdersError("");
       }
     } catch (caughtError) {
-      setError(
+      setOrdersError(
         caughtError instanceof Error
           ? caughtError.message
           : "Siparişler yüklenirken bir hata oluştu.",
@@ -1398,10 +1401,28 @@ export default function PanelPage() {
                   </button>
                 </div>
 
+                {!isLoadingOrders && ordersError ? (
+                  <div
+                    className="business-panel-inline-state error panel-orders-error"
+                    role="alert"
+                  >
+                    <p>{ordersError}</p>
+                    <button
+                      className="submit-button panel-secondary-action"
+                      type="button"
+                      onClick={() => refreshOrders()}
+                    >
+                      Tekrar dene
+                    </button>
+                  </div>
+                ) : null}
+
                 {isLoadingOrders ? (
                   <p className="empty-cart">Siparişler yükleniyor...</p>
                 ) : orders.length === 0 ? (
-                  <p className="empty-cart">Henüz sipariş yok.</p>
+                  ordersError ? null : (
+                    <p className="empty-cart">Henüz sipariş yok.</p>
+                  )
                 ) : (
                   <div className="panel-order-list">
                     {orders.map((order) => {
