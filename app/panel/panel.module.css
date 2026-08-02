@@ -328,6 +328,11 @@
   gap: 12px;
 }
 
+.panelScope :global(.business-panel-summary-area) {
+  display: grid;
+  gap: 12px;
+}
+
 .panelScope :global(.business-panel-operation-card) {
   gap: 8px;
   border-color: var(--panel-line);
@@ -407,6 +412,25 @@
   border-color: #fecaca;
   background: #fff1f2;
   color: #991b1b;
+}
+
+.panelScope :global(.business-panel-summary-error) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.panelScope :global(.business-panel-summary-error button) {
+  min-height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff;
+  color: #991b1b;
+  padding: 8px 12px;
+  font-weight: 700;
 }
 
 .panelScope :global(.panel-orders-error) {
@@ -788,6 +812,10 @@
   .panelScope :global(.business-panel-section) {
     padding: 24px;
   }
+
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1024px) {
@@ -806,6 +834,10 @@
   .panelScope :global(.business-panel-workspace) {
     grid-template-columns: 216px minmax(0, 1fr);
     gap: 24px;
+  }
+
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -906,11 +938,6 @@
   .panelScope :global(.business-panel-operations) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-  }
-
-  .panelScope
-    :global(.business-panel-operations > .business-panel-operation-card:last-child) {
-    grid-column: 1 / -1;
   }
 
   .panelScope :global(.business-panel-operation-card) {
@@ -1144,6 +1171,11 @@
     padding-inline: 7px;
   }
 
+  .panelScope :global(.business-panel-summary-error) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .panelScope :global(.business-panel-nav button) {
     font-size: 10.75px;
   }
@@ -1162,11 +1194,6 @@
 @media (max-width: 370px) {
   .panelScope :global(.business-panel-operations) {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .panelScope
-    :global(.business-panel-operations > .business-panel-operation-card:last-child) {
-    grid-column: auto;
   }
 
   .panelScope :global(.business-panel-operation-card) {

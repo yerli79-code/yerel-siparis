@@ -24,6 +24,11 @@ import {
   getValidAccessToken,
 } from "../../lib/browser-auth-session";
 import {
+  businessDashboardSummaryErrorMessage,
+  fetchBusinessDashboardSummary,
+  type BusinessDashboardSummary,
+} from "../../lib/business-dashboard-summary";
+import {
   createProduct,
   deleteProduct,
   fetchProductsByBusinessId,
@@ -329,6 +334,10 @@ export default function PanelPage() {
   const [ordersError, setOrdersError] = useState("");
   const [isLoadingOverviewOrders, setIsLoadingOverviewOrders] = useState(false);
   const [overviewOrdersError, setOverviewOrdersError] = useState("");
+  const [dashboardSummary, setDashboardSummary] =
+    useState<BusinessDashboardSummary | null>(null);
+  const [dashboardSummaryLoading, setDashboardSummaryLoading] = useState(true);
+  const [dashboardSummaryError, setDashboardSummaryError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [showRenewalInfo, setShowRenewalInfo] = useState(false);
   const [customerOrderUrl, setCustomerOrderUrl] = useState("");
@@ -403,9 +412,8 @@ export default function PanelPage() {
   const passiveProductCount = products.length - activeProductCount;
   const isProductOrderingFiltered =
     Boolean(productSearch.trim()) || selectedCategoryFilter !== "Tüm ürünler";
-  const newOrderCount = overviewOrders.filter((order) => order.status === "new").length;
-  const activeOrderCount = overviewOrders.filter(
-    (order) => order.status === "preparing" || order.status === "ready",
+  const newOrderCount = overviewOrders.filter(
+    (order) => order.status === "new",
   ).length;
   const recentOrders = overviewOrders.slice(0, 3);
 
@@ -527,6 +535,41 @@ export default function PanelPage() {
     };
   }, [business?.id, isLoading]);
 
+  useEffect(() => {
+    if (isLoading || !business) return;
+
+    let isCancelled = false;
+    void refreshDashboardSummary(() => isCancelled);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [business?.id, isLoading]);
+
+  async function refreshDashboardSummary(
+    shouldIgnoreResult: () => boolean = () => false,
+  ) {
+    setDashboardSummaryLoading(true);
+    setDashboardSummaryError("");
+
+    try {
+      const token = await getFreshAccessToken();
+      if (!token || shouldIgnoreResult()) return;
+
+      const summary = await fetchBusinessDashboardSummary(token);
+      if (shouldIgnoreResult()) return;
+
+      setDashboardSummary(summary);
+      setDashboardSummaryError("");
+    } catch {
+      if (!shouldIgnoreResult()) {
+        setDashboardSummaryError(businessDashboardSummaryErrorMessage);
+      }
+    } finally {
+      if (!shouldIgnoreResult()) setDashboardSummaryLoading(false);
+    }
+  }
+
   async function refreshProducts() {
     if (!business) return;
     const token = await getFreshAccessToken();
@@ -577,6 +620,7 @@ export default function PanelPage() {
       );
       setMessage("Sipariş durumu güncellendi.");
       await refreshOrders();
+      await refreshDashboardSummary();
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -1175,24 +1219,54 @@ export default function PanelPage() {
                   </span>
                 </div>
 
-                <div className="business-panel-operations">
-                  <div className="business-panel-operation-card priority">
-                    <span>Yeni sipariş</span>
-                    <strong>{newOrderCount}</strong>
-                    <button type="button" onClick={() => openOrdersFromOverview()}>
-                      Siparişleri aç
-                    </button>
+                <div
+                  aria-busy={dashboardSummaryLoading}
+                  className="business-panel-summary-area"
+                >
+                  <div className="business-panel-operations">
+                    <div className="business-panel-operation-card priority">
+                      <span>Bugünkü sipariş</span>
+                      <strong>{dashboardSummary?.orders.total ?? "—"}</strong>
+                      <small>İptaller dahil</small>
+                    </div>
+                    <div className="business-panel-operation-card">
+                      <span>Bekleyen sipariş</span>
+                      <strong>{dashboardSummary?.orders.pending ?? "—"}</strong>
+                      <small>Yeni, hazırlanıyor ve hazır</small>
+                    </div>
+                    <div className="business-panel-operation-card">
+                      <span>Tamamlanan sipariş</span>
+                      <strong>{dashboardSummary?.orders.delivered ?? "—"}</strong>
+                      <small>Teslim edilen</small>
+                    </div>
+                    <div className="business-panel-operation-card">
+                      <span>Günlük ciro</span>
+                      <strong>
+                        {dashboardSummary
+                          ? formatPrice(dashboardSummary.revenue.delivered)
+                          : "—"}
+                      </strong>
+                      <small>Teslim edilen siparişler</small>
+                    </div>
                   </div>
-                  <div className="business-panel-operation-card">
-                    <span>Hazırlanan / hazır</span>
-                    <strong>{activeOrderCount}</strong>
-                    <small>Aktif sipariş akışı</small>
-                  </div>
-                  <div className="business-panel-operation-card">
-                    <span>Aktif ürün</span>
-                    <strong>{activeProductCount}</strong>
-                    <small>{products.length} toplam ürün</small>
-                  </div>
+
+                  {dashboardSummaryError ? (
+                    <div
+                      className="business-panel-inline-state error business-panel-summary-error"
+                      role="alert"
+                    >
+                      <span>{dashboardSummaryError}</span>
+                      <button
+                        disabled={dashboardSummaryLoading}
+                        type="button"
+                        onClick={() => void refreshDashboardSummary()}
+                      >
+                        {dashboardSummaryLoading
+                          ? "Yeniden deneniyor..."
+                          : "Tekrar dene"}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 <section className="business-panel-recent-orders">
