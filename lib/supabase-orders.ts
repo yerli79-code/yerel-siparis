@@ -86,6 +86,32 @@ export type BusinessOrder = {
   items: BusinessOrderItem[];
 };
 
+export type BusinessOrderPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
+export type BusinessOrderPageQuery = {
+  status?: OrderStatus;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page: number;
+  pageSize: number;
+};
+
+export type BusinessOrderPageResult = {
+  orders: BusinessOrder[];
+  pagination: BusinessOrderPagination;
+};
+
+export const businessOrdersLoadErrorMessage =
+  "Siparişler yüklenirken bir hata oluştu.";
+
 const publicOrderTimeoutMs = 20000;
 
 async function parsePublicOrderResponse(response: Response) {
@@ -207,6 +233,66 @@ export async function fetchBusinessOrders(
   const body = (await parseApiResponse(response)) as { orders?: BusinessOrder[] };
 
   return Array.isArray(body.orders) ? body.orders : [];
+}
+
+function isPositiveSafeInteger(value: unknown) {
+  return Number.isSafeInteger(value) && Number(value) > 0;
+}
+
+function isNonNegativeSafeInteger(value: unknown) {
+  return Number.isSafeInteger(value) && Number(value) >= 0;
+}
+
+function isBusinessOrderPageResult(
+  value: unknown,
+): value is BusinessOrderPageResult {
+  if (!value || typeof value !== "object") return false;
+
+  const result = value as Partial<BusinessOrderPageResult>;
+  const pagination = result.pagination as
+    | Partial<BusinessOrderPagination>
+    | undefined;
+
+  return (
+    Array.isArray(result.orders) &&
+    Boolean(pagination) &&
+    isPositiveSafeInteger(pagination?.page) &&
+    isPositiveSafeInteger(pagination?.pageSize) &&
+    isNonNegativeSafeInteger(pagination?.total) &&
+    isPositiveSafeInteger(pagination?.totalPages) &&
+    typeof pagination?.hasPreviousPage === "boolean" &&
+    typeof pagination?.hasNextPage === "boolean"
+  );
+}
+
+export async function fetchBusinessOrdersPage(
+  accessToken: string,
+  query: BusinessOrderPageQuery,
+) {
+  const params = new URLSearchParams();
+  if (query.status) params.set("status", query.status);
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  if (query.dateFrom) params.set("dateFrom", query.dateFrom);
+  if (query.dateTo) params.set("dateTo", query.dateTo);
+  params.set("page", String(query.page));
+  params.set("pageSize", String(query.pageSize));
+
+  try {
+    const response = await fetch(`/api/business/orders?${params.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const body = await parseApiResponse(response);
+
+    if (!isBusinessOrderPageResult(body)) {
+      throw new Error("InvalidBusinessOrderPageResponse");
+    }
+
+    return body;
+  } catch {
+    throw new Error(businessOrdersLoadErrorMessage);
+  }
 }
 
 export async function updateBusinessOrderStatus(

@@ -7,5 +7,8 @@ export async function GET(request: Request) {
   const result = await fetchBusinessOrdersForUser(request);
   if ("response" in result) return result.response;
 
-  return NextResponse.json({ orders: result.orders });
+  return NextResponse.json({
+    orders: result.orders,
+    pagination: result.pagination,
+  });
 }

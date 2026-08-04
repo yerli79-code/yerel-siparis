@@ -46,9 +46,13 @@ import {
   type ProductInput,
 } from "../../lib/supabase-business";
 import {
+  businessOrdersLoadErrorMessage,
   fetchBusinessOrders,
+  fetchBusinessOrdersPage,
   updateBusinessOrderStatus,
   type BusinessOrder,
+  type BusinessOrderPageQuery,
+  type BusinessOrderPagination,
   type OrderStatus,
 } from "../../lib/supabase-orders";
 
@@ -70,6 +74,15 @@ const orderStatusOptions = Object.entries(orderStatusLabels) as [
   OrderStatus,
   string,
 ][];
+
+const initialOrderPagination: BusinessOrderPagination = {
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 1,
+  hasPreviousPage: false,
+  hasNextPage: false,
+};
 
 type ProductForm = {
   name: string;
@@ -329,6 +342,16 @@ export default function PanelPage() {
   const [productSearch, setProductSearch] = useState("");
   const [selectedOrderStatusFilter, setSelectedOrderStatusFilter] =
     useState<OrderStatus | "all">("all");
+  const [orderSearchDraft, setOrderSearchDraft] = useState("");
+  const [orderDateFromDraft, setOrderDateFromDraft] = useState("");
+  const [orderDateToDraft, setOrderDateToDraft] = useState("");
+  const [appliedOrderSearch, setAppliedOrderSearch] = useState("");
+  const [appliedOrderDateFrom, setAppliedOrderDateFrom] = useState("");
+  const [appliedOrderDateTo, setAppliedOrderDateTo] = useState("");
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderPageSize, setOrderPageSize] = useState(20);
+  const [orderPagination, setOrderPagination] =
+    useState<BusinessOrderPagination>(initialOrderPagination);
   const [expandedOrderId, setExpandedOrderId] = useState("");
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState("");
@@ -416,6 +439,17 @@ export default function PanelPage() {
     (order) => order.status === "new",
   ).length;
   const recentOrders = overviewOrders.slice(0, 3);
+  const activeOrderQuery: BusinessOrderPageQuery = {
+    status:
+      selectedOrderStatusFilter === "all"
+        ? undefined
+        : selectedOrderStatusFilter,
+    search: appliedOrderSearch || undefined,
+    dateFrom: appliedOrderDateFrom || undefined,
+    dateTo: appliedOrderDateTo || undefined,
+    page: orderPage,
+    pageSize: orderPageSize,
+  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -578,29 +612,37 @@ export default function PanelPage() {
     setProducts(freshProducts);
   }
 
-  async function refreshOrders(statusFilter = selectedOrderStatusFilter) {
+  async function refreshOrders(query: BusinessOrderPageQuery) {
     const token = await getFreshAccessToken();
     if (!token) return;
 
     setIsLoadingOrders(true);
     setOrdersError("");
     try {
-      const freshOrders = await fetchBusinessOrders(
-        token,
-        statusFilter === "all" ? undefined : statusFilter,
-      );
-      setOrders(freshOrders);
-      setOrdersError("");
-      if (statusFilter === "all") {
-        setOverviewOrders(freshOrders);
-        setOverviewOrdersError("");
+      let result = await fetchBusinessOrdersPage(token, query);
+
+      if (
+        result.orders.length === 0 &&
+        result.pagination.total > 0 &&
+        query.page > result.pagination.totalPages
+      ) {
+        result = await fetchBusinessOrdersPage(token, {
+          ...query,
+          page: result.pagination.totalPages,
+        });
       }
-    } catch (caughtError) {
-      setOrdersError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Siparişler yüklenirken bir hata oluştu.",
+
+      setOrders(result.orders);
+      setOrderPage(result.pagination.page);
+      setOrderPagination(result.pagination);
+      setExpandedOrderId((currentOrderId) =>
+        result.orders.some((order) => order.id === currentOrderId)
+          ? currentOrderId
+          : "",
       );
+      setOrdersError("");
+    } catch {
+      setOrdersError(businessOrdersLoadErrorMessage);
     } finally {
       setIsLoadingOrders(false);
     }
@@ -619,8 +661,8 @@ export default function PanelPage() {
         current.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
       );
       setMessage("Sipariş durumu güncellendi.");
-      await refreshOrders();
-      await refreshDashboardSummary();
+      void refreshDashboardSummary();
+      await refreshOrders(activeOrderQuery);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -633,11 +675,94 @@ export default function PanelPage() {
   }
 
   function changeOrderStatusFilter(statusFilter: OrderStatus | "all") {
+    if (isLoadingOrders) return;
+
     setSelectedOrderStatusFilter(statusFilter);
+    setOrderPage(1);
     setExpandedOrderId("");
     if (activePanelSection === "orders") {
-      void refreshOrders(statusFilter);
+      void refreshOrders({
+        ...activeOrderQuery,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        page: 1,
+      });
     }
+  }
+
+  function applyOrderFilters() {
+    if (isLoadingOrders) return;
+
+    const nextSearch = orderSearchDraft.trim();
+    const nextDateFrom = orderDateFromDraft;
+    const nextDateTo = orderDateToDraft;
+
+    setAppliedOrderSearch(nextSearch);
+    setAppliedOrderDateFrom(nextDateFrom);
+    setAppliedOrderDateTo(nextDateTo);
+    setOrderPage(1);
+    setExpandedOrderId("");
+    void refreshOrders({
+      ...activeOrderQuery,
+      search: nextSearch || undefined,
+      dateFrom: nextDateFrom || undefined,
+      dateTo: nextDateTo || undefined,
+      page: 1,
+    });
+  }
+
+  function clearOrderFilters() {
+    if (isLoadingOrders) return;
+
+    setOrderSearchDraft("");
+    setOrderDateFromDraft("");
+    setOrderDateToDraft("");
+    setAppliedOrderSearch("");
+    setAppliedOrderDateFrom("");
+    setAppliedOrderDateTo("");
+    setSelectedOrderStatusFilter("all");
+    setOrderPage(1);
+    setExpandedOrderId("");
+    void refreshOrders({
+      page: 1,
+      pageSize: orderPageSize,
+    });
+  }
+
+  function changeOrderPageSize(pageSize: number) {
+    if (isLoadingOrders || ![10, 20, 50].includes(pageSize)) return;
+
+    setOrderPageSize(pageSize);
+    setOrderPage(1);
+    setExpandedOrderId("");
+    void refreshOrders({
+      ...activeOrderQuery,
+      page: 1,
+      pageSize,
+    });
+  }
+
+  function changeOrderPage(page: number) {
+    if (
+      isLoadingOrders ||
+      !Number.isSafeInteger(page) ||
+      page < 1 ||
+      page > orderPagination.totalPages ||
+      page === orderPage
+    ) {
+      return;
+    }
+
+    setOrderPage(page);
+    setExpandedOrderId("");
+    void refreshOrders({
+      ...activeOrderQuery,
+      page,
+    });
+  }
+
+  function refreshActiveOrders() {
+    if (isLoadingOrders) return;
+    void refreshOrders(activeOrderQuery);
   }
 
   function toggleOrderDetails(orderId: string) {
@@ -745,7 +870,7 @@ export default function PanelPage() {
     setError("");
     setMessage("");
     if (section === "orders") {
-      void refreshOrders();
+      void refreshOrders(activeOrderQuery);
     }
   }
 
@@ -756,7 +881,12 @@ export default function PanelPage() {
     setActivePanelSection("orders");
     setError("");
     setMessage("");
-    void refreshOrders("all");
+    setOrderPage(1);
+    void refreshOrders({
+      ...activeOrderQuery,
+      status: undefined,
+      page: 1,
+    });
   }
 
   function validateForm() {
@@ -1439,6 +1569,11 @@ export default function PanelPage() {
 
             {activePanelSection === "orders" ? (
               <PanelOrders
+                appliedDateFrom={appliedOrderDateFrom}
+                appliedDateTo={appliedOrderDateTo}
+                appliedSearch={appliedOrderSearch}
+                dateFromDraft={orderDateFromDraft}
+                dateToDraft={orderDateToDraft}
                 expandedOrderId={expandedOrderId}
                 formatDateTime={formatDateTime}
                 formatPrice={formatPrice}
@@ -1446,11 +1581,21 @@ export default function PanelPage() {
                 isLoadingOrders={isLoadingOrders}
                 orders={orders}
                 ordersError={ordersError}
+                pagination={orderPagination}
+                pageSize={orderPageSize}
                 orderStatusLabels={orderStatusLabels}
                 orderStatusOptions={orderStatusOptions}
+                searchDraft={orderSearchDraft}
                 selectedOrderStatusFilter={selectedOrderStatusFilter}
                 updatingOrderId={updatingOrderId}
-                onRefreshOrders={refreshOrders}
+                onApplyFilters={applyOrderFilters}
+                onClearFilters={clearOrderFilters}
+                onDateFromDraftChange={setOrderDateFromDraft}
+                onDateToDraftChange={setOrderDateToDraft}
+                onPageChange={changeOrderPage}
+                onPageSizeChange={changeOrderPageSize}
+                onRefreshOrders={refreshActiveOrders}
+                onSearchDraftChange={setOrderSearchDraft}
                 onStatusFilterChange={changeOrderStatusFilter}
                 onToggleOrderDetails={toggleOrderDetails}
                 onUpdateOrderStatus={changeOrderStatus}
