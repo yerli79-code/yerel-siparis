@@ -3694,6 +3694,37 @@ img.public-order-product-image {
   margin-bottom: 12px;
 }
 
+.public-order-cart-section .public-order-checkout-section-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.public-order-clear-cart-button {
+  min-height: 40px;
+  max-width: 100%;
+  border: 1px solid rgba(185, 28, 28, 0.24);
+  border-radius: 10px;
+  background: rgba(254, 242, 242, 0.9);
+  color: #991b1b;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.public-order-clear-cart-button:hover:not(:disabled) {
+  border-color: rgba(185, 28, 28, 0.42);
+  background: #fee2e2;
+}
+
+.public-order-clear-cart-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .public-order-checkout-section-heading h2,
 .public-order-type-field > h2,
 .public-order-payment-field legend,

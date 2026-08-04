@@ -40,6 +40,13 @@ import {
   fetchPublicProductsByBusinessSlug,
   type BusinessProduct,
 } from "../../../lib/supabase-business";
+import {
+  PUBLIC_CART_MAX_QUANTITY,
+  clearPublicCart,
+  getPublicCartStorageKey,
+  persistPublicCart,
+  readPublicCart,
+} from "../../../lib/public-cart-storage";
 
 type SavedCustomerDetails = Pick<Customer, "fullName" | "phone" | "address">;
 
@@ -271,6 +278,10 @@ export default function PublicBusinessPageClient({
   const [supabaseCatalog, setSupabaseCatalog] = useState<ProductCatalog | null>(
     null,
   );
+  const [isCatalogLoaded, setIsCatalogLoaded] = useState(false);
+  const [restoredCartStorageKey, setRestoredCartStorageKey] = useState<
+    string | null
+  >(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [orderType, setOrderType] = useState<OrderType>("delivery");
@@ -295,6 +306,8 @@ export default function PublicBusinessPageClient({
   const activeOrderRequestRef = useRef<PendingOrderAttempt | null>(null);
   const isRecordingOrderRef = useRef(false);
   const checkoutHistoryEntryRef = useRef(false);
+  const cartInteractedBeforeRestoreRef = useRef(false);
+  const skipNextCartPersistenceRef = useRef(false);
 
   const returnToMenu = useCallback(() => {
     checkoutHistoryEntryRef.current = false;
@@ -322,6 +335,11 @@ export default function PublicBusinessPageClient({
     let isCancelled = false;
 
     setSupabaseCatalog(null);
+    setIsCatalogLoaded(false);
+    setRestoredCartStorageKey(null);
+    cartInteractedBeforeRestoreRef.current = false;
+    skipNextCartPersistenceRef.current = false;
+    setCart([]);
     setPaymentMethod("");
     setPaymentMethodError("");
 
@@ -340,6 +358,8 @@ export default function PublicBusinessPageClient({
         );
       } catch {
         if (!isCancelled) setSupabaseCatalog(null);
+      } finally {
+        if (!isCancelled) setIsCatalogLoaded(true);
       }
     }
 
@@ -418,6 +438,36 @@ export default function PublicBusinessPageClient({
   const catalog = supabaseCatalog ?? fallbackCatalog;
   const categories = catalog.categories;
   const allProducts = catalog.products;
+
+  useEffect(() => {
+    if (!isCatalogLoaded) return;
+
+    const storageKey = getPublicCartStorageKey(slug);
+    const restoredCart = readPublicCart(window.localStorage, slug, allProducts);
+    const preservePreRestoreCart = cartInteractedBeforeRestoreRef.current;
+    skipNextCartPersistenceRef.current = !preservePreRestoreCart;
+    setCart((currentCart) => {
+      if (!preservePreRestoreCart) return restoredCart;
+
+      const currentQuantityByProductId = new Map(
+        currentCart.map((item) => [item.id, item.quantity] as const),
+      );
+      return allProducts.flatMap((product) => {
+        const quantity = currentQuantityByProductId.get(product.id);
+        return quantity ? [{ ...product, quantity }] : [];
+      });
+    });
+    setRestoredCartStorageKey(storageKey);
+  }, [allProducts, isCatalogLoaded, slug]);
+
+  useEffect(() => {
+    if (restoredCartStorageKey !== getPublicCartStorageKey(slug)) return;
+    if (skipNextCartPersistenceRef.current) {
+      skipNextCartPersistenceRef.current = false;
+      return;
+    }
+    persistPublicCart(window.localStorage, slug, cart);
+  }, [cart, restoredCartStorageKey, slug]);
 
   useEffect(() => {
     if (
@@ -554,6 +604,7 @@ export default function PublicBusinessPageClient({
     cart.length === 0 ||
     !isOrderingOpen ||
     Boolean(minimumOrderWarning) ||
+    orderRecoveryMode === "saved" ||
     isRecordingOrder;
 
   function clearPendingOrderAttempt() {
@@ -571,6 +622,27 @@ export default function PublicBusinessPageClient({
     clearPendingOrderAttempt();
   }
 
+  function clearCart() {
+    if (
+      cart.length === 0 ||
+      !isOrderingOpen ||
+      isRecordingOrderRef.current ||
+      orderRecoveryMode === "saved"
+    ) {
+      return;
+    }
+
+    const shouldClearCart = window.confirm(
+      "Sepetinizdeki tüm ürünler kaldırılacak. Devam etmek istiyor musunuz?",
+    );
+    if (!shouldClearCart) return;
+
+    cartInteractedBeforeRestoreRef.current = true;
+    clearPendingOrderAttempt();
+    clearPublicCart(window.localStorage, slug);
+    setCart([]);
+  }
+
   function addToCart(product: Product) {
     if (isRecordingOrderRef.current) return;
     if (!isOrderingOpen) {
@@ -579,11 +651,20 @@ export default function PublicBusinessPageClient({
     }
     setWarning("");
     clearPendingOrderAttempt();
+    cartInteractedBeforeRestoreRef.current = true;
     setCart((items) => {
       const existing = items.find((item) => item.id === product.id);
       if (!existing) return [...items, { ...product, quantity: 1 }];
       return items.map((item) =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+        item.id === product.id
+          ? {
+              ...item,
+              quantity: Math.min(
+                item.quantity + 1,
+                PUBLIC_CART_MAX_QUANTITY,
+              ),
+            }
+          : item,
       );
     });
   }
@@ -596,6 +677,7 @@ export default function PublicBusinessPageClient({
     }
     setWarning("");
     clearPendingOrderAttempt();
+    cartInteractedBeforeRestoreRef.current = true;
     setCart((items) =>
       items
         .map((item) =>
@@ -613,9 +695,18 @@ export default function PublicBusinessPageClient({
     }
     setWarning("");
     clearPendingOrderAttempt();
+    cartInteractedBeforeRestoreRef.current = true;
     setCart((items) =>
       items.map((item) =>
-        item.id === productId ? { ...item, quantity: item.quantity + 1 } : item,
+        item.id === productId
+          ? {
+              ...item,
+              quantity: Math.min(
+                item.quantity + 1,
+                PUBLIC_CART_MAX_QUANTITY,
+              ),
+            }
+          : item,
       ),
     );
   }
@@ -865,6 +956,7 @@ export default function PublicBusinessPageClient({
         );
       }
       pendingOrderAttemptRef.current = null;
+      clearPublicCart(window.localStorage, slug);
       setWarning("");
       const whatsappOpened = sendWhatsAppMessage(
         createMessage(attempt, result.orderNumber),
@@ -876,6 +968,8 @@ export default function PublicBusinessPageClient({
         setOrderRecordWarning(
           "Sipariş kaydedildi. WhatsApp penceresini açmak için aşağıdaki butonu kullanın.",
         );
+      } else {
+        setCart([]);
       }
     } catch (error) {
       preparedWhatsAppWindow?.close();
@@ -950,6 +1044,7 @@ export default function PublicBusinessPageClient({
         );
       }
       pendingOrderAttemptRef.current = null;
+      clearPublicCart(window.localStorage, slug);
       setOrderRecoveryMode("saved");
       setVerifiedWhatsAppMessage(createMessage(attempt, result.orderNumber));
       setOrderRecordWarning(
@@ -1053,6 +1148,7 @@ export default function PublicBusinessPageClient({
             rememberCustomerDetails={rememberCustomerDetails}
             total={total}
             warning={warning}
+            onClearCart={clearCart}
             onClearSavedCustomerDetails={clearSavedCustomerDetails}
             onCloseCheckout={closeCheckout}
             onDecreaseItem={decrease}
