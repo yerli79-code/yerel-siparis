@@ -624,11 +624,11 @@ export default function PanelPage() {
       if (
         result.orders.length === 0 &&
         result.pagination.total > 0 &&
-        query.page > 1
+        query.page > result.pagination.totalPages
       ) {
         result = await fetchBusinessOrdersPage(token, {
           ...query,
-          page: query.page - 1,
+          page: result.pagination.totalPages,
         });
       }
 

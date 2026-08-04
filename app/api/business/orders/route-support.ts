@@ -21,6 +21,7 @@ const allowedOrderQueryParams = new Set([
   "pageSize",
   "limit",
 ]);
+const allowedOrderPageSizes = new Set([10, 20, 50]);
 
 const istanbulDateTimeFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Istanbul",
@@ -153,11 +154,18 @@ function parseOrderQuery(request: Request): BusinessOrderQuery {
   const page = parsePositiveInteger(searchParams.get("page"), 1);
   const pageSizeParam = searchParams.get("pageSize");
   const legacyLimitParam = searchParams.get("limit");
-  const requestedPageSize =
-    pageSizeParam !== null
-      ? parsePositiveInteger(pageSizeParam, 50)
-      : Math.min(parsePositiveInteger(legacyLimitParam, 50), 100);
-  if (requestedPageSize > 100) throw new InvalidOrderQueryError();
+  let requestedPageSize: number;
+  if (pageSizeParam !== null) {
+    requestedPageSize = parsePositiveInteger(pageSizeParam, 20);
+    if (!allowedOrderPageSizes.has(requestedPageSize)) {
+      throw new InvalidOrderQueryError();
+    }
+  } else {
+    requestedPageSize = Math.min(
+      parsePositiveInteger(legacyLimitParam, 20),
+      100,
+    );
+  }
   if (!Number.isSafeInteger((page - 1) * requestedPageSize)) {
     throw new InvalidOrderQueryError();
   }
