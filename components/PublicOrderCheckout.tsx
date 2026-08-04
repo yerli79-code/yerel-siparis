@@ -49,6 +49,7 @@ type PublicOrderCheckoutProps = {
   cartCloseButtonRef: RefObject<HTMLButtonElement | null>;
   formatPrice: (price: number) => string;
   onCloseCheckout: () => void;
+  onClearCart: () => void;
   onIncreaseItem: (productId: string) => void;
   onDecreaseItem: (productId: string) => void;
   onUpdateOrderType: (orderType: PublicOrderType) => void;
@@ -84,6 +85,7 @@ export default function PublicOrderCheckout({
   cartCloseButtonRef,
   formatPrice,
   onCloseCheckout,
+  onClearCart,
   onIncreaseItem,
   onDecreaseItem,
   onUpdateOrderType,
@@ -124,6 +126,18 @@ export default function PublicOrderCheckout({
             <section className="public-order-checkout-section public-order-cart-section">
               <div className="public-order-checkout-section-heading">
                 <h2>Sepetiniz ({cartItemCount})</h2>
+                {cart.length > 0 &&
+                isOrderingOpen &&
+                orderRecoveryMode !== "saved" ? (
+                  <button
+                    className="public-order-clear-cart-button"
+                    disabled={isRecordingOrder}
+                    type="button"
+                    onClick={onClearCart}
+                  >
+                    Sepeti Temizle
+                  </button>
+                ) : null}
               </div>
               <div className="cart public-order-cart-items">
                 {cart.length === 0 ? (
