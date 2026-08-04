@@ -443,6 +443,88 @@
   margin: 0;
 }
 
+.panelScope :global(.panel-order-filter-form) {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  border: 1px solid var(--panel-line);
+  border-radius: 16px;
+  background: #fbfdfb;
+  padding: 14px;
+}
+
+.panelScope :global(.panel-order-filter-field),
+.panelScope :global(.panel-order-page-size) {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--panel-dark);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.panelScope :global(.panel-order-filter-field input),
+.panelScope :global(.panel-order-page-size select) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 12px;
+  background: var(--panel-card);
+  color: var(--panel-dark);
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 400;
+  outline: none;
+}
+
+.panelScope :global(.panel-order-date-fields),
+.panelScope :global(.panel-order-filter-actions) {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.panelScope :global(.panel-order-filter-actions button) {
+  width: 100%;
+}
+
+.panelScope :global(.panel-order-pagination-footer) {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  border-top: 1px solid var(--panel-line);
+  padding-top: 14px;
+}
+
+.panelScope :global(.panel-order-page-size) {
+  grid-template-columns: auto minmax(72px, 96px);
+  align-items: center;
+}
+
+.panelScope :global(.panel-order-pagination) {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.panelScope :global(.panel-order-pagination span) {
+  color: var(--panel-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.panelScope :global(.panel-order-pagination button) {
+  min-width: 0;
+  padding-inline: 10px;
+}
+
 .panelScope :global(.panel-order-card),
 .panelScope :global(.panel-product-card) {
   overflow: hidden;
@@ -701,6 +783,8 @@
 .panelScope :global(.field select:focus),
 .panelScope :global(.field textarea:focus),
 .panelScope :global(.business-panel-product-search input:focus),
+.panelScope :global(.panel-order-filter-field input:focus),
+.panelScope :global(.panel-order-page-size select:focus),
 .panelScope :global(.panel-order-detail select:focus) {
   border-color: var(--panel-accent);
   box-shadow: 0 0 0 4px var(--panel-focus);
@@ -811,6 +895,23 @@
 
   .panelScope :global(.business-panel-section) {
     padding: 24px;
+  }
+
+  .panelScope :global(.panel-order-filter-form) {
+    grid-template-columns: minmax(220px, 1.35fr) minmax(280px, 1fr);
+    align-items: end;
+  }
+
+  .panelScope :global(.panel-order-filter-actions) {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(150px, max-content));
+    justify-content: end;
+  }
+
+  .panelScope :global(.panel-order-pagination-footer) {
+    grid-template-columns: auto minmax(310px, max-content);
+    align-items: center;
+    justify-content: space-between;
   }
 
   .panelScope :global(.business-panel-operations) {

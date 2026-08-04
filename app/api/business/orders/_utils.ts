@@ -52,6 +52,15 @@ export type OrderItemRow = {
   created_at: string;
 };
 
+export type BusinessOrderQuery = {
+  status?: OrderStatus;
+  search?: string;
+  dateFrom?: string;
+  dateToExclusive?: string;
+  page: number;
+  pageSize: number;
+};
+
 export type AtomicOrderResult = {
   order_number: number | string;
   total_amount: number | string;
@@ -95,8 +104,11 @@ const legacyOrderSelect =
 const orderItemSelect =
   "id,order_id,product_id,product_name,unit_price,quantity,line_total,created_at";
 
-export function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+export function jsonError(message: string, status = 400, code?: string) {
+  return NextResponse.json(
+    { error: message, ...(code ? { code } : {}) },
+    { status },
+  );
 }
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -137,6 +149,53 @@ function serviceHeaders(serviceRoleKey: string, contentType = false) {
     Authorization: `Bearer ${serviceRoleKey}`,
     ...(contentType ? { "Content-Type": "application/json" } : {}),
   };
+}
+
+function parseExactCount(contentRange: string | null) {
+  const match = contentRange?.match(/^(?:\d+-\d+|\*)\/(\d+)$/);
+  if (!match) {
+    throw new Error("Siparis sayisi dogrulanamadi.");
+  }
+
+  const total = Number(match[1]);
+  if (!Number.isSafeInteger(total) || total < 0) {
+    throw new Error("Siparis sayisi dogrulanamadi.");
+  }
+
+  return total;
+}
+
+function escapePostgrestLikeLiteral(value: string) {
+  const likeLiteral = value
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+  const quotedLiteral = likeLiteral
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"');
+
+  return `"%${quotedLiteral}%"`;
+}
+
+function buildOrderSearchFilter(
+  search: string,
+  includeBusinessOrderNumber: boolean,
+) {
+  const pattern = escapePostgrestLikeLiteral(search);
+  const filters = [
+    `customer_name.ilike.${pattern}`,
+    `customer_phone.ilike.${pattern}`,
+  ];
+  const numericSearch = Number(search);
+
+  if (/^\d+$/.test(search) && Number.isSafeInteger(numericSearch)) {
+    if (includeBusinessOrderNumber) {
+      filters.push(`business_order_number.eq.${numericSearch}`);
+    }
+    filters.push(`order_number.eq.${numericSearch}`);
+  }
+
+  return `(${filters.join(",")})`;
 }
 
 function serviceRpcHeaders(serviceRoleKey: string) {
@@ -335,16 +394,37 @@ export async function fetchOrdersForBusiness(
   url: string,
   serviceRoleKey: string,
   businessId: string,
-  options: { status?: OrderStatus; limit: number },
+  query: BusinessOrderQuery,
 ) {
-  async function requestOrders(select: string) {
-    const statusFilter = options.status ? `&status=eq.${options.status}` : "";
+  async function requestOrders(
+    select: string,
+    includeBusinessOrderNumber: boolean,
+  ) {
+    const params = new URLSearchParams();
+    params.set("business_id", `eq.${businessId}`);
+    params.set("select", select);
+    params.set("order", "created_at.desc,id.desc");
+    params.set("limit", String(query.pageSize));
+    params.set("offset", String((query.page - 1) * query.pageSize));
+    if (query.status) params.set("status", `eq.${query.status}`);
+    if (query.search) {
+      params.set(
+        "or",
+        buildOrderSearchFilter(query.search, includeBusinessOrderNumber),
+      );
+    }
+    if (query.dateFrom) params.append("created_at", `gte.${query.dateFrom}`);
+    if (query.dateToExclusive) {
+      params.append("created_at", `lt.${query.dateToExclusive}`);
+    }
+
     const response = await fetch(
-      `${url}/rest/v1/orders?business_id=eq.${encodeURIComponent(
-        businessId,
-      )}${statusFilter}&select=${select}&order=created_at.desc&limit=${options.limit}`,
+      `${url}/rest/v1/orders?${params.toString()}`,
       {
-        headers: serviceHeaders(serviceRoleKey),
+        headers: {
+          ...serviceHeaders(serviceRoleKey),
+          Prefer: "count=exact",
+        },
       },
     );
     const body = await readJson(response);
@@ -352,23 +432,37 @@ export async function fetchOrdersForBusiness(
     return { response, body };
   }
 
-  const { response, body } = await requestOrders(orderSelect);
+  const { response, body } = await requestOrders(orderSelect, true);
   if (!response.ok) {
     if (isMissingBusinessOrderNumberError(body)) {
-      const legacyResult = await requestOrders(legacyOrderSelect);
+      const legacyResult = await requestOrders(legacyOrderSelect, false);
       if (!legacyResult.response.ok) {
         throw new Error("Siparisler alinamadi.");
       }
 
-      return Array.isArray(legacyResult.body)
-        ? (legacyResult.body as OrderRow[])
-        : [];
+      if (!Array.isArray(legacyResult.body)) {
+        throw new Error("Siparisler alinamadi.");
+      }
+
+      return {
+        orders: legacyResult.body as OrderRow[],
+        total: parseExactCount(
+          legacyResult.response.headers.get("content-range"),
+        ),
+      };
     }
 
     throw new Error("Siparisler alinamadi.");
   }
 
-  return Array.isArray(body) ? (body as OrderRow[]) : [];
+  if (!Array.isArray(body)) {
+    throw new Error("Siparisler alinamadi.");
+  }
+
+  return {
+    orders: body as OrderRow[],
+    total: parseExactCount(response.headers.get("content-range")),
+  };
 }
 
 export async function fetchOrderItemsForOrders(

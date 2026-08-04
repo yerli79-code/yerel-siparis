@@ -1,4 +1,8 @@
-import type { BusinessOrder, OrderStatus } from "../../lib/supabase-orders";
+import type {
+  BusinessOrder,
+  BusinessOrderPagination,
+  OrderStatus,
+} from "../../lib/supabase-orders";
 
 type OrderStatusOption = [OrderStatus, string];
 
@@ -6,7 +10,15 @@ type PanelOrdersProps = {
   orders: BusinessOrder[];
   isLoadingOrders: boolean;
   ordersError: string;
+  pagination: BusinessOrderPagination;
+  pageSize: number;
   selectedOrderStatusFilter: OrderStatus | "all";
+  searchDraft: string;
+  dateFromDraft: string;
+  dateToDraft: string;
+  appliedSearch: string;
+  appliedDateFrom: string;
+  appliedDateTo: string;
   expandedOrderId: string;
   updatingOrderId: string;
   orderStatusLabels: Record<OrderStatus, string>;
@@ -16,7 +28,14 @@ type PanelOrdersProps = {
   getPaymentMethodLabel: (
     paymentMethod: BusinessOrder["paymentMethod"],
   ) => string;
+  onSearchDraftChange: (value: string) => void;
+  onDateFromDraftChange: (value: string) => void;
+  onDateToDraftChange: (value: string) => void;
+  onApplyFilters: () => void;
+  onClearFilters: () => void;
   onStatusFilterChange: (statusFilter: OrderStatus | "all") => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onPageChange: (page: number) => void;
   onRefreshOrders: () => void | Promise<void>;
   onToggleOrderDetails: (orderId: string) => void;
   onUpdateOrderStatus: (
@@ -29,7 +48,15 @@ export default function PanelOrders({
   orders,
   isLoadingOrders,
   ordersError,
+  pagination,
+  pageSize,
   selectedOrderStatusFilter,
+  searchDraft,
+  dateFromDraft,
+  dateToDraft,
+  appliedSearch,
+  appliedDateFrom,
+  appliedDateTo,
   expandedOrderId,
   updatingOrderId,
   orderStatusLabels,
@@ -37,20 +64,105 @@ export default function PanelOrders({
   formatPrice,
   formatDateTime,
   getPaymentMethodLabel,
+  onSearchDraftChange,
+  onDateFromDraftChange,
+  onDateToDraftChange,
+  onApplyFilters,
+  onClearFilters,
   onStatusFilterChange,
+  onPageSizeChange,
+  onPageChange,
   onRefreshOrders,
   onToggleOrderDetails,
   onUpdateOrderStatus,
 }: PanelOrdersProps) {
+  const hasActiveFilters =
+    selectedOrderStatusFilter !== "all" ||
+    Boolean(appliedSearch || appliedDateFrom || appliedDateTo);
+  const firstRecord =
+    pagination.total > 0
+      ? (pagination.page - 1) * pagination.pageSize + 1
+      : 0;
+  const lastRecord =
+    pagination.total > 0
+      ? Math.min(firstRecord + orders.length - 1, pagination.total)
+      : 0;
+  const recordSummary =
+    pagination.total > 0 && orders.length > 0
+      ? `${firstRecord}–${lastRecord} / ${pagination.total} kayıt`
+      : `${pagination.total} kayıt`;
+
   return (
-    <section className="section panel-section panel-orders-section business-panel-section">
+    <section
+      aria-busy={isLoadingOrders}
+      className="section panel-section panel-orders-section business-panel-section"
+    >
       <div className="business-panel-section-heading">
         <div>
           <span className="business-panel-section-kicker">Günlük operasyon</span>
           <h2>Siparişler</h2>
         </div>
-        <span>{orders.length} kayıt</span>
+        <span>{recordSummary}</span>
       </div>
+
+      <form
+        className="panel-order-filter-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onApplyFilters();
+        }}
+      >
+        <label className="panel-order-filter-field panel-order-search-field">
+          <span>Sipariş ara</span>
+          <input
+            disabled={isLoadingOrders}
+            maxLength={80}
+            placeholder="Sipariş no, müşteri adı veya telefon"
+            type="search"
+            value={searchDraft}
+            onChange={(event) => onSearchDraftChange(event.target.value)}
+          />
+        </label>
+        <div className="panel-order-date-fields">
+          <label className="panel-order-filter-field">
+            <span>Başlangıç</span>
+            <input
+              disabled={isLoadingOrders}
+              max={dateToDraft || undefined}
+              type="date"
+              value={dateFromDraft}
+              onChange={(event) => onDateFromDraftChange(event.target.value)}
+            />
+          </label>
+          <label className="panel-order-filter-field">
+            <span>Bitiş</span>
+            <input
+              disabled={isLoadingOrders}
+              min={dateFromDraft || undefined}
+              type="date"
+              value={dateToDraft}
+              onChange={(event) => onDateToDraftChange(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="panel-order-filter-actions">
+          <button
+            className="submit-button panel-primary-action"
+            disabled={isLoadingOrders}
+            type="submit"
+          >
+            Filtreleri Uygula
+          </button>
+          <button
+            className="submit-button panel-secondary-action"
+            disabled={isLoadingOrders}
+            type="button"
+            onClick={() => onClearFilters()}
+          >
+            Filtreleri Temizle
+          </button>
+        </div>
+      </form>
 
       <div className="panel-order-toolbar">
         <div
@@ -60,6 +172,7 @@ export default function PanelOrders({
           <button
             aria-pressed={selectedOrderStatusFilter === "all"}
             className={selectedOrderStatusFilter === "all" ? "active" : ""}
+            disabled={isLoadingOrders}
             type="button"
             onClick={() => onStatusFilterChange("all")}
           >
@@ -69,6 +182,7 @@ export default function PanelOrders({
             <button
               aria-pressed={selectedOrderStatusFilter === value}
               className={selectedOrderStatusFilter === value ? "active" : ""}
+              disabled={isLoadingOrders}
               key={value}
               type="button"
               onClick={() => onStatusFilterChange(value)}
@@ -103,11 +217,15 @@ export default function PanelOrders({
         </div>
       ) : null}
 
-      {isLoadingOrders ? (
+      {isLoadingOrders && orders.length === 0 ? (
         <p className="empty-cart">Siparişler yükleniyor...</p>
       ) : orders.length === 0 ? (
         ordersError ? null : (
-          <p className="empty-cart">Henüz sipariş yok.</p>
+          <p className="empty-cart">
+            {hasActiveFilters
+              ? "Filtrelere uygun sipariş bulunamadı."
+              : "Henüz sipariş yok."}
+          </p>
         )
       ) : (
         <div className="panel-order-list">
@@ -225,6 +343,42 @@ export default function PanelOrders({
           })}
         </div>
       )}
+
+      <div className="panel-order-pagination-footer">
+        <label className="panel-order-page-size">
+          <span>Sayfa başına</span>
+          <select
+            disabled={isLoadingOrders}
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+        <div className="panel-order-pagination" aria-label="Sipariş sayfalama">
+          <button
+            className="submit-button panel-secondary-action"
+            disabled={isLoadingOrders || !pagination.hasPreviousPage}
+            type="button"
+            onClick={() => onPageChange(pagination.page - 1)}
+          >
+            Önceki
+          </button>
+          <span>
+            Sayfa {pagination.page} / {pagination.totalPages}
+          </span>
+          <button
+            className="submit-button panel-secondary-action"
+            disabled={isLoadingOrders || !pagination.hasNextPage}
+            type="button"
+            onClick={() => onPageChange(pagination.page + 1)}
+          >
+            Sonraki
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
