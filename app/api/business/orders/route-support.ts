@@ -11,6 +11,7 @@ import {
   mapOrder,
   type BusinessOrderQuery,
 } from "./_utils";
+import { parseOrderSearch } from "./search";
 
 const allowedOrderQueryParams = new Set([
   "status",
@@ -139,9 +140,7 @@ function parseOrderQuery(request: Request): BusinessOrderQuery {
   const rawSearch = searchParams.get("search");
   const trimmedSearch = rawSearch?.trim() ?? "";
   if (trimmedSearch.length > 80) throw new InvalidOrderQueryError();
-  const search = trimmedSearch.startsWith("#")
-    ? trimmedSearch.slice(1).trim()
-    : trimmedSearch;
+  const search = parseOrderSearch(trimmedSearch);
 
   const rawDateFrom = searchParams.get("dateFrom");
   const rawDateTo = searchParams.get("dateTo");
@@ -172,7 +171,7 @@ function parseOrderQuery(request: Request): BusinessOrderQuery {
 
   return {
     status: status ?? undefined,
-    search: search || undefined,
+    search,
     dateFrom: dateFrom ? getIstanbulDayStart(dateFrom) : undefined,
     dateToExclusive: dateTo
       ? getIstanbulDayStart(getNextCalendarDate(dateTo))

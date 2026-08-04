@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { isPaymentMethod } from "../../../../lib/payment-methods";
+import {
+  buildOrderSearchFilter,
+  type BusinessOrderSearch,
+} from "./search";
 
 export type OrderStatus =
   | "new"
@@ -54,7 +58,7 @@ export type OrderItemRow = {
 
 export type BusinessOrderQuery = {
   status?: OrderStatus;
-  search?: string;
+  search?: BusinessOrderSearch;
   dateFrom?: string;
   dateToExclusive?: string;
   page: number;
@@ -163,39 +167,6 @@ function parseExactCount(contentRange: string | null) {
   }
 
   return total;
-}
-
-function escapePostgrestLikeLiteral(value: string) {
-  const likeLiteral = value
-    .replace(/\\/g, "\\\\")
-    .replace(/%/g, "\\%")
-    .replace(/_/g, "\\_");
-  const quotedLiteral = likeLiteral
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"');
-
-  return `"%${quotedLiteral}%"`;
-}
-
-function buildOrderSearchFilter(
-  search: string,
-  includeBusinessOrderNumber: boolean,
-) {
-  const pattern = escapePostgrestLikeLiteral(search);
-  const filters = [
-    `customer_name.ilike.${pattern}`,
-    `customer_phone.ilike.${pattern}`,
-  ];
-  const numericSearch = Number(search);
-
-  if (/^\d+$/.test(search) && Number.isSafeInteger(numericSearch)) {
-    if (includeBusinessOrderNumber) {
-      filters.push(`business_order_number.eq.${numericSearch}`);
-    }
-    filters.push(`order_number.eq.${numericSearch}`);
-  }
-
-  return `(${filters.join(",")})`;
 }
 
 function serviceRpcHeaders(serviceRoleKey: string) {
