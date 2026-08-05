@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import LocationSelector from "../../components/LocationSelector";
 import PlatformBrand from "../../components/PlatformBrand";
+import OrderPrintReceipt from "./OrderPrintReceipt";
 import PanelOrders from "./PanelOrders";
 import styles from "./panel.module.css";
+import {
+  createOrderPrintReceiptModel,
+  orderStatusLabels,
+  type OrderPrintPaperWidth,
+} from "./order-print";
 import {
   getProductCategories,
   isStandardProductCategory,
@@ -61,14 +67,6 @@ const renewalIban = "TR41 0006 2000 4320 0006 2872 06";
 const renewalRecipient = "Barış Yerlikaya";
 const renewalDescription = "sipariş web sitesi üyelik yenileme ücreti";
 const renewalSupportWhatsapp = "https://wa.me/905365857147";
-
-const orderStatusLabels: Record<OrderStatus, string> = {
-  new: "Yeni",
-  preparing: "Hazırlanıyor",
-  ready: "Hazır",
-  delivered: "Teslim edildi",
-  cancelled: "İptal edildi",
-};
 
 const orderStatusOptions = Object.entries(orderStatusLabels) as [
   OrderStatus,
@@ -353,6 +351,8 @@ export default function PanelPage() {
   const [orderPagination, setOrderPagination] =
     useState<BusinessOrderPagination>(initialOrderPagination);
   const [expandedOrderId, setExpandedOrderId] = useState("");
+  const [orderPrintPaperWidth, setOrderPrintPaperWidth] =
+    useState<OrderPrintPaperWidth>("80mm");
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState("");
   const [isLoadingOverviewOrders, setIsLoadingOverviewOrders] = useState(false);
@@ -450,6 +450,22 @@ export default function PanelPage() {
     page: orderPage,
     pageSize: orderPageSize,
   };
+  const expandedOrder =
+    activePanelSection === "orders"
+      ? orders.find((order) => order.id === expandedOrderId)
+      : undefined;
+  const orderPrintReceipt =
+    business && expandedOrder
+      ? createOrderPrintReceiptModel({
+          business: {
+            name: business.name,
+            address: business.address,
+            whatsappOrderNumber: business.whatsappOrderNumber,
+          },
+          order: expandedOrder,
+          paperWidth: orderPrintPaperWidth,
+        })
+      : null;
 
   useEffect(() => {
     let isCancelled = false;
@@ -825,7 +841,38 @@ export default function PanelPage() {
 
   function printCustomerQrCode() {
     if (!isQrReady) return;
-    window.print();
+
+    const documentRoot = document.documentElement;
+    documentRoot.dataset.panelPrintTarget = "customer-qr";
+
+    try {
+      window.print();
+    } finally {
+      delete documentRoot.dataset.panelPrintTarget;
+    }
+  }
+
+  function printOrder(orderId: string) {
+    if (
+      activePanelSection !== "orders" ||
+      expandedOrderId !== orderId ||
+      expandedOrder?.id !== orderId ||
+      !orderPrintReceipt ||
+      updatingOrderId === orderId
+    ) {
+      return;
+    }
+
+    const documentRoot = document.documentElement;
+    documentRoot.dataset.panelPrintTarget = "order-receipt";
+    documentRoot.dataset.orderPrintPaperWidth = orderPrintPaperWidth;
+
+    try {
+      window.print();
+    } finally {
+      delete documentRoot.dataset.panelPrintTarget;
+      delete documentRoot.dataset.orderPrintPaperWidth;
+    }
   }
 
   function resetForm() {
@@ -1583,6 +1630,7 @@ export default function PanelPage() {
                 ordersError={ordersError}
                 pagination={orderPagination}
                 pageSize={orderPageSize}
+                orderPrintPaperWidth={orderPrintPaperWidth}
                 orderStatusLabels={orderStatusLabels}
                 orderStatusOptions={orderStatusOptions}
                 searchDraft={orderSearchDraft}
@@ -1595,6 +1643,8 @@ export default function PanelPage() {
                 onPageChange={changeOrderPage}
                 onPageSizeChange={changeOrderPageSize}
                 onRefreshOrders={refreshActiveOrders}
+                onOrderPrintPaperWidthChange={setOrderPrintPaperWidth}
+                onPrintOrder={printOrder}
                 onSearchDraftChange={setOrderSearchDraft}
                 onStatusFilterChange={changeOrderStatusFilter}
                 onToggleOrderDetails={toggleOrderDetails}
@@ -2441,6 +2491,9 @@ export default function PanelPage() {
           </div>
         )}
       </div>
+      {orderPrintReceipt ? (
+        <OrderPrintReceipt receipt={orderPrintReceipt} />
+      ) : null}
     </main>
   );
 }
