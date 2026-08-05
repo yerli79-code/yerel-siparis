@@ -1302,10 +1302,262 @@
   }
 }
 
+.orderPrintControls {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border: 1px solid var(--panel-line);
+  border-radius: 14px;
+  background: var(--panel-card);
+  padding: 12px;
+}
+
+.orderPrintWidthField {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--panel-dark);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.orderPrintWidthField select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 12px;
+  background: var(--panel-card);
+  color: var(--panel-dark);
+  padding: 10px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.orderPrintWidthField select:focus {
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 4px var(--panel-focus);
+}
+
+.orderPrintButton {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.orderPrintHint {
+  min-width: 0;
+  margin: 0;
+  color: var(--panel-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.orderPrintReceipt {
+  display: none;
+}
+
+@media (min-width: 520px) {
+  .orderPrintControls {
+    grid-template-columns: minmax(160px, 220px) minmax(120px, max-content);
+    align-items: end;
+  }
+
+  .orderPrintHint {
+    grid-column: 1 / -1;
+  }
+}
+
 @media print {
   .panelScope {
     background: #fff;
     color: #111;
     padding: 0;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"]),
+  :global(html[data-panel-print-target="order-receipt"] body) {
+    background: #fff;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"]) .panelScope {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"])
+    .panelScope
+    > :global(.business-panel-shell) {
+    display: none;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"])
+    .panelScope
+    .orderPrintReceipt,
+  :global(html[data-panel-print-target="order-receipt"])
+    .panelScope
+    .orderPrintReceipt
+    * {
+    visibility: visible;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"])
+    .panelScope
+    .orderPrintReceipt {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    border: 0;
+    background: #fff;
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    line-height: 1.35;
+    box-shadow: none;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"])
+    .panelScope
+    .orderPrintReceipt58 {
+    width: 50mm;
+    padding: 2mm 1mm 3mm;
+    font-size: 10.5px;
+  }
+
+  :global(html[data-panel-print-target="order-receipt"])
+    .panelScope
+    .orderPrintReceipt80 {
+    width: 72mm;
+    padding: 3mm 2mm 4mm;
+  }
+
+  .orderPrintReceipt :where(h2, h3, h4, p, dl, dd) {
+    margin: 0;
+    color: #000;
+  }
+
+  .orderPrintReceipt :where(h2, h3, h4, p, span, strong, b, dt, dd) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .orderPrintHeader {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 8px;
+    text-align: center;
+  }
+
+  .orderPrintHeader h2 {
+    font-size: 1.45em;
+    line-height: 1.2;
+  }
+
+  .orderPrintHeader h3 {
+    margin-top: 5px;
+    font-size: 1.15em;
+    letter-spacing: 0.08em;
+  }
+
+  .orderPrintNumber {
+    font-size: 1.35em;
+  }
+
+  .orderPrintDetails {
+    display: grid;
+    gap: 5px;
+    border-bottom: 1px dashed #000;
+    padding: 8px 0;
+  }
+
+  .orderPrintDetails > div {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 6px;
+  }
+
+  .orderPrintDetails dt {
+    font-weight: 700;
+  }
+
+  .orderPrintDetails dd {
+    text-align: right;
+  }
+
+  .orderPrintItems {
+    display: grid;
+    gap: 0;
+    padding-top: 8px;
+  }
+
+  .orderPrintItems h4,
+  .orderPrintNote h4 {
+    padding-bottom: 5px;
+    font-size: 1em;
+    text-transform: uppercase;
+  }
+
+  .orderPrintItem {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+    border-bottom: 1px solid #000;
+    padding: 6px 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .orderPrintItem > div {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .orderPrintItem b {
+    flex: 0 0 auto;
+    text-align: right;
+  }
+
+  .orderPrintTotal,
+  .orderPrintStatus {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .orderPrintTotal {
+    border-bottom: 2px solid #000;
+    font-size: 1.15em;
+  }
+
+  .orderPrintNote {
+    border-bottom: 1px dashed #000;
+    padding: 8px 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .orderPrintStatus {
+    border-bottom: 1px dashed #000;
+  }
+
+  .orderPrintFooter {
+    padding-top: 8px;
+    color: #000;
+    text-align: center;
   }
 }

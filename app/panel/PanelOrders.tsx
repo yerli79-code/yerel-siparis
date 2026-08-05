@@ -3,6 +3,11 @@ import type {
   BusinessOrderPagination,
   OrderStatus,
 } from "../../lib/supabase-orders";
+import styles from "./panel.module.css";
+import {
+  getOrderTypeLabel,
+  type OrderPrintPaperWidth,
+} from "./order-print";
 
 type OrderStatusOption = [OrderStatus, string];
 
@@ -21,6 +26,7 @@ type PanelOrdersProps = {
   appliedDateTo: string;
   expandedOrderId: string;
   updatingOrderId: string;
+  orderPrintPaperWidth: OrderPrintPaperWidth;
   orderStatusLabels: Record<OrderStatus, string>;
   orderStatusOptions: OrderStatusOption[];
   formatPrice: (price: number) => string;
@@ -37,6 +43,8 @@ type PanelOrdersProps = {
   onPageSizeChange: (pageSize: number) => void;
   onPageChange: (page: number) => void;
   onRefreshOrders: () => void | Promise<void>;
+  onOrderPrintPaperWidthChange: (paperWidth: OrderPrintPaperWidth) => void;
+  onPrintOrder: (orderId: string) => void;
   onToggleOrderDetails: (orderId: string) => void;
   onUpdateOrderStatus: (
     orderId: string,
@@ -59,6 +67,7 @@ export default function PanelOrders({
   appliedDateTo,
   expandedOrderId,
   updatingOrderId,
+  orderPrintPaperWidth,
   orderStatusLabels,
   orderStatusOptions,
   formatPrice,
@@ -73,6 +82,8 @@ export default function PanelOrders({
   onPageSizeChange,
   onPageChange,
   onRefreshOrders,
+  onOrderPrintPaperWidthChange,
+  onPrintOrder,
   onToggleOrderDetails,
   onUpdateOrderStatus,
 }: PanelOrdersProps) {
@@ -231,8 +242,7 @@ export default function PanelOrders({
         <div className="panel-order-list">
           {orders.map((order) => {
             const isExpanded = expandedOrderId === order.id;
-            const orderTypeLabel =
-              order.orderType === "delivery" ? "Teslimat" : "Gel-al";
+            const orderTypeLabel = getOrderTypeLabel(order.orderType);
 
             return (
               <article
@@ -335,6 +345,35 @@ export default function PanelOrders({
                           <b>{formatPrice(item.lineTotal)}</b>
                         </div>
                       ))}
+                    </div>
+
+                    <div className={styles.orderPrintControls}>
+                      <label className={styles.orderPrintWidthField}>
+                        <span>Fiş genişliği</span>
+                        <select
+                          value={orderPrintPaperWidth}
+                          onChange={(event) => {
+                            const { value } = event.target;
+                            if (value !== "58mm" && value !== "80mm") return;
+                            onOrderPrintPaperWidthChange(value);
+                          }}
+                        >
+                          <option value="58mm">58 mm</option>
+                          <option value="80mm">80 mm</option>
+                        </select>
+                      </label>
+                      <button
+                        aria-label={`#${order.orderNumber} numaralı siparişi yazdır`}
+                        className={`submit-button panel-primary-action ${styles.orderPrintButton}`}
+                        disabled={updatingOrderId === order.id}
+                        type="button"
+                        onClick={() => onPrintOrder(order.id)}
+                      >
+                        Yazdır
+                      </button>
+                      <p className={styles.orderPrintHint}>
+                        Yazdırma penceresinde yazıcınıza uygun kâğıt boyutunu seçin.
+                      </p>
                     </div>
                   </div>
                 ) : null}
