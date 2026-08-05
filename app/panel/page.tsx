@@ -841,7 +841,15 @@ export default function PanelPage() {
 
   function printCustomerQrCode() {
     if (!isQrReady) return;
-    window.print();
+
+    const documentRoot = document.documentElement;
+    documentRoot.dataset.panelPrintTarget = "customer-qr";
+
+    try {
+      window.print();
+    } finally {
+      delete documentRoot.dataset.panelPrintTarget;
+    }
   }
 
   function printOrder(orderId: string) {
