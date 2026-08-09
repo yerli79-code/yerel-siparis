@@ -19,6 +19,8 @@ type PanelPrintAttributeRoot = Pick<
 export type PanelPrintRuntime = {
   root: PanelPrintAttributeRoot;
   print: () => void;
+  requestFrame: (listener: () => void) => number;
+  cancelFrame: (frameId: number) => void;
   getVisibilityState: () => DocumentVisibilityState;
   subscribeAfterPrint: (listener: () => void) => () => void;
   subscribePrintMediaChange: (
@@ -31,6 +33,7 @@ export type PanelPrintRuntime = {
 };
 
 function clearPanelPrintMetadata(root: PanelPrintAttributeRoot) {
+  root.removeAttribute("data-panel-print-preparing");
   root.removeAttribute("data-panel-print-target");
   root.removeAttribute("data-order-print-paper-width");
 }
@@ -39,6 +42,8 @@ function createBrowserPrintRuntime(): PanelPrintRuntime {
   return {
     root: document.documentElement,
     print: () => window.print(),
+    requestFrame: (listener) => window.requestAnimationFrame(listener),
+    cancelFrame: (frameId) => window.cancelAnimationFrame(frameId),
     getVisibilityState: () => document.visibilityState,
     subscribeAfterPrint(listener) {
       window.addEventListener("afterprint", listener);
@@ -81,10 +86,11 @@ export function createPanelPrintRunner(
   let cleanupActivePrint: (() => void) | null = null;
 
   return (options: PanelPrintOptions) => {
-    cleanupActivePrint?.();
+    if (cleanupActivePrint) return false;
 
     const runtime = getRuntime();
     clearPanelPrintMetadata(runtime.root);
+    runtime.root.setAttribute("data-panel-print-preparing", "true");
     runtime.root.setAttribute("data-panel-print-target", options.target);
 
     if (options.target === "order-receipt") {
@@ -95,6 +101,8 @@ export function createPanelPrintRunner(
     }
 
     let cleanupTimeoutId: number | null = null;
+    let firstPreparationFrameId: number | null = null;
+    let secondPreparationFrameId: number | null = null;
     let didBecomeHidden = false;
     let isCleanedUp = false;
     const unsubscribeCallbacks: Array<() => void> = [];
@@ -109,6 +117,17 @@ export function createPanelPrintRunner(
 
       if (cleanupTimeoutId !== null) {
         runtime.clearCleanupTimeout(cleanupTimeoutId);
+        cleanupTimeoutId = null;
+      }
+
+      if (firstPreparationFrameId !== null) {
+        runtime.cancelFrame(firstPreparationFrameId);
+        firstPreparationFrameId = null;
+      }
+
+      if (secondPreparationFrameId !== null) {
+        runtime.cancelFrame(secondPreparationFrameId);
+        secondPreparationFrameId = null;
       }
 
       clearPanelPrintMetadata(runtime.root);
@@ -131,6 +150,30 @@ export function createPanelPrintRunner(
       }
     };
 
+    const printPreparedSnapshot = () => {
+      secondPreparationFrameId = null;
+      if (isCleanedUp) return;
+
+      try {
+        runtime.print();
+      } catch (error) {
+        cleanup();
+        throw error;
+      }
+    };
+
+    const waitForSecondPreparationFrame = () => {
+      firstPreparationFrameId = null;
+      if (isCleanedUp) return;
+
+      try {
+        secondPreparationFrameId = runtime.requestFrame(printPreparedSnapshot);
+      } catch (error) {
+        cleanup();
+        throw error;
+      }
+    };
+
     cleanupActivePrint = cleanup;
 
     try {
@@ -148,11 +191,15 @@ export function createPanelPrintRunner(
         cleanup,
         PANEL_PRINT_CLEANUP_FALLBACK_MS,
       );
-      runtime.print();
+      firstPreparationFrameId = runtime.requestFrame(
+        waitForSecondPreparationFrame,
+      );
     } catch (error) {
       cleanup();
       throw error;
     }
+
+    return true;
   };
 }
 
