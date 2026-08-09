@@ -13,6 +13,7 @@ import {
   orderStatusLabels,
   type OrderPrintPaperWidth,
 } from "./order-print";
+import { runPanelPrint } from "./print-lifecycle";
 import {
   getProductCategories,
   isStandardProductCategory,
@@ -841,15 +842,7 @@ export default function PanelPage() {
 
   function printCustomerQrCode() {
     if (!isQrReady) return;
-
-    const documentRoot = document.documentElement;
-    documentRoot.dataset.panelPrintTarget = "customer-qr";
-
-    try {
-      window.print();
-    } finally {
-      delete documentRoot.dataset.panelPrintTarget;
-    }
+    runPanelPrint({ target: "customer-qr" });
   }
 
   function printOrder(orderId: string) {
@@ -863,16 +856,10 @@ export default function PanelPage() {
       return;
     }
 
-    const documentRoot = document.documentElement;
-    documentRoot.dataset.panelPrintTarget = "order-receipt";
-    documentRoot.dataset.orderPrintPaperWidth = orderPrintPaperWidth;
-
-    try {
-      window.print();
-    } finally {
-      delete documentRoot.dataset.panelPrintTarget;
-      delete documentRoot.dataset.orderPrintPaperWidth;
-    }
+    runPanelPrint({
+      target: "order-receipt",
+      orderPaperWidth: orderPrintPaperWidth,
+    });
   }
 
   function resetForm() {
