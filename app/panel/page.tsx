@@ -13,7 +13,10 @@ import {
   orderStatusLabels,
   type OrderPrintPaperWidth,
 } from "./order-print";
-import { runPanelPrint } from "./print-lifecycle";
+import {
+  openPrintDocument,
+  type PrintDocumentOpenResult,
+} from "./print-document";
 import {
   getProductCategories,
   isStandardProductCategory,
@@ -841,8 +844,41 @@ export default function PanelPage() {
   }
 
   function printCustomerQrCode() {
-    if (!isQrReady) return;
-    runPanelPrint({ target: "customer-qr" });
+    if (
+      !business ||
+      !customerOrderUrl ||
+      !qrCanvasRef.current ||
+      !isQrReady
+    ) {
+      return;
+    }
+
+    try {
+      const result = openPrintDocument({
+        type: "customer-qr",
+        businessName: business.name,
+        orderUrl: customerOrderUrl,
+        qrDataUrl: qrCanvasRef.current.toDataURL("image/png"),
+      });
+      handlePrintDocumentResult(result);
+    } catch {
+      setMessage("");
+      setError("QR kod yazdırma için hazırlanamadı. Lütfen tekrar deneyin.");
+    }
+  }
+
+  function handlePrintDocumentResult(result: PrintDocumentOpenResult) {
+    if (result === "opened") {
+      setError("");
+      return;
+    }
+
+    setMessage("");
+    setError(
+      result === "busy"
+        ? "Yazdırma penceresi zaten açık. Açık pencereyi kapatıp tekrar deneyin."
+        : "Yazdırma penceresi açılamadı. Tarayıcınızda açılır pencereye izin verip tekrar deneyin.",
+    );
   }
 
   function printOrder(orderId: string) {
@@ -856,10 +892,12 @@ export default function PanelPage() {
       return;
     }
 
-    runPanelPrint({
-      target: "order-receipt",
-      orderPaperWidth: orderPrintPaperWidth,
-    });
+    handlePrintDocumentResult(
+      openPrintDocument({
+        type: "order-receipt",
+        receipt: orderPrintReceipt,
+      }),
+    );
   }
 
   function resetForm() {

@@ -1358,66 +1358,7 @@
   display: none;
 }
 
-@media (min-width: 520px) {
-  .orderPrintControls {
-    grid-template-columns: minmax(160px, 220px) minmax(120px, max-content);
-    align-items: end;
-  }
-
-  .orderPrintHint {
-    grid-column: 1 / -1;
-  }
-}
-
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  ),
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-      body
-  ) {
-  margin: 0;
-  background: #fff;
-}
-
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope {
-  min-height: 0;
-  overflow: visible;
-  background: #fff;
-  color: #111;
-  padding: 0;
-}
-
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope
-  > :global(.business-panel-shell) {
-  display: none;
-}
-
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope
-  .orderPrintReceipt,
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope
-  .orderPrintReceipt
-  * {
-  visibility: visible;
-}
-
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope
-  .orderPrintReceipt {
+.orderPrintReceiptDocument {
   display: block;
   box-sizing: border-box;
   max-width: 100%;
@@ -1432,48 +1373,30 @@
   box-shadow: none;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope
-  .orderPrintReceipt58 {
+.orderPrintReceiptDocument.orderPrintReceipt58 {
   width: 50mm;
   padding: 2mm 1mm 3mm;
   font-size: 10.5px;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .panelScope
-  .orderPrintReceipt80 {
+.orderPrintReceiptDocument.orderPrintReceipt80 {
   width: 72mm;
   padding: 3mm 2mm 4mm;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintReceipt
-  :where(h2, h3, h4, p, dl, dd) {
+.orderPrintReceiptDocument :where(h2, h3, h4, p, dl, dd) {
   margin: 0;
   color: #000;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintReceipt
+.orderPrintReceiptDocument
   :where(h2, h3, h4, p, span, strong, b, dt, dd) {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintHeader {
+.orderPrintReceiptDocument .orderPrintHeader {
   display: grid;
   justify-items: center;
   gap: 4px;
@@ -1482,97 +1405,57 @@
   text-align: center;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintHeader
-  h2 {
+.orderPrintReceiptDocument .orderPrintHeader h2 {
   font-size: 1.45em;
   line-height: 1.2;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintHeader
-  h3 {
+.orderPrintReceiptDocument .orderPrintHeader h3 {
   margin-top: 5px;
   font-size: 1.15em;
   letter-spacing: 0.08em;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintNumber {
+.orderPrintReceiptDocument .orderPrintNumber {
   font-size: 1.35em;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintDetails {
+.orderPrintReceiptDocument .orderPrintDetails {
   display: grid;
   gap: 5px;
   border-bottom: 1px dashed #000;
   padding: 8px 0;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintDetails
-  > div {
+.orderPrintReceiptDocument .orderPrintDetails > div {
   display: grid;
   min-width: 0;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 6px;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintDetails
-  dt {
+.orderPrintReceiptDocument .orderPrintDetails dt {
   font-weight: 700;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintDetails
-  dd {
+.orderPrintReceiptDocument .orderPrintDetails dd {
   text-align: right;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintItems {
+.orderPrintReceiptDocument .orderPrintItems {
   display: grid;
   gap: 0;
   padding-top: 8px;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintItems
-  h4,
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintNote
-  h4 {
+.orderPrintReceiptDocument .orderPrintItems h4,
+.orderPrintReceiptDocument .orderPrintNote h4 {
   padding-bottom: 5px;
   font-size: 1em;
   text-transform: uppercase;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintItem {
+.orderPrintReceiptDocument .orderPrintItem {
   display: grid;
   min-width: 0;
   gap: 3px;
@@ -1582,11 +1465,7 @@
   page-break-inside: avoid;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintItem
-  > div {
+.orderPrintReceiptDocument .orderPrintItem > div {
   display: flex;
   min-width: 0;
   align-items: baseline;
@@ -1594,23 +1473,13 @@
   gap: 6px;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintItem
-  b {
+.orderPrintReceiptDocument .orderPrintItem b {
   flex: 0 0 auto;
   text-align: right;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintTotal,
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintStatus {
+.orderPrintReceiptDocument .orderPrintTotal,
+.orderPrintReceiptDocument .orderPrintStatus {
   display: flex;
   min-width: 0;
   align-items: baseline;
@@ -1621,38 +1490,37 @@
   page-break-inside: avoid;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintTotal {
+.orderPrintReceiptDocument .orderPrintTotal {
   border-bottom: 2px solid #000;
   font-size: 1.15em;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintNote {
+.orderPrintReceiptDocument .orderPrintNote {
   border-bottom: 1px dashed #000;
   padding: 8px 0;
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintStatus {
+.orderPrintReceiptDocument .orderPrintStatus {
   border-bottom: 1px dashed #000;
 }
 
-:global(
-    html[data-panel-print-preparing="true"][data-panel-print-target="order-receipt"]
-  )
-  .orderPrintFooter {
+.orderPrintReceiptDocument .orderPrintFooter {
   padding-top: 8px;
   color: #000;
   text-align: center;
+}
+
+@media (min-width: 520px) {
+  .orderPrintControls {
+    grid-template-columns: minmax(160px, 220px) minmax(120px, max-content);
+    align-items: end;
+  }
+
+  .orderPrintHint {
+    grid-column: 1 / -1;
+  }
 }
 
 @media print {

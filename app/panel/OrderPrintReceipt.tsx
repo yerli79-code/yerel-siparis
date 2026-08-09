@@ -3,20 +3,25 @@ import type { OrderPrintReceiptModel } from "./order-print";
 
 type OrderPrintReceiptProps = {
   receipt: OrderPrintReceiptModel;
+  mode?: "panel" | "print-document";
 };
 
 export default function OrderPrintReceipt({
   receipt,
+  mode = "panel",
 }: OrderPrintReceiptProps) {
   const paperWidthClass =
     receipt.paperWidth === "58mm"
       ? styles.orderPrintReceipt58
       : styles.orderPrintReceipt80;
+  const printDocumentClass =
+    mode === "print-document" ? styles.orderPrintReceiptDocument : "";
 
   return (
     <article
-      aria-hidden="true"
-      className={`${styles.orderPrintReceipt} ${paperWidthClass}`}
+      aria-hidden={mode === "panel" ? "true" : undefined}
+      className={`${styles.orderPrintReceipt} ${paperWidthClass} ${printDocumentClass}`}
+      data-print-document-content={mode === "print-document" ? "order" : undefined}
     >
       <header className={styles.orderPrintHeader}>
         <h2>{receipt.businessName}</h2>
