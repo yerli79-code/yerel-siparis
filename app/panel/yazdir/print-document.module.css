@@ -1,0 +1,247 @@
+.root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 20px;
+  background: #f1f4f1;
+  color: #111;
+  padding: clamp(16px, 4vw, 32px);
+}
+
+.rootPreparing {
+  min-height: 100vh;
+  min-height: 100dvh;
+  justify-content: flex-start;
+  background: #fff;
+  padding: 0;
+}
+
+.rootPreparing .receiptFrame,
+.rootPreparing .qrDocument {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.rootPreparing .qrDocument {
+  gap: 10px;
+  padding: 14px;
+}
+
+.rootPreparing .qrImageFrame {
+  width: min(74vw, 52vh, 95mm);
+}
+
+.content {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.waiting {
+  width: min(100%, 460px);
+  margin: auto;
+  border: 1px solid #ced8d0;
+  border-radius: 16px;
+  background: #fff;
+  padding: 24px;
+  color: #354239;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(20, 35, 26, 0.08);
+}
+
+.receiptFrame {
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(20, 35, 26, 0.1);
+}
+
+.receiptFrame58 {
+  width: 50mm;
+}
+
+.receiptFrame80 {
+  width: 72mm;
+}
+
+.receiptFrame > article {
+  max-width: 100%;
+  box-shadow: none;
+}
+
+.qrDocument {
+  width: min(100%, 180mm);
+  display: grid;
+  justify-items: center;
+  gap: clamp(12px, 2.4vw, 20px);
+  border: 1px solid #d5ddd6;
+  border-radius: 18px;
+  background: #fff;
+  padding: clamp(24px, 6vw, 56px);
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(20, 35, 26, 0.1);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.qrDocument h1 {
+  max-width: 100%;
+  margin: 0;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(24px, 6vw, 38px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.qrInstruction {
+  margin: 0;
+  color: #111;
+  font-size: clamp(16px, 3.8vw, 22px);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.qrImageFrame {
+  width: min(100%, 112mm);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+
+.qrImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.qrUrl {
+  max-width: 100%;
+  margin: 0;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(12px, 2.8vw, 15px);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.controls {
+  position: sticky;
+  z-index: 10;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(100%, 420px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  border: 1px solid #cbd7cd;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px;
+  box-shadow: 0 12px 32px rgba(20, 35, 26, 0.16);
+}
+
+.controls[hidden] {
+  display: none !important;
+}
+
+.controls button {
+  min-height: 48px;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.controls button:focus-visible {
+  outline: 3px solid rgba(18, 124, 146, 0.32);
+  outline-offset: 2px;
+}
+
+.controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.primaryButton {
+  border: 1px solid #0f7185;
+  background: #127c92;
+  color: #fff;
+}
+
+.primaryButton:not(:disabled):hover {
+  background: #0f7185;
+}
+
+.secondaryButton {
+  border: 1px solid #b8c6bb;
+  background: #fff;
+  color: #243129;
+}
+
+.secondaryButton:hover {
+  background: #edf2ee;
+}
+
+@media (max-width: 360px) {
+  .root {
+    padding-inline: 10px;
+  }
+
+  .controls {
+    gap: 8px;
+    padding: 8px;
+  }
+}
+
+@media print {
+  .root,
+  .rootPreparing {
+    width: 100%;
+    min-height: 0;
+    display: block;
+    background: #fff;
+    padding: 0;
+  }
+
+  .content {
+    display: block;
+  }
+
+  .waiting,
+  .controls {
+    display: none !important;
+  }
+
+  .receiptFrame,
+  .qrDocument {
+    margin: 0 auto;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .qrDocument {
+    width: 180mm;
+    max-width: 100%;
+    gap: 5mm;
+    padding: 10mm;
+  }
+
+  .qrImageFrame {
+    width: 100mm;
+  }
+}
+
+@page {
+  margin: 0;
+}

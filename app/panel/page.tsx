@@ -14,6 +14,10 @@ import {
   type OrderPrintPaperWidth,
 } from "./order-print";
 import {
+  openPrintDocument,
+  type PrintDocumentOpenResult,
+} from "./print-document";
+import {
   getProductCategories,
   isStandardProductCategory,
   normalizeProductCategory,
@@ -840,16 +844,41 @@ export default function PanelPage() {
   }
 
   function printCustomerQrCode() {
-    if (!isQrReady) return;
-
-    const documentRoot = document.documentElement;
-    documentRoot.dataset.panelPrintTarget = "customer-qr";
+    if (
+      !business ||
+      !customerOrderUrl ||
+      !qrCanvasRef.current ||
+      !isQrReady
+    ) {
+      return;
+    }
 
     try {
-      window.print();
-    } finally {
-      delete documentRoot.dataset.panelPrintTarget;
+      const result = openPrintDocument({
+        type: "customer-qr",
+        businessName: business.name,
+        orderUrl: customerOrderUrl,
+        qrDataUrl: qrCanvasRef.current.toDataURL("image/png"),
+      });
+      handlePrintDocumentResult(result);
+    } catch {
+      setMessage("");
+      setError("QR kod yazdırma için hazırlanamadı. Lütfen tekrar deneyin.");
     }
+  }
+
+  function handlePrintDocumentResult(result: PrintDocumentOpenResult) {
+    if (result === "opened") {
+      setError("");
+      return;
+    }
+
+    setMessage("");
+    setError(
+      result === "busy"
+        ? "Yazdırma penceresi zaten açık. Açık pencereyi kapatıp tekrar deneyin."
+        : "Yazdırma penceresi açılamadı. Tarayıcınızda açılır pencereye izin verip tekrar deneyin.",
+    );
   }
 
   function printOrder(orderId: string) {
@@ -863,16 +892,12 @@ export default function PanelPage() {
       return;
     }
 
-    const documentRoot = document.documentElement;
-    documentRoot.dataset.panelPrintTarget = "order-receipt";
-    documentRoot.dataset.orderPrintPaperWidth = orderPrintPaperWidth;
-
-    try {
-      window.print();
-    } finally {
-      delete documentRoot.dataset.panelPrintTarget;
-      delete documentRoot.dataset.orderPrintPaperWidth;
-    }
+    handlePrintDocumentResult(
+      openPrintDocument({
+        type: "order-receipt",
+        receipt: orderPrintReceipt,
+      }),
+    );
   }
 
   function resetForm() {
