@@ -112,6 +112,16 @@ export type BusinessOrderPageResult = {
 export const businessOrdersLoadErrorMessage =
   "Siparişler yüklenirken bir hata oluştu.";
 
+export class BusinessOrdersRequestError extends Error {
+  status: number | null;
+
+  constructor(status: number | null, message = businessOrdersLoadErrorMessage) {
+    super(message);
+    this.name = "BusinessOrdersRequestError";
+    this.status = status;
+  }
+}
+
 const publicOrderTimeoutMs = 20000;
 
 async function parsePublicOrderResponse(response: Response) {
@@ -268,6 +278,7 @@ function isBusinessOrderPageResult(
 export async function fetchBusinessOrdersPage(
   accessToken: string,
   query: BusinessOrderPageQuery,
+  options: { signal?: AbortSignal } = {},
 ) {
   const params = new URLSearchParams();
   if (query.status) params.set("status", query.status);
@@ -282,16 +293,28 @@ export async function fetchBusinessOrdersPage(
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      signal: options.signal,
     });
-    const body = await parseApiResponse(response);
+    const text = await response.text();
+    let body: unknown = null;
+    try {
+      body = text ? (JSON.parse(text) as unknown) : null;
+    } catch {
+      throw new BusinessOrdersRequestError(response.status);
+    }
+
+    if (!response.ok) {
+      throw new BusinessOrdersRequestError(response.status);
+    }
 
     if (!isBusinessOrderPageResult(body)) {
-      throw new Error("InvalidBusinessOrderPageResponse");
+      throw new BusinessOrdersRequestError(response.status);
     }
 
     return body;
-  } catch {
-    throw new Error(businessOrdersLoadErrorMessage);
+  } catch (error) {
+    if (error instanceof BusinessOrdersRequestError) throw error;
+    throw new BusinessOrdersRequestError(null);
   }
 }
 

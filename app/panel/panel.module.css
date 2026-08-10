@@ -1512,6 +1512,147 @@
   text-align: center;
 }
 
+.panelScope :global(.new-order-alert) {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  border: 1px solid rgba(35, 145, 47, 0.34);
+  border-left: 6px solid var(--panel-accent);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f6fbef, #fff);
+  padding: 16px 18px;
+  box-shadow: var(--panel-shadow-soft);
+}
+
+.panelScope :global(.new-order-alert-copy),
+.panelScope :global(.new-order-alert-details),
+.panelScope :global(.new-order-alert-actions),
+.panelScope :global(.new-order-alert-actions label) {
+  min-width: 0;
+}
+
+.panelScope :global(.new-order-alert-heading) {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.panelScope :global(.new-order-alert-kicker) {
+  color: var(--panel-primary);
+  font-weight: 800;
+}
+
+.panelScope :global(.new-order-alert-heading strong) {
+  color: var(--panel-dark);
+  font-size: 20px;
+}
+
+.panelScope :global(.new-order-alert-details) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 6px;
+  color: var(--panel-dark);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.panelScope :global(.new-order-alert-details span:not(:last-child)::after) {
+  content: "·";
+  margin-left: 12px;
+  color: var(--panel-muted);
+}
+
+.panelScope :global(.new-order-alert-copy small) {
+  display: block;
+  margin-top: 6px;
+  color: var(--panel-muted);
+  font-weight: 600;
+}
+
+.panelScope :global(.new-order-alert-copy .new-order-alert-connection) {
+  color: #8a4b08;
+}
+
+.panelScope :global(.new-order-alert-actions) {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.panelScope :global(.new-order-alert-actions label) {
+  display: grid;
+  gap: 3px;
+  color: var(--panel-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.panelScope :global(.new-order-alert-actions select),
+.panelScope :global(.new-order-alert-actions button) {
+  min-height: 44px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--panel-primary);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.panelScope :global(.new-order-alert-actions .new-order-alert-print) {
+  border-color: var(--panel-primary);
+  background: var(--panel-primary);
+  color: #fff;
+}
+
+.panelScope :global(.new-order-alert-actions .new-order-alert-dismiss) {
+  color: var(--panel-muted);
+}
+
+@media (max-width: 720px) {
+  .panelScope :global(.new-order-alert) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .panelScope :global(.new-order-alert-actions) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .panelScope :global(.new-order-alert-heading) {
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .panelScope :global(.new-order-alert-details) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panelScope :global(.new-order-alert-details span::after) {
+    display: none;
+  }
+
+  .panelScope :global(.new-order-alert-actions) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panelScope :global(.new-order-alert-actions select),
+  .panelScope :global(.new-order-alert-actions button) {
+    width: 100%;
+  }
+}
+
 @media (min-width: 520px) {
   .orderPrintControls {
     grid-template-columns: minmax(160px, 220px) minmax(120px, max-content);
