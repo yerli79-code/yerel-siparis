@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import LocationSelector from "../../components/LocationSelector";
 import PlatformBrand from "../../components/PlatformBrand";
-import OrderPrintReceipt from "./OrderPrintReceipt";
+import NewOrderAlert from "./NewOrderAlert";
 import PanelOrders from "./PanelOrders";
 import styles from "./panel.module.css";
 import {
@@ -17,6 +17,17 @@ import {
   openPrintDocument,
   type PrintDocumentOpenResult,
 } from "./print-document";
+import {
+  completeNewOrderPoll,
+  createInitialNewOrderWatcherState,
+  createNewOrderPollingController,
+  createNewOrderPollSession,
+  dismissPendingNewOrder,
+  establishNewOrderBaseline,
+  ingestNewOrderWatcherPage,
+  NEW_ORDER_WATCHER_PAGE_SIZE,
+  type NewOrderPollingCheckResult,
+} from "./new-order-watcher";
 import {
   getProductCategories,
   isStandardProductCategory,
@@ -56,6 +67,7 @@ import {
   type ProductInput,
 } from "../../lib/supabase-business";
 import {
+  BusinessOrdersRequestError,
   businessOrdersLoadErrorMessage,
   fetchBusinessOrders,
   fetchBusinessOrdersPage,
@@ -357,6 +369,8 @@ export default function PanelPage() {
   const [expandedOrderId, setExpandedOrderId] = useState("");
   const [orderPrintPaperWidth, setOrderPrintPaperWidth] =
     useState<OrderPrintPaperWidth>("80mm");
+  const [pendingNewOrders, setPendingNewOrders] = useState<BusinessOrder[]>([]);
+  const [watcherFailureCount, setWatcherFailureCount] = useState(0);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState("");
   const [isLoadingOverviewOrders, setIsLoadingOverviewOrders] = useState(false);
@@ -379,6 +393,9 @@ export default function PanelPage() {
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const watcherStateRef = useRef(createInitialNewOrderWatcherState());
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const isAudioUnlockedRef = useRef(false);
 
   function endBusinessSession() {
     clearBrowserAuthSession(sessionKey);
@@ -454,22 +471,34 @@ export default function PanelPage() {
     page: orderPage,
     pageSize: orderPageSize,
   };
-  const expandedOrder =
-    activePanelSection === "orders"
-      ? orders.find((order) => order.id === expandedOrderId)
-      : undefined;
-  const orderPrintReceipt =
-    business && expandedOrder
-      ? createOrderPrintReceiptModel({
-          business: {
-            name: business.name,
-            address: business.address,
-            whatsappOrderNumber: business.whatsappOrderNumber,
-          },
-          order: expandedOrder,
-          paperWidth: orderPrintPaperWidth,
-        })
-      : null;
+  const activePendingNewOrder = pendingNewOrders[0];
+
+  function playNewOrderSound() {
+    const audioContext = audioContextRef.current;
+    if (!isAudioUnlockedRef.current || audioContext?.state !== "running") return;
+
+    try {
+      const startAt = audioContext.currentTime;
+      [
+        { frequency: 660, offset: 0 },
+        { frequency: 880, offset: 0.16 },
+      ].forEach(({ frequency, offset }) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, startAt + offset);
+        gain.gain.setValueAtTime(0.0001, startAt + offset);
+        gain.gain.exponentialRampToValueAtTime(0.08, startAt + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + offset + 0.12);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(startAt + offset);
+        oscillator.stop(startAt + offset + 0.13);
+      });
+    } catch {
+      // Audio is best-effort; the persistent visual alert remains available.
+    }
+  }
 
   useEffect(() => {
     let isCancelled = false;
@@ -507,6 +536,153 @@ export default function PanelPage() {
       isCancelled = true;
     };
   }, [router]);
+
+  useEffect(() => {
+    let isDisposed = false;
+
+    const unlockAudio = () => {
+      if (isDisposed) return;
+      try {
+        const audioContext =
+          audioContextRef.current ?? new window.AudioContext();
+        audioContextRef.current = audioContext;
+        void audioContext
+          .resume()
+          .then(() => {
+            if (!isDisposed && audioContext.state === "running") {
+              isAudioUnlockedRef.current = true;
+            }
+          })
+          .catch(() => undefined);
+      } catch {
+        // Browsers without an available AudioContext still receive visual alerts.
+      }
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+
+    return () => {
+      isDisposed = true;
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      isAudioUnlockedRef.current = false;
+      const audioContext = audioContextRef.current;
+      audioContextRef.current = null;
+      if (audioContext && audioContext.state !== "closed") {
+        void audioContext.close().catch(() => undefined);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isLoading || !business) return;
+
+    let isActive = true;
+    let abortController: AbortController | null = null;
+    watcherStateRef.current = {
+      ...createInitialNewOrderWatcherState(),
+      initialized: true,
+    };
+    setPendingNewOrders([]);
+    setWatcherFailureCount(0);
+
+    const runWatcherCheck = async (): Promise<NewOrderPollingCheckResult> => {
+      const token = await getValidAccessToken(getBusinessAuthConfig());
+      if (!isActive) return "stop";
+      if (!token) {
+        endBusinessSession();
+        return "stop";
+      }
+
+      abortController = new AbortController();
+      try {
+        let pageResult = await fetchBusinessOrdersPage(
+          token,
+          { page: 1, pageSize: NEW_ORDER_WATCHER_PAGE_SIZE },
+          { signal: abortController.signal },
+        );
+        if (!isActive) return "stop";
+
+        if (!watcherStateRef.current.baselineEstablished) {
+          watcherStateRef.current = establishNewOrderBaseline(
+            watcherStateRef.current,
+            pageResult.orders,
+          ).state;
+          return "success";
+        }
+
+        let session = createNewOrderPollSession(watcherStateRef.current);
+        while (isActive) {
+          const ingested = ingestNewOrderWatcherPage(session, pageResult);
+          session = ingested.session;
+          if (!ingested.shouldFetchNextPage) break;
+
+          pageResult = await fetchBusinessOrdersPage(
+            token,
+            {
+              page: pageResult.pagination.page + 1,
+              pageSize: NEW_ORDER_WATCHER_PAGE_SIZE,
+            },
+            { signal: abortController.signal },
+          );
+          if (!isActive) return "stop";
+        }
+
+        const completed = completeNewOrderPoll(
+          watcherStateRef.current,
+          session,
+        );
+        watcherStateRef.current = completed.state;
+        setPendingNewOrders(completed.state.pendingNewOrders);
+        if (completed.newOrders.length > 0) playNewOrderSound();
+        return "success";
+      } catch (caughtError) {
+        if (!isActive) return "stop";
+        if (
+          caughtError instanceof BusinessOrdersRequestError &&
+          caughtError.status === 401
+        ) {
+          endBusinessSession();
+          return "stop";
+        }
+        return "failure";
+      } finally {
+        abortController = null;
+      }
+    };
+
+    const controller = createNewOrderPollingController({
+      runtime: {
+        isVisible: () => document.visibilityState === "visible",
+        isOnline: () => navigator.onLine !== false,
+        setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+        clearTimeout: (timer) => window.clearTimeout(timer as number),
+      },
+      runCheck: runWatcherCheck,
+      onFailureCountChange(failureCount) {
+        watcherStateRef.current = {
+          ...watcherStateRef.current,
+          consecutiveFailures: failureCount,
+        };
+        if (isActive) setWatcherFailureCount(failureCount);
+      },
+    });
+    const handleVisibilityChange = () => controller.handleVisibilityChange();
+    const handleOnline = () => controller.handleOnline();
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
+    controller.start();
+
+    return () => {
+      isActive = false;
+      controller.cleanup();
+      abortController?.abort();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [business?.id, isLoading, router]);
 
   useEffect(() => {
     if (!business?.slug) {
@@ -632,9 +808,12 @@ export default function PanelPage() {
     setProducts(freshProducts);
   }
 
-  async function refreshOrders(query: BusinessOrderPageQuery) {
+  async function refreshOrders(
+    query: BusinessOrderPageQuery,
+    targetOrderId = "",
+  ) {
     const token = await getFreshAccessToken();
-    if (!token) return;
+    if (!token) return null;
 
     setIsLoadingOrders(true);
     setOrdersError("");
@@ -656,13 +835,19 @@ export default function PanelPage() {
       setOrderPage(result.pagination.page);
       setOrderPagination(result.pagination);
       setExpandedOrderId((currentOrderId) =>
-        result.orders.some((order) => order.id === currentOrderId)
-          ? currentOrderId
-          : "",
+        targetOrderId
+          ? result.orders.some((order) => order.id === targetOrderId)
+            ? targetOrderId
+            : ""
+          : result.orders.some((order) => order.id === currentOrderId)
+            ? currentOrderId
+            : "",
       );
       setOrdersError("");
+      return result;
     } catch {
       setOrdersError(businessOrdersLoadErrorMessage);
+      return null;
     } finally {
       setIsLoadingOrders(false);
     }
@@ -881,22 +1066,66 @@ export default function PanelPage() {
     );
   }
 
-  function printOrder(orderId: string) {
-    if (
-      activePanelSection !== "orders" ||
-      expandedOrderId !== orderId ||
-      expandedOrder?.id !== orderId ||
-      !orderPrintReceipt ||
-      updatingOrderId === orderId
-    ) {
-      return;
-    }
-
+  function printBusinessOrder(order: BusinessOrder) {
+    if (!business || updatingOrderId === order.id) return;
+    const receipt = createOrderPrintReceiptModel({
+      business: {
+        name: business.name,
+        address: business.address,
+        whatsappOrderNumber: business.whatsappOrderNumber,
+      },
+      order,
+      paperWidth: orderPrintPaperWidth,
+    });
     handlePrintDocumentResult(
       openPrintDocument({
         type: "order-receipt",
-        receipt: orderPrintReceipt,
+        receipt,
       }),
+    );
+  }
+
+  function printOrder(orderId: string) {
+    const order = orders.find((candidate) => candidate.id === orderId);
+    if (!order || expandedOrderId !== orderId) return;
+    printBusinessOrder(order);
+  }
+
+  function dismissNewOrderAlert(orderId: string) {
+    watcherStateRef.current = dismissPendingNewOrder(
+      watcherStateRef.current,
+      orderId,
+    );
+    setPendingNewOrders(watcherStateRef.current.pendingNewOrders);
+  }
+
+  async function viewBusinessOrder(order: BusinessOrder) {
+    clearProductEditingState();
+    setSelectedOrderStatusFilter("all");
+    setOrderSearchDraft("");
+    setOrderDateFromDraft("");
+    setOrderDateToDraft("");
+    setAppliedOrderSearch("");
+    setAppliedOrderDateFrom("");
+    setAppliedOrderDateTo("");
+    setOrderPage(1);
+    setExpandedOrderId("");
+    setActivePanelSection("orders");
+    setError("");
+    setMessage("");
+
+    const firstPage = await refreshOrders(
+      { page: 1, pageSize: orderPageSize },
+      order.id,
+    );
+    if (!firstPage || firstPage.orders.some(({ id }) => id === order.id)) return;
+
+    const exactOrderSearch = String(order.orderNumber);
+    setOrderSearchDraft(exactOrderSearch);
+    setAppliedOrderSearch(exactOrderSearch);
+    await refreshOrders(
+      { search: exactOrderSearch, page: 1, pageSize: orderPageSize },
+      order.id,
     );
   }
 
@@ -1340,6 +1569,19 @@ export default function PanelPage() {
             Çıkış Yap
           </button>
         </header>
+
+        {activePendingNewOrder ? (
+          <NewOrderAlert
+            connectionWarning={watcherFailureCount >= 3}
+            order={activePendingNewOrder}
+            paperWidth={orderPrintPaperWidth}
+            pendingCount={pendingNewOrders.length}
+            onDismiss={dismissNewOrderAlert}
+            onPaperWidthChange={setOrderPrintPaperWidth}
+            onPrintOrder={printBusinessOrder}
+            onViewOrder={(order) => void viewBusinessOrder(order)}
+          />
+        ) : null}
 
         {error ? <p className="alert">{error}</p> : null}
         {message ? <p className="alert success">{message}</p> : null}
@@ -2516,9 +2758,6 @@ export default function PanelPage() {
           </div>
         )}
       </div>
-      {orderPrintReceipt ? (
-        <OrderPrintReceipt receipt={orderPrintReceipt} />
-      ) : null}
     </main>
   );
 }
