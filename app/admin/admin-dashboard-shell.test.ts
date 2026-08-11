@@ -107,6 +107,7 @@ test("admin login exposes accessible fields without implementation provider copy
   assert.match(loginSource, /type="submit"/);
   assert.match(loginSource, /aria-live="polite"/);
   assert.doesNotMatch(loginSource, /Supabase|service role|token|cookie|\bAPI\b/i);
+  assert.doesNotMatch(adminPageSource, /Supabase ID/i);
 });
 
 test("admin shell provides only real overview and business navigation", () => {

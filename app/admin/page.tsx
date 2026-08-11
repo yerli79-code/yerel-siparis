@@ -407,7 +407,7 @@ export default function AdminPage() {
     setCreatedBusinessCredentials(null);
 
     if (!business.id) {
-      setMessage("Bu işletmenin Supabase ID bilgisi yok. Listeyi yenileyin.");
+      setMessage("Bu işletmenin kayıt kimliği bulunamadı. Listeyi yenileyin.");
       return;
     }
 
@@ -825,7 +825,7 @@ export default function AdminPage() {
   async function deleteBusiness(business: Business) {
     if (!business.id) {
       setSavingSlug(business.slug);
-      setMessage("İşletme Supabase ID bilgisi bulunamadı. Liste yenileniyor...");
+      setMessage("İşletme kayıt kimliği bulunamadı. Liste yenileniyor...");
       setErrorDetail("");
       await refreshBusinessesFromSupabase();
       setSavingSlug("");
