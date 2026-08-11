@@ -24,6 +24,7 @@ import {
   getRemainingDays,
 } from "../../lib/subscription";
 import {
+  clearLegacyAdminBrowserSession,
   loginAdmin,
   logoutAdmin as requestAdminLogout,
   readAdminSession,
@@ -329,6 +330,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     let isCancelled = false;
+
+    clearLegacyAdminBrowserSession();
 
     async function checkAdminSession() {
       try {

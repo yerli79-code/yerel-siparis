@@ -3,6 +3,18 @@ export type AdminSessionDTO = {
   userId: string;
 };
 
+const LEGACY_ADMIN_SESSION_KEY = "yerel-siparis-admin-auth-session";
+
+export function clearLegacyAdminBrowserSession() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.removeItem(LEGACY_ADMIN_SESSION_KEY);
+  } catch {
+    // Legacy storage cleanup must not prevent the admin UI from starting.
+  }
+}
+
 async function refreshAdminSession() {
   try {
     const response = await fetch("/api/admin/auth/refresh", {

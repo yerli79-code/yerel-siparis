@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 // @ts-expect-error Node's type-stripping test runner requires the source extension.
-import { loginAdmin, logoutAdmin, readAdminSession, requestAdminApi } from "../admin-client.ts";
+import { clearLegacyAdminBrowserSession, loginAdmin, logoutAdmin, readAdminSession, requestAdminApi } from "../admin-client.ts";
 // @ts-expect-error Node's type-stripping test runner requires the source extension.
 import { isSameOriginAdminRequest } from "./same-origin.ts";
 
@@ -172,12 +172,90 @@ test("logout tolerates a network failure", async () => {
 
 test("admin client code has no JS-readable auth token storage or bearer transport", () => {
   const clientSource = `${adminPage}\n${adminClient}\n${supabaseAdminClient}`;
-  assert.doesNotMatch(clientSource, /\bsessionStorage\b/);
+  assert.doesNotMatch(clientSource, /sessionStorage\.(getItem|setItem)/);
   assert.doesNotMatch(clientSource, /\baccess_token\b/);
   assert.doesNotMatch(clientSource, /\brefresh_token\b/);
   assert.doesNotMatch(clientSource, /Authorization\s*:/i);
   assert.doesNotMatch(clientSource, /Bearer\s+/i);
   assert.doesNotMatch(clientSource, /\/auth\/v1\/token/);
+});
+
+test("legacy admin session cleanup removes only the exact retired key at startup", () => {
+  const exactKey = "yerel-siparis-admin-auth-session";
+  const cleanupStart = adminClient.indexOf(
+    "export function clearLegacyAdminBrowserSession",
+  );
+  const cleanupEnd = adminClient.indexOf("async function refreshAdminSession");
+  const cleanupSource = adminClient.slice(cleanupStart, cleanupEnd);
+  const startupEffect = adminPage.slice(
+    adminPage.indexOf("useEffect(() => {"),
+    adminPage.indexOf("}, []);") + "}, []);".length,
+  );
+
+  assert.ok(cleanupStart >= 0);
+  assert.equal((adminClient.match(/sessionStorage\.removeItem/g) ?? []).length, 1);
+  assert.match(adminClient, new RegExp(`const LEGACY_ADMIN_SESSION_KEY = "${exactKey}"`));
+  assert.match(cleanupSource, /sessionStorage\.removeItem\(LEGACY_ADMIN_SESSION_KEY\)/);
+  assert.doesNotMatch(cleanupSource, /sessionStorage\.(getItem|setItem)/);
+  assert.doesNotMatch(cleanupSource, /JSON\.parse|fetch\(/);
+  assert.match(cleanupSource, /try\s*{[\s\S]*}\s*catch\s*{/);
+  assert.match(startupEffect, /clearLegacyAdminBrowserSession\(\)/);
+  assert.ok(
+    startupEffect.indexOf("clearLegacyAdminBrowserSession()") <
+      startupEffect.indexOf("readAdminSession()"),
+  );
+});
+
+test("legacy admin session cleanup removes the exact key at runtime", () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const removedKeys: string[] = [];
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      sessionStorage: {
+        removeItem(key: string) {
+          removedKeys.push(key);
+        },
+      },
+    },
+  });
+
+  try {
+    clearLegacyAdminBrowserSession();
+    assert.deepEqual(removedKeys, ["yerel-siparis-admin-auth-session"]);
+  } finally {
+    if (originalWindow) {
+      Object.defineProperty(globalThis, "window", originalWindow);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  }
+});
+
+test("legacy admin session cleanup tolerates storage failures", () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      sessionStorage: {
+        removeItem() {
+          throw new Error("storage unavailable");
+        },
+      },
+    },
+  });
+
+  try {
+    assert.doesNotThrow(() => clearLegacyAdminBrowserSession());
+  } finally {
+    if (originalWindow) {
+      Object.defineProperty(globalThis, "window", originalWindow);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  }
 });
 
 test("login response cannot serialize provider tokens or a raw user", () => {
