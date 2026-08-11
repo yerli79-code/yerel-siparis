@@ -1,9 +1,7 @@
 ﻿"use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import LocationSelector from "../../components/LocationSelector";
-import PlatformBrand from "../../components/PlatformBrand";
 import {
   readBusinesses,
   updateBusiness,
@@ -19,9 +17,13 @@ import {
 } from "../../lib/supabase-admin";
 import {
   addDaysFromToday,
+  calculateAdminKpis,
   formatDate,
   getBadge,
   getRemainingDays,
+  hasActiveSubscription,
+  isEndingWithinDays,
+  isSubscriptionExpired,
 } from "../../lib/subscription";
 import {
   clearLegacyAdminBrowserSession,
@@ -35,6 +37,10 @@ import {
   getProvinces,
   normalizeLocationLabel,
 } from "../../lib/locations";
+import AdminLogin, { AdminLoading } from "./_components/admin-login";
+import AdminOverview from "./_components/admin-overview";
+import AdminShell, { type AdminSection } from "./_components/admin-shell";
+import adminStyles from "./_components/admin.module.css";
 
 const extensionDays = [30, 60, 90, 180, 365];
 const adminSessionExpiredMessage = "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.";
@@ -112,7 +118,6 @@ type AdminSubscriptionFilter =
   | "blocked"
   | "ending7"
   | "ending30";
-type AdminSection = "overview" | "businesses" | "create";
 type AdminConfirmAction = {
   businessName: string;
   actionName: string;
@@ -174,28 +179,6 @@ function sameLocationLabel(
   );
 }
 
-function hasActiveSubscription(business: Business) {
-  return (
-    business.isActive &&
-    business.subscriptionStatus === "active" &&
-    getRemainingDays(business.subscriptionExpiresAt) > 0
-  );
-}
-
-function isSubscriptionExpired(business: Business) {
-  return (
-    business.subscriptionStatus !== "blocked" &&
-    (!business.subscriptionExpiresAt ||
-      getRemainingDays(business.subscriptionExpiresAt) <= 0)
-  );
-}
-
-function isEndingWithinDays(business: Business, days: number) {
-  if (!hasActiveSubscription(business)) return false;
-  const remainingDays = getRemainingDays(business.subscriptionExpiresAt);
-  return remainingDays > 0 && remainingDays <= days;
-}
-
 export default function AdminPage() {
   const [isAdminAuthorized, setIsAdminAuthorized] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
@@ -204,6 +187,8 @@ export default function AdminPage() {
   const [adminError, setAdminError] = useState("");
   const [isAdminSigningIn, setIsAdminSigningIn] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [businessLoadError, setBusinessLoadError] = useState(false);
+  const [isRefreshingBusinesses, setIsRefreshingBusinesses] = useState(false);
   const [message, setMessage] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
   const [savingSlug, setSavingSlug] = useState("");
@@ -232,16 +217,7 @@ export default function AdminPage() {
     null,
   );
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
-  const activeBusinessCount = businesses.filter(
-    (business) => hasActiveSubscription(business),
-  ).length;
-  const blockedBusinessCount = businesses.filter(
-    (business) => business.subscriptionStatus === "blocked",
-  ).length;
-  const endingSoonBusinessCount = businesses.filter((business) =>
-    isEndingWithinDays(business, 30),
-  ).length;
-  const passiveBusinessCount = businesses.length - activeBusinessCount;
+  const adminKpis = calculateAdminKpis(businesses);
   const attentionBusinesses = businesses
     .filter(
       (business) =>
@@ -379,6 +355,7 @@ export default function AdminPage() {
         const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(storedBusinesses);
         writeBusinesses(fetchedBusinesses);
         setBusinesses(fetchedBusinesses);
+        setBusinessLoadError(false);
         setManualDates(
           Object.fromEntries(
             fetchedBusinesses.map((business) => [
@@ -389,6 +366,7 @@ export default function AdminPage() {
         );
       } catch {
         console.warn("Admin işletme listesi yenilenemedi.");
+        setBusinessLoadError(true);
       }
     }
 
@@ -524,6 +502,7 @@ export default function AdminPage() {
     const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(readBusinesses());
     writeBusinesses(fetchedBusinesses);
     setBusinesses(fetchedBusinesses);
+    setBusinessLoadError(false);
     setManualDates(
       Object.fromEntries(
         fetchedBusinesses.map((business) => [
@@ -536,6 +515,7 @@ export default function AdminPage() {
   }
 
   async function refreshAdminList() {
+    setIsRefreshingBusinesses(true);
     setMessage("İşletme listesi yenileniyor...");
     setErrorDetail("");
 
@@ -545,6 +525,9 @@ export default function AdminPage() {
     } catch {
       setMessage("İşletme listesi yenilenemedi.");
       setErrorDetail("Liste yüklenemedi. Lütfen tekrar deneyin.");
+      setBusinessLoadError(true);
+    } finally {
+      setIsRefreshingBusinesses(false);
     }
   }
 
@@ -876,102 +859,65 @@ export default function AdminPage() {
     setAdminError("");
     setMessage("");
     setErrorDetail("");
+    setBusinessLoadError(false);
   }
 
   if (isCheckingAdmin) {
-    return (
-      <main className="page">
-        <div className="shell section">
-          <p>Admin erişimi kontrol ediliyor...</p>
-        </div>
-      </main>
-    );
+    return <AdminLoading />;
   }
 
   if (!isAdminAuthorized) {
     return (
-      <main className="page">
-        <div className="shell admin-auth-shell">
-          <header className="hero admin-hero">
-            <div className="hero-content admin-hero-content">
-              <PlatformBrand className="admin-platform-brand" onDark />
-              <span className="eyebrow">Sistem Admin</span>
-              <h1>Admin Paneli</h1>
-              <p>Abonelik yönetimine erişmek için yetkili admin hesabınızla giriş yapın.</p>
-            </div>
-          </header>
-
-          <section className="section admin-auth-card">
-            <div className="section-title">
-              <h2>Güvenli giriş</h2>
-              <span>Supabase Auth</span>
-            </div>
-            <form className="customer-form admin-auth-form" onSubmit={submitAdminLogin}>
-              <div className="field">
-                <label htmlFor="adminEmail">E-posta</label>
-                <input
-                  autoComplete="email"
-                  id="adminEmail"
-                  inputMode="email"
-                  type="email"
-                  value={adminEmail}
-                  onChange={(event) => setAdminEmail(event.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="adminPassword">Şifre</label>
-                <input
-                  autoComplete="current-password"
-                  id="adminPassword"
-                  type="password"
-                  value={adminPassword}
-                  onChange={(event) => setAdminPassword(event.target.value)}
-                />
-              </div>
-              {adminError ? <p className="alert">{adminError}</p> : null}
-              <button
-                className="submit-button admin-primary-action"
-                disabled={isAdminSigningIn}
-                type="submit"
-              >
-                {isAdminSigningIn ? "Giriş yapılıyor..." : "Giriş Yap"}
-              </button>
-              <Link className="link-button admin-forgot-link" href="/sifre-yenile">
-                Şifremi unuttum
-              </Link>
-            </form>
-          </section>
-        </div>
-      </main>
+      <AdminLogin
+        email={adminEmail}
+        error={adminError}
+        isSubmitting={isAdminSigningIn}
+        password={adminPassword}
+        onEmailChange={setAdminEmail}
+        onPasswordChange={setAdminPassword}
+        onSubmit={submitAdminLogin}
+      />
     );
   }
 
   return (
-    <main className="page">
-      <div className="shell">
-        <header className="hero admin-hero">
-          <div className="hero-content admin-hero-content">
-            <PlatformBrand className="admin-platform-brand" onDark />
-            <div className="admin-hero-top">
-              <span className="eyebrow">Sistem Admin</span>
-              <button className="panel-logout-button" type="button" onClick={logoutAdmin}>
-                Çıkış Yap
-              </button>
-            </div>
-            <div className="admin-heading">
-              <div>
-                <h1>Admin Paneli</h1>
-                <p>İşletmelerin abonelik süresini ve erişim durumunu manuel yönetin.</p>
+    <AdminShell
+      activeSection={activeAdminSection}
+      isRefreshing={isRefreshingBusinesses}
+      onCreateBusiness={() => switchAdminSection("create")}
+      onLogout={logoutAdmin}
+      onNavigate={switchAdminSection}
+      onRefresh={refreshAdminList}
+    >
+        {message || errorDetail || businessLoadError ? (
+          <div className={adminStyles.feedbackStack}>
+            {message ? (
+              <p className={adminStyles.statusMessage} aria-live="polite">
+                {message}
+              </p>
+            ) : null}
+            {errorDetail ? (
+              <p className={adminStyles.errorMessage} role="alert">
+                {errorDetail}
+              </p>
+            ) : null}
+            {businessLoadError ? (
+              <div className={adminStyles.loadErrorCard} role="alert">
+                <div>
+                  <strong>İşletmeler yüklenemedi.</strong>
+                  <p>Son kayıtları almak için yeniden deneyin.</p>
+                </div>
+                <button
+                  disabled={isRefreshingBusinesses}
+                  type="button"
+                  onClick={refreshAdminList}
+                >
+                  Yeniden Dene
+                </button>
               </div>
-              <button className="panel-logout-button" type="button" onClick={refreshAdminList}>
-                Listeyi Yenile
-              </button>
-            </div>
+            ) : null}
           </div>
-        </header>
-
-        {message ? <p className="alert success">{message}</p> : null}
-        {errorDetail ? <pre className="error-detail">{errorDetail}</pre> : null}
+        ) : null}
         {confirmAction ? (
           <div className="admin-confirm-backdrop" role="presentation">
             <div
@@ -1011,103 +957,18 @@ export default function AdminPage() {
           </div>
         ) : null}
 
-        <nav className="admin-section-tabs" aria-label="Admin bölümleri">
-          <button
-            className={activeAdminSection === "overview" ? "active" : ""}
-            type="button"
-            onClick={() => switchAdminSection("overview")}
-          >
-            Genel Bakış
-          </button>
-          <button
-            className={activeAdminSection === "businesses" ? "active" : ""}
-            type="button"
-            onClick={() => switchAdminSection("businesses")}
-          >
-            İşletmeler
-          </button>
-          <button
-            className={activeAdminSection === "create" ? "active" : ""}
-            type="button"
-            onClick={() => switchAdminSection("create")}
-          >
-            Yeni İşletme Ekle
-          </button>
-        </nav>
-
         {activeAdminSection === "overview" ? (
-          <section className="section admin-overview-section">
-            <div className="section-title">
-              <h2>Genel Bakış</h2>
-              <span>Hızlı yönetim</span>
-            </div>
-            <p>
-              İşletme kayıtlarını, abonelik durumlarını ve dikkat gerektiren
-              erişim konularını tek ekrandan takip edin.
-            </p>
-            <div className="admin-attention-grid">
-              <div className="admin-attention-card">
-                <strong>{activeBusinessCount}</strong>
-                <span>Aktif abonelik</span>
-              </div>
-              <div className="admin-attention-card">
-                <strong>{endingSoonBusinessCount}</strong>
-                <span>30 gün içinde bitecek</span>
-              </div>
-              <div className="admin-attention-card">
-                <strong>{passiveBusinessCount}</strong>
-                <span>Pasif veya süresi bitmiş</span>
-              </div>
-              <div className="admin-attention-card">
-                <strong>{blockedBusinessCount}</strong>
-                <span>Engelli işletme</span>
-              </div>
-            </div>
-            <div className="admin-attention-list">
-              <div className="admin-attention-head">
-                <strong>Dikkat Gerektirenler</strong>
-                <span>Yaklaşan, süresi dolan, pasif veya engelli işletmeler</span>
-              </div>
-              {attentionBusinesses.length > 0 ? (
-                <div className="admin-attention-items">
-                  {attentionBusinesses.map((business) => {
-                    const badge = getBadge(business);
-                    return (
-                      <button
-                        key={business.slug}
-                        type="button"
-                        onClick={() => openBusinessDetail(business)}
-                      >
-                        <span>
-                          <strong>{business.name}</strong>
-                          <small>{formatDate(business.subscriptionExpiresAt)}</small>
-                        </span>
-                        <span className={`status admin-status ${badge.toLowerCase().replaceAll(" ", "-")}`}>
-                          {badge}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="admin-attention-empty">
-                  Şu anda dikkat gerektiren işletme görünmüyor.
-                </p>
-              )}
-            </div>
-            <div className="admin-overview-actions">
-              <button type="button" onClick={() => switchAdminSection("businesses")}>
-                İşletmeleri Yönet
-              </button>
-              <button type="button" onClick={() => switchAdminSection("create")}>
-                Yeni İşletme Ekle
-              </button>
-            </div>
-          </section>
+          <AdminOverview
+            attentionBusinesses={attentionBusinesses}
+            kpis={adminKpis}
+            onCreateBusiness={() => switchAdminSection("create")}
+            onManageBusinesses={() => switchAdminSection("businesses")}
+            onOpenBusiness={openBusinessDetail}
+          />
         ) : null}
 
         {activeAdminSection === "businesses" ? (
-        <section className="section admin-filter-card">
+        <section className="section admin-filter-card" id="isletmeler">
           <div className="section-title">
             <h2>İşletme Ara ve Filtrele</h2>
             <span>
@@ -1249,7 +1110,7 @@ export default function AdminPage() {
         ) : null}
 
         {activeAdminSection === "create" ? (
-        <section className="section admin-create-business">
+        <section className="section admin-create-business" id="yeni-isletme">
           <div className="section-title">
             <h2>Yeni İşletme Ekle</h2>
             <span>Supabase businesses</span>
@@ -1429,10 +1290,25 @@ export default function AdminPage() {
         <section className="admin-list">
           {filteredBusinesses.length === 0 ? (
             <div className="section admin-empty-state">
-              <h2>Sonuç bulunamadı</h2>
-              <p>Arama veya filtreleri değiştirerek tekrar deneyin.</p>
-              <button type="button" onClick={clearAdminFilters}>
-                Filtreleri temizle
+              <h2>
+                {businesses.length === 0
+                  ? "Henüz işletme bulunmuyor."
+                  : "Sonuç bulunamadı"}
+              </h2>
+              <p>
+                {businesses.length === 0
+                  ? "İlk işletmenizi oluşturarak yönetim alanını kullanmaya başlayın."
+                  : "Arama veya filtreleri değiştirerek tekrar deneyin."}
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  businesses.length === 0
+                    ? switchAdminSection("create")
+                    : clearAdminFilters()
+                }
+              >
+                {businesses.length === 0 ? "Yeni İşletme Ekle" : "Filtreleri temizle"}
               </button>
             </div>
           ) : null}
@@ -1841,7 +1717,6 @@ export default function AdminPage() {
           })}
         </section>
         ) : null}
-      </div>
-    </main>
+    </AdminShell>
   );
 }
