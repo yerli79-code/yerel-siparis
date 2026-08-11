@@ -1,9 +1,19 @@
-import { NextResponse } from "next/server";
 import {
   hasBusinessLocationChanged,
   isValidStandardBusinessLocation,
   type BusinessLocationInput,
 } from "../../../../lib/locations/server";
+import { requireAdmin } from "../../../../lib/admin/auth";
+import {
+  adminServiceFetch,
+  readJsonBody as readJson,
+} from "../../../../lib/admin/dal";
+import {
+  adminErrorResponse,
+  adminJson,
+  assertSameOriginAdminMutation,
+  invalidAdminRequest,
+} from "../../../../lib/admin/http";
 
 type UpdateBusinessPayload = {
   id?: string;
@@ -21,72 +31,23 @@ type UpdateBusinessPayload = {
   isActive?: boolean;
 };
 
-function jsonError(message: string, status = 400, detail?: unknown) {
-  return NextResponse.json({ message, detail }, { status });
-}
-
-function getSupabaseServerConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Supabase public ortam degiskenleri eksik.");
-  }
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik.");
-  }
-
-  return { url, anonKey, serviceRoleKey };
-}
-
-async function readJson(response: Response) {
-  const text = await response.text();
-  return text ? JSON.parse(text) : null;
+function jsonError(message: string, status = 400) {
+  return adminJson(
+    { error: { code: "INVALID_REQUEST", message } },
+    { status },
+  );
 }
 
 function safeSupabaseError(prefix: string, _body: unknown) {
   return prefix;
 }
 
-function getAdminToken(request: Request) {
-  const header = request.headers.get("authorization") || "";
-  const [type, token] = header.split(" ");
-
-  if (type.toLowerCase() !== "bearer" || !token?.trim()) return "";
-  return token.trim();
-}
-
-async function verifyAdminAccess(url: string, anonKey: string, adminToken: string) {
-  const response = await fetch(
-    `${url}/rest/v1/admin_users?is_active=eq.true&select=id,email,is_active&limit=1`,
-    {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${adminToken}`,
-      },
-    },
-  );
-  const body = await readJson(response);
-
-  if (!response.ok || !Array.isArray(body)) return false;
-  return body.length > 0;
-}
-
 async function ensureSlugIsAvailable(
-  url: string,
-  serviceRoleKey: string,
   businessId: string,
   slug: string,
 ) {
-  const response = await fetch(
-    `${url}/rest/v1/businesses?slug=eq.${encodeURIComponent(slug)}&select=id&limit=1`,
-    {
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-    },
+  const response = await adminServiceFetch(
+    `/rest/v1/businesses?slug=eq.${encodeURIComponent(slug)}&select=id&limit=1`,
   );
   const body = await readJson(response);
 
@@ -101,20 +62,12 @@ async function ensureSlugIsAvailable(
 }
 
 async function fetchCurrentBusinessLocation(
-  url: string,
-  serviceRoleKey: string,
   businessId: string,
 ): Promise<BusinessLocationInput | null> {
-  const response = await fetch(
-    `${url}/rest/v1/businesses?id=eq.${encodeURIComponent(
+  const response = await adminServiceFetch(
+    `/rest/v1/businesses?id=eq.${encodeURIComponent(
       businessId,
     )}&select=city,district,neighborhood&limit=1`,
-    {
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-    },
   );
   const body = await readJson(response);
 
@@ -131,18 +84,12 @@ async function fetchCurrentBusinessLocation(
   };
 }
 
-async function updateBusiness(
-  url: string,
-  serviceRoleKey: string,
-  payload: UpdateBusinessPayload,
-) {
-  const response = await fetch(
-    `${url}/rest/v1/businesses?id=eq.${encodeURIComponent(payload.id || "")}&select=*`,
+async function updateBusiness(payload: UpdateBusinessPayload) {
+  const response = await adminServiceFetch(
+    `/rest/v1/businesses?id=eq.${encodeURIComponent(payload.id || "")}&select=id,owner_id,slug,name,description,whatsapp_order_number,created_at,category,city,district,neighborhood,address,delivery_status,logo_text,subscription_status,subscription_started_at,subscription_expires_at,is_active`,
     {
       method: "PATCH",
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
         "Content-Type": "application/json",
         Prefer: "return=representation",
       },
@@ -178,19 +125,15 @@ async function updateBusiness(
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
-    const adminToken = getAdminToken(request);
+    assertSameOriginAdminMutation(request);
+    await requireAdmin();
 
-    if (!adminToken) {
-      return jsonError("Admin oturumu bulunamadi.", 401);
+    let payload: UpdateBusinessPayload;
+    try {
+      payload = (await request.json()) as UpdateBusinessPayload;
+    } catch {
+      invalidAdminRequest("Geçersiz istek gövdesi.");
     }
-
-    const hasAdminAccess = await verifyAdminAccess(url, anonKey, adminToken);
-    if (!hasAdminAccess) {
-      return jsonError("Bu hesap admin yetkisine sahip degil.", 403);
-    }
-
-    const payload = (await request.json()) as UpdateBusinessPayload;
     const businessId = payload.id?.trim();
     const slug = payload.slug?.trim();
 
@@ -204,11 +147,7 @@ export async function POST(request: Request) {
       return jsonError("WhatsApp siparis numarasi zorunludur.");
     }
 
-    const currentLocation = await fetchCurrentBusinessLocation(
-      url,
-      serviceRoleKey,
-      businessId,
-    );
+    const currentLocation = await fetchCurrentBusinessLocation(businessId);
     const nextLocation = {
       city: payload.city ?? "",
       district: payload.district ?? "",
@@ -221,18 +160,16 @@ export async function POST(request: Request) {
       return jsonError("Lütfen geçerli il, ilçe ve Mahalle / Köy seçin.");
     }
 
-    await ensureSlugIsAvailable(url, serviceRoleKey, businessId, slug);
-    const business = await updateBusiness(url, serviceRoleKey, {
+    await ensureSlugIsAvailable(businessId, slug);
+    const business = await updateBusiness({
       ...payload,
       id: businessId,
       slug,
       name: payload.name.trim(),
     });
 
-    return NextResponse.json({ business });
+    return adminJson({ business });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.", status);
+    return adminErrorResponse(error, "İşletme kaydedilemedi.");
   }
 }

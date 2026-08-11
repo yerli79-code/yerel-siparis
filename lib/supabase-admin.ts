@@ -1,4 +1,5 @@
 import type { Business } from "./businesses";
+import { requestAdminApi } from "./admin-client";
 
 export type SubscriptionUpdatePayload = {
   subscription_status: "active" | "expired" | "blocked";
@@ -62,19 +63,6 @@ type SupabaseBusinessRow = {
   is_active?: boolean | null;
 };
 
-function getSupabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error(
-      ".env.local icinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_ANON_KEY eksik.",
-    );
-  }
-
-  return { url, anonKey };
-}
-
 function mergeSupabaseBusiness(
   row: SupabaseBusinessRow,
   fallback?: Business,
@@ -136,18 +124,9 @@ function verifySubscriptionUpdate(
 
 export async function fetchAdminBusinessesFromSupabase(
   fallbackBusinesses: Business[] = [],
-  accessToken: string,
 ): Promise<Business[]> {
-  const adminToken = accessToken.trim();
-  if (!adminToken) {
-    throw new Error("Admin oturumu bulunamadi. Lutfen tekrar giris yapin.");
-  }
-
-  const response = await fetch("/api/admin/list-businesses", {
+  const response = await requestAdminApi("/api/admin/list-businesses", {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-    },
   });
 
   const text = await response.text();
@@ -176,18 +155,11 @@ export async function fetchAdminBusinessesFromSupabase(
 
 export async function createBusinessWithAccount(
   input: AdminCreateBusinessInput,
-  accessToken: string,
 ) {
-  const adminToken = accessToken.trim();
-  if (!adminToken) {
-    throw new Error("Admin oturumu bulunamadı. Lütfen tekrar giriş yapın.");
-  }
-
-  const response = await fetch("/api/admin/create-business", {
+  const response = await requestAdminApi("/api/admin/create-business", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${adminToken}`,
     },
     body: JSON.stringify(input),
   });
@@ -215,21 +187,15 @@ export type DeleteBusinessResult = {
 
 export async function deleteBusinessInSupabase(
   businessId: string,
-  accessToken: string,
 ): Promise<DeleteBusinessResult> {
-  const adminToken = accessToken.trim();
-  if (!adminToken) {
-    throw new Error("Admin oturumu bulunamadı. Lütfen tekrar giriş yapın.");
-  }
   if (!businessId.trim()) {
     throw new Error("Silinecek işletme ID bilgisi eksik.");
   }
 
-  const response = await fetch("/api/admin/delete-business", {
+  const response = await requestAdminApi("/api/admin/delete-business", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${adminToken}`,
     },
     body: JSON.stringify({ businessId }),
   });
@@ -249,21 +215,15 @@ export async function deleteBusinessInSupabase(
 
 export async function updateBusinessInSupabase(
   input: AdminUpdateBusinessInput,
-  accessToken: string,
 ) {
-  const adminToken = accessToken.trim();
-  if (!adminToken) {
-    throw new Error("Admin oturumu bulunamadi. Lutfen tekrar giris yapin.");
-  }
   if (!input.id.trim()) {
     throw new Error("Guncellenecek isletme ID bilgisi eksik.");
   }
 
-  const response = await fetch("/api/admin/update-business", {
+  const response = await requestAdminApi("/api/admin/update-business", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${adminToken}`,
     },
     body: JSON.stringify(input),
   });
@@ -285,18 +245,11 @@ export async function updateBusinessInSupabase(
 export async function updateBusinessSubscriptionInSupabase(
   business: Business,
   payload: SubscriptionUpdatePayload,
-  accessToken: string,
 ) {
-  const adminToken = accessToken.trim();
-  if (!adminToken) {
-    throw new Error("Admin oturumu bulunamadi. Lutfen tekrar giris yapin.");
-  }
-
-  const response = await fetch("/api/admin/update-subscription", {
+  const response = await requestAdminApi("/api/admin/update-subscription", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${adminToken}`,
     },
     body: JSON.stringify({
       businessId: business.id,
