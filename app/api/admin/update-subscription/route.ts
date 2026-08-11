@@ -1,4 +1,15 @@
-import { NextResponse } from "next/server";
+import { requireAdmin } from "../../../../lib/admin/auth";
+import {
+  adminServiceFetch,
+  readJsonBody,
+} from "../../../../lib/admin/dal";
+import { AdminError } from "../../../../lib/admin/errors";
+import {
+  adminErrorResponse,
+  adminJson,
+  assertSameOriginAdminMutation,
+  invalidAdminRequest,
+} from "../../../../lib/admin/http";
 
 type SubscriptionPayload = {
   businessId?: string;
@@ -9,57 +20,26 @@ type SubscriptionPayload = {
   is_active?: boolean;
 };
 
-function jsonError(message: string, status = 400, detail?: unknown) {
-  return NextResponse.json({ message, detail }, { status });
-}
-
-function getSupabaseServerConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Supabase public ortam degiskenleri eksik.");
-  }
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik.");
-  }
-
-  return { url, anonKey, serviceRoleKey };
-}
-
-async function readJson(response: Response) {
-  const text = await response.text();
-  return text ? JSON.parse(text) : null;
-}
-
-function safeSupabaseError(prefix: string, _body: unknown) {
-  return prefix;
-}
-
-function getAdminToken(request: Request) {
-  const header = request.headers.get("authorization") || "";
-  const [type, token] = header.split(" ");
-
-  if (type.toLowerCase() !== "bearer" || !token?.trim()) return "";
-  return token.trim();
-}
-
-async function verifyAdminAccess(url: string, anonKey: string, adminToken: string) {
-  const response = await fetch(
-    `${url}/rest/v1/admin_users?is_active=eq.true&select=id,email,is_active&limit=1`,
-    {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${adminToken}`,
-      },
-    },
-  );
-  const body = await readJson(response);
-
-  if (!response.ok || !Array.isArray(body)) return false;
-  return body.length > 0;
-}
+const BUSINESS_SELECT = [
+  "id",
+  "owner_id",
+  "slug",
+  "name",
+  "description",
+  "whatsapp_order_number",
+  "created_at",
+  "category",
+  "city",
+  "district",
+  "neighborhood",
+  "address",
+  "delivery_status",
+  "logo_text",
+  "subscription_status",
+  "subscription_started_at",
+  "subscription_expires_at",
+  "is_active",
+].join(",");
 
 function nullableDateKey(value: string | null | undefined) {
   if (!value) return null;
@@ -78,13 +58,15 @@ function verifySubscriptionUpdate(row: SubscriptionPayload, payload: Subscriptio
       nullableDateKey(payload.subscription_expires_at);
 
   if (hasMismatch) {
-    throw new Error("Abonelik doğrulaması tamamlanamadı.");
+    throw new AdminError(
+      "ADMIN_UNAVAILABLE",
+      "Abonelik doğrulaması tamamlanamadı.",
+      503,
+    );
   }
 }
 
 async function updateSubscription(
-  url: string,
-  serviceRoleKey: string,
   payload: Required<Pick<SubscriptionPayload, "subscription_status" | "is_active">> &
     Pick<
       SubscriptionPayload,
@@ -95,66 +77,72 @@ async function updateSubscription(
     ? `id=eq.${encodeURIComponent(payload.businessId.trim())}`
     : `slug=eq.${encodeURIComponent(payload.slug?.trim() || "")}`;
 
-  const response = await fetch(`${url}/rest/v1/businesses?${filter}&select=*`, {
-    method: "PATCH",
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
+  const response = await adminServiceFetch(
+    `/rest/v1/businesses?${filter}&select=${BUSINESS_SELECT}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        subscription_status: payload.subscription_status,
+        subscription_started_at: payload.subscription_started_at ?? null,
+        subscription_expires_at: payload.subscription_expires_at ?? null,
+        is_active: payload.is_active,
+        updated_at: new Date().toISOString(),
+      }),
     },
-    body: JSON.stringify({
-      subscription_status: payload.subscription_status,
-      subscription_started_at: payload.subscription_started_at ?? null,
-      subscription_expires_at: payload.subscription_expires_at ?? null,
-      is_active: payload.is_active,
-      updated_at: new Date().toISOString(),
-    }),
-  });
-  const body = await readJson(response);
+  );
+  const body = await readJsonBody(response);
 
   if (!response.ok) {
-    throw new Error(safeSupabaseError("Abonelik guncellenemedi", body));
+    throw new AdminError(
+      "ADMIN_UNAVAILABLE",
+      "Abonelik güncellenemedi.",
+      503,
+    );
   }
 
   const business = Array.isArray(body) ? body[0] : body;
-  if (!business?.slug) {
-    throw new Error("Abonelik guncellendi ancak isletme kaydi donmedi.");
+  if (!business || typeof business !== "object" || !("slug" in business)) {
+    throw new AdminError(
+      "ADMIN_UNAVAILABLE",
+      "Abonelik güncellendi ancak işletme kaydı dönmedi.",
+      503,
+    );
   }
 
-  return business;
+  return business as SubscriptionPayload & { slug: string };
 }
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
-    const adminToken = getAdminToken(request);
+    assertSameOriginAdminMutation(request);
+    await requireAdmin();
 
-    if (!adminToken) {
-      return jsonError("Admin oturumu bulunamadi.", 401);
+    let payload: SubscriptionPayload;
+    try {
+      payload = (await request.json()) as SubscriptionPayload;
+    } catch {
+      invalidAdminRequest("Geçersiz istek gövdesi.");
     }
 
-    const hasAdminAccess = await verifyAdminAccess(url, anonKey, adminToken);
-    if (!hasAdminAccess) {
-      return jsonError("Bu hesap admin yetkisine sahip degil.", 403);
-    }
-
-    const payload = (await request.json()) as SubscriptionPayload;
     if (!payload.businessId?.trim() && !payload.slug?.trim()) {
-      return jsonError("Guncellenecek isletme ID veya slug bilgisi eksik.");
+      invalidAdminRequest("Güncellenecek işletme ID veya slug bilgisi eksik.");
     }
     if (
       payload.subscription_status !== "active" &&
       payload.subscription_status !== "expired" &&
       payload.subscription_status !== "blocked"
     ) {
-      return jsonError("Gecersiz abonelik durumu.");
+      invalidAdminRequest("Geçersiz abonelik durumu.");
     }
     if (typeof payload.is_active !== "boolean") {
-      return jsonError("Aktif/pasif bilgisi gecersiz.");
+      invalidAdminRequest("Aktif/pasif bilgisi geçersiz.");
     }
 
-    const business = await updateSubscription(url, serviceRoleKey, {
+    const business = await updateSubscription({
       businessId: payload.businessId,
       slug: payload.slug,
       subscription_status: payload.subscription_status,
@@ -162,13 +150,10 @@ export async function POST(request: Request) {
       subscription_expires_at: payload.subscription_expires_at ?? null,
       is_active: payload.is_active,
     });
-
     verifySubscriptionUpdate(business, payload);
 
-    return NextResponse.json({ business });
+    return adminJson({ business });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.", status);
+    return adminErrorResponse(error, "Abonelik işlemi tamamlanamadı.");
   }
 }

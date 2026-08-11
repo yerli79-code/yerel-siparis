@@ -24,10 +24,11 @@ import {
   getRemainingDays,
 } from "../../lib/subscription";
 import {
-  clearBrowserAuthSession,
-  getValidAccessToken,
-  signInWithPassword,
-} from "../../lib/browser-auth-session";
+  clearLegacyAdminBrowserSession,
+  loginAdmin,
+  logoutAdmin as requestAdminLogout,
+  readAdminSession,
+} from "../../lib/admin-client";
 import {
   findProvinceByName,
   getDistricts,
@@ -36,14 +37,7 @@ import {
 } from "../../lib/locations";
 
 const extensionDays = [30, 60, 90, 180, 365];
-const adminSessionKey = "yerel-siparis-admin-auth-session";
 const adminSessionExpiredMessage = "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.";
-
-type AdminUserRow = {
-  id: string;
-  email: string;
-  is_active: boolean;
-};
 
 type NewBusinessForm = {
   name: string;
@@ -202,67 +196,6 @@ function isEndingWithinDays(business: Business, days: number) {
   return remainingDays > 0 && remainingDays <= days;
 }
 
-function getSupabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error(
-      ".env.local içinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_ANON_KEY eksik.",
-    );
-  }
-
-  return { url, anonKey };
-}
-
-function getAdminAuthConfig() {
-  const { url, anonKey } = getSupabaseConfig();
-  return { url, anonKey, sessionKey: adminSessionKey };
-}
-
-function clearAdminAccessToken() {
-  clearBrowserAuthSession(adminSessionKey);
-}
-
-async function parseSupabaseResponse(response: Response) {
-  const text = await response.text();
-  const body = text ? JSON.parse(text) : null;
-
-  if (!response.ok) {
-    const message =
-      body?.error_description ||
-      body?.message ||
-      "Supabase isteği başarısız oldu.";
-    throw new Error(message);
-  }
-
-  return body;
-}
-
-async function signInAdmin(email: string, password: string) {
-  const session = await signInWithPassword(getAdminAuthConfig(), email, password);
-  if (!session) {
-    throw new Error("Admin oturumu oluşturulamadı.");
-  }
-
-  return session;
-}
-
-async function verifyAdminAccess(accessToken: string) {
-  const { url, anonKey } = getSupabaseConfig();
-  const response = await fetch(
-    `${url}/rest/v1/admin_users?is_active=eq.true&select=id,email,is_active&limit=1`,
-    {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-  );
-  const body = (await parseSupabaseResponse(response)) as AdminUserRow[];
-  return body.length > 0;
-}
-
 export default function AdminPage() {
   const [isAdminAuthorized, setIsAdminAuthorized] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
@@ -270,7 +203,6 @@ export default function AdminPage() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [isAdminSigningIn, setIsAdminSigningIn] = useState(false);
-  const [adminAccessToken, setAdminAccessToken] = useState("");
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [message, setMessage] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -396,53 +328,24 @@ export default function AdminPage() {
   ].filter(Boolean);
   const listedBusinesses = filteredBusinesses;
 
-  function endAdminSession(
-    message = adminSessionExpiredMessage,
-  ) {
-    clearAdminAccessToken();
-    setAdminAccessToken("");
-    setIsAdminAuthorized(false);
-    setAdminPassword("");
-    setAdminError(message);
-  }
-
-  async function getFreshAdminAccessToken() {
-    const token = await getValidAccessToken(getAdminAuthConfig());
-    if (!token) {
-      endAdminSession();
-      return "";
-    }
-    setAdminAccessToken(token);
-    return token;
-  }
-
   useEffect(() => {
     let isCancelled = false;
 
-    async function checkAdminSession() {
-      const token = await getValidAccessToken(getAdminAuthConfig());
-      if (!token) {
-        if (!isCancelled) setIsCheckingAdmin(false);
-        return;
-      }
+    clearLegacyAdminBrowserSession();
 
+    async function checkAdminSession() {
       try {
-        const hasAccess = await verifyAdminAccess(token);
+        const session = await readAdminSession();
         if (isCancelled) return;
 
-        if (!hasAccess) {
-          clearAdminAccessToken();
-          setAdminError("Bu hesap admin yetkisine sahip değil.");
+        if (!session) {
           setIsAdminAuthorized(false);
           return;
         }
 
-        setAdminAccessToken(token);
         setIsAdminAuthorized(true);
       } catch {
         if (isCancelled) return;
-        clearAdminAccessToken();
-        setAdminAccessToken("");
         setAdminError(adminSessionExpiredMessage);
         setIsAdminAuthorized(false);
       } finally {
@@ -472,14 +375,8 @@ export default function AdminPage() {
     );
 
     async function loadSupabaseBusinesses() {
-      const currentAdminAccessToken = await getFreshAdminAccessToken();
-      if (!currentAdminAccessToken) return;
-
       try {
-        const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(
-          storedBusinesses,
-          currentAdminAccessToken,
-        );
+        const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(storedBusinesses);
         writeBusinesses(fetchedBusinesses);
         setBusinesses(fetchedBusinesses);
         setManualDates(
@@ -496,7 +393,7 @@ export default function AdminPage() {
     }
 
     loadSupabaseBusinesses();
-  }, [adminAccessToken, isAdminAuthorized]);
+  }, [isAdminAuthorized]);
 
   function updateNewBusinessForm(
     field: keyof NewBusinessForm,
@@ -624,15 +521,7 @@ export default function AdminPage() {
   }
 
   async function refreshBusinessesFromSupabase() {
-    const currentAdminAccessToken = await getFreshAdminAccessToken();
-    if (!currentAdminAccessToken) {
-      throw new Error(adminSessionExpiredMessage);
-    }
-
-    const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(
-      readBusinesses(),
-      currentAdminAccessToken,
-    );
+    const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(readBusinesses());
     writeBusinesses(fetchedBusinesses);
     setBusinesses(fetchedBusinesses);
     setManualDates(
@@ -697,22 +586,9 @@ export default function AdminPage() {
       setMessage("Bu slug ile kayıtlı bir işletme zaten var.");
       return;
     }
-    const currentAdminAccessToken = await getFreshAdminAccessToken();
-    if (!currentAdminAccessToken) {
-      setMessage(adminSessionExpiredMessage);
-      return;
-    }
-
     setIsCreatingBusiness(true);
 
     try {
-      const hasAdminAccess = await verifyAdminAccess(currentAdminAccessToken);
-      if (!hasAdminAccess) {
-        endAdminSession("Bu hesap admin yetkisine sahip değil.");
-        throw new Error("Bu hesap admin yetkisine sahip değil.");
-      }
-      setAdminAccessToken(currentAdminAccessToken);
-
       await createBusinessWithAccount(
         {
           slug,
@@ -734,7 +610,6 @@ export default function AdminPage() {
             : null,
           isActive: newBusinessForm.isActive,
         },
-        currentAdminAccessToken,
       );
       await refreshBusinessesFromSupabase();
       setCreatedBusinessCredentials({
@@ -782,23 +657,10 @@ export default function AdminPage() {
       return;
     }
 
-    const currentAdminAccessToken = await getFreshAdminAccessToken();
-    if (!currentAdminAccessToken) {
-      setMessage(adminSessionExpiredMessage);
-      return;
-    }
-
     setIsUpdatingBusiness(true);
     setSavingSlug(editingBusiness.originalSlug);
 
     try {
-      const hasAdminAccess = await verifyAdminAccess(currentAdminAccessToken);
-      if (!hasAdminAccess) {
-        endAdminSession("Bu hesap admin yetkisine sahip değil.");
-        throw new Error("Bu hesap admin yetkisine sahip değil.");
-      }
-      setAdminAccessToken(currentAdminAccessToken);
-
       await updateBusinessInSupabase(
         {
           id: editingBusiness.id,
@@ -819,7 +681,6 @@ export default function AdminPage() {
             : null,
           isActive: editingBusiness.isActive,
         },
-        currentAdminAccessToken,
       );
       await refreshBusinessesFromSupabase();
       setEditingBusiness(null);
@@ -845,25 +706,12 @@ export default function AdminPage() {
     }
 
     try {
-      const session = await signInAdmin(adminEmail.trim(), adminPassword);
-      const hasAccess = await verifyAdminAccess(session.access_token);
-
-      if (!hasAccess) {
-        clearAdminAccessToken();
-        setAdminAccessToken("");
-        setIsAdminAuthorized(false);
-        setAdminPassword("");
-        setAdminError("Bu hesap admin yetkisine sahip değil.");
-        return;
-      }
-
-      setAdminAccessToken(session.access_token);
+      const authenticated = await loginAdmin(adminEmail.trim(), adminPassword);
+      if (!authenticated) throw new Error("Admin girişi reddedildi.");
       setIsAdminAuthorized(true);
       setAdminPassword("");
       setAdminError("");
     } catch {
-      clearAdminAccessToken();
-      setAdminAccessToken("");
       setIsAdminAuthorized(false);
       setAdminError("Admin girişi başarısız. E-posta veya şifreyi kontrol edin.");
     } finally {
@@ -877,12 +725,6 @@ export default function AdminPage() {
     setMessage("Abonelik güncelleniyor...");
 
     try {
-      const currentAdminAccessToken = await getFreshAdminAccessToken();
-      if (!currentAdminAccessToken) {
-        setMessage(adminSessionExpiredMessage);
-        return;
-      }
-
       const payload = {
         subscription_status: nextBusiness.subscriptionStatus,
         subscription_started_at: nextBusiness.subscriptionStartedAt ?? null,
@@ -892,14 +734,12 @@ export default function AdminPage() {
       const syncedBusiness = await updateBusinessSubscriptionInSupabase(
         nextBusiness,
         payload,
-        currentAdminAccessToken,
       );
       const locallyUpdatedBusinesses = updateBusiness(syncedBusiness);
 
       try {
         const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(
           locallyUpdatedBusinesses,
-          currentAdminAccessToken,
         );
         const verifiedBusinesses = fetchedBusinesses.map((business) =>
           business.slug === syncedBusiness.slug ? syncedBusiness : business,
@@ -1000,11 +840,6 @@ export default function AdminPage() {
   }
 
   async function deleteBusiness(business: Business) {
-    const currentAdminAccessToken = await getFreshAdminAccessToken();
-    if (!currentAdminAccessToken) {
-      setMessage(adminSessionExpiredMessage);
-      return;
-    }
     if (!business.id) {
       setSavingSlug(business.slug);
       setMessage("İşletme Supabase ID bilgisi bulunamadı. Liste yenileniyor...");
@@ -1019,10 +854,7 @@ export default function AdminPage() {
     setErrorDetail("");
 
     try {
-      const result = await deleteBusinessInSupabase(
-        business.id,
-        currentAdminAccessToken,
-      );
+      const result = await deleteBusinessInSupabase(business.id);
       await refreshBusinessesFromSupabase();
       setMessage(
         result.notFound
@@ -1037,9 +869,8 @@ export default function AdminPage() {
     }
   }
 
-  function logoutAdmin() {
-    clearAdminAccessToken();
-    setAdminAccessToken("");
+  async function logoutAdmin() {
+    await requestAdminLogout();
     setIsAdminAuthorized(false);
     setAdminPassword("");
     setAdminError("");

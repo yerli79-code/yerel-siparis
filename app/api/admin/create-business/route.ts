@@ -1,5 +1,15 @@
-import { NextResponse } from "next/server";
 import { isValidStandardBusinessLocation } from "../../../../lib/locations/server";
+import { requireAdmin } from "../../../../lib/admin/auth";
+import {
+  adminServiceFetch,
+  readJsonBody as readJson,
+} from "../../../../lib/admin/dal";
+import {
+  adminErrorResponse,
+  adminJson,
+  assertSameOriginAdminMutation,
+  invalidAdminRequest,
+} from "../../../../lib/admin/http";
 
 type CreateBusinessPayload = {
   slug?: string;
@@ -25,69 +35,21 @@ type SupabaseUserResponse = {
   };
 };
 
-function jsonError(message: string, status = 400, detail?: unknown) {
-  return NextResponse.json({ message, detail }, { status });
-}
-
-function getSupabaseServerConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Supabase public ortam değişkenleri eksik.");
-  }
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik.");
-  }
-
-  return { url, anonKey, serviceRoleKey };
-}
-
-async function readJson(response: Response) {
-  const text = await response.text();
-  return text ? JSON.parse(text) : null;
+function jsonError(message: string, status = 400) {
+  return adminJson(
+    { error: { code: "INVALID_REQUEST", message } },
+    { status },
+  );
 }
 
 function safeSupabaseError(prefix: string, _body: unknown) {
   return prefix;
 }
 
-function getAdminToken(request: Request) {
-  const header = request.headers.get("authorization") || "";
-  const [type, token] = header.split(" ");
-
-  if (type.toLowerCase() !== "bearer" || !token?.trim()) return "";
-  return token.trim();
-}
-
-async function verifyAdminAccess(url: string, anonKey: string, adminToken: string) {
-  const response = await fetch(
-    `${url}/rest/v1/admin_users?is_active=eq.true&select=id,email,is_active&limit=1`,
-    {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${adminToken}`,
-      },
-    },
-  );
-  const body = await readJson(response);
-
-  if (!response.ok || !Array.isArray(body)) return false;
-  return body.length > 0;
-}
-
-async function createOwnerUser(
-  url: string,
-  serviceRoleKey: string,
-  email: string,
-  password: string,
-) {
-  const response = await fetch(`${url}/auth/v1/admin/users`, {
+async function createOwnerUser(email: string, password: string) {
+  const response = await adminServiceFetch("/auth/v1/admin/users", {
     method: "POST",
     headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -114,19 +76,9 @@ async function createOwnerUser(
   return userId;
 }
 
-async function checkSlugAvailability(
-  url: string,
-  serviceRoleKey: string,
-  slug: string,
-) {
-  const response = await fetch(
-    `${url}/rest/v1/businesses?slug=eq.${encodeURIComponent(slug)}&select=id&limit=1`,
-    {
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-    },
+async function checkSlugAvailability(slug: string) {
+  const response = await adminServiceFetch(
+    `/rest/v1/businesses?slug=eq.${encodeURIComponent(slug)}&select=id&limit=1`,
   );
   const body = await readJson(response);
 
@@ -138,13 +90,9 @@ async function checkSlugAvailability(
   }
 }
 
-async function deleteOwnerUser(url: string, serviceRoleKey: string, userId: string) {
-  const response = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+async function deleteOwnerUser(userId: string) {
+  const response = await adminServiceFetch(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
     method: "DELETE",
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
   });
   if (!response.ok) {
     throw new Error("Oluşturulan Auth kullanıcısı geri silinemedi.");
@@ -152,8 +100,6 @@ async function deleteOwnerUser(url: string, serviceRoleKey: string, userId: stri
 }
 
 async function upsertProfile(
-  url: string,
-  serviceRoleKey: string,
   userId: string,
   email: string,
   businessName: string,
@@ -190,13 +136,11 @@ async function upsertProfile(
   let lastError = "Profil kaydı oluşturulamadı.";
 
   for (const profilePayload of profilePayloads) {
-    const response = await fetch(
-      `${url}/rest/v1/profiles?on_conflict=id&select=*`,
+    const response = await adminServiceFetch(
+      "/rest/v1/profiles?on_conflict=id&select=id",
       {
         method: "POST",
         headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
           "Content-Type": "application/json",
           Prefer: "resolution=merge-duplicates,return=representation",
         },
@@ -216,15 +160,11 @@ async function upsertProfile(
   throw new Error(lastError);
 }
 
-async function deleteProfile(url: string, serviceRoleKey: string, userId: string) {
-  const response = await fetch(
-    `${url}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+async function deleteProfile(userId: string) {
+  const response = await adminServiceFetch(
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
     {
       method: "DELETE",
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
     },
   );
 
@@ -234,17 +174,13 @@ async function deleteProfile(url: string, serviceRoleKey: string, userId: string
 }
 
 async function createBusiness(
-  url: string,
-  serviceRoleKey: string,
   payload: CreateBusinessPayload,
   ownerId: string,
 ) {
   const subscriptionStatus = payload.subscriptionStatus || "active";
-  const response = await fetch(`${url}/rest/v1/businesses?select=*`, {
+  const response = await adminServiceFetch("/rest/v1/businesses?select=id,owner_id,slug,name,description,whatsapp_order_number,created_at,category,city,district,neighborhood,address,delivery_status,logo_text,subscription_status,subscription_started_at,subscription_expires_at,is_active", {
     method: "POST",
     headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
       Prefer: "return=representation",
     },
@@ -280,19 +216,15 @@ async function createBusiness(
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
-    const adminToken = getAdminToken(request);
+    assertSameOriginAdminMutation(request);
+    await requireAdmin();
 
-    if (!adminToken) {
-      return jsonError("Admin oturumu bulunamadı.", 401);
+    let payload: CreateBusinessPayload;
+    try {
+      payload = (await request.json()) as CreateBusinessPayload;
+    } catch {
+      invalidAdminRequest("Geçersiz istek gövdesi.");
     }
-
-    const hasAdminAccess = await verifyAdminAccess(url, anonKey, adminToken);
-    if (!hasAdminAccess) {
-      return jsonError("Bu hesap admin yetkisine sahip değil.", 403);
-    }
-
-    const payload = (await request.json()) as CreateBusinessPayload;
     const email = payload.ownerEmail?.trim();
     const password = payload.temporaryPassword || "";
 
@@ -312,30 +244,28 @@ export async function POST(request: Request) {
       return jsonError("Geçici şifre en az 6 karakter olmalıdır.");
     }
 
-    await checkSlugAvailability(url, serviceRoleKey, payload.slug.trim());
+    await checkSlugAvailability(payload.slug.trim());
 
-    const ownerId = await createOwnerUser(url, serviceRoleKey, email, password);
+    const ownerId = await createOwnerUser(email, password);
 
     try {
       await upsertProfile(
-        url,
-        serviceRoleKey,
         ownerId,
         email,
         payload.name.trim(),
       );
-      const business = await createBusiness(url, serviceRoleKey, payload, ownerId);
-      return NextResponse.json({ business });
+      const business = await createBusiness(payload, ownerId);
+      return adminJson({ business });
     } catch (error) {
       let rollbackMessage = "";
       try {
-        await deleteProfile(url, serviceRoleKey, ownerId);
+        await deleteProfile(ownerId);
       } catch {
         rollbackMessage +=
           " Oluşturulan profil kaydı otomatik geri silinemedi; Supabase profiles tablosunu manuel kontrol edin.";
       }
       try {
-        await deleteOwnerUser(url, serviceRoleKey, ownerId);
+        await deleteOwnerUser(ownerId);
       } catch {
         rollbackMessage +=
           " Oluşturulan Auth kullanıcısı otomatik geri silinemedi; Supabase Auth üzerinden manuel kontrol edin.";
@@ -345,8 +275,6 @@ export async function POST(request: Request) {
       throw new Error(`${message}${rollbackMessage}`);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const status = message.includes("SUPABASE_SERVICE_ROLE_KEY") ? 500 : 400;
-    return jsonError("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.", status);
+    return adminErrorResponse(error, "İşletme kaydedilemedi.");
   }
 }
