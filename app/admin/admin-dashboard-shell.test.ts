@@ -110,6 +110,21 @@ test("admin login exposes accessible fields without implementation provider copy
   assert.doesNotMatch(adminPageSource, /Supabase ID/i);
 });
 
+test("admin login, shell and loading use only the public green platform brand", () => {
+  const loginBrandTags = loginSource.match(/<PlatformBrand[^>]*\/>/g) ?? [];
+  const shellBrandTags = shellSource.match(/<PlatformBrand[^>]*\/>/g) ?? [];
+
+  assert.equal(loginBrandTags.length, 3);
+  assert.equal(shellBrandTags.length, 2);
+
+  for (const brandTag of [...loginBrandTags, ...shellBrandTags]) {
+    assert.match(brandTag, /publicVariant/);
+    assert.doesNotMatch(brandTag, /onDark/);
+  }
+
+  assert.doesNotMatch(`${loginSource}\n${shellSource}`, /yerel-siparis-logo\.svg/);
+});
+
 test("admin subscription controls keep enum values with Turkish user-facing labels", () => {
   const createFormSource = adminPageSource.match(
     /<section[^>]*id="yeni-isletme"[^]*?<\/form>/,
@@ -175,6 +190,35 @@ test("admin redesign has loading, empty, error and responsive contracts", () => 
   assert.match(adminCss, /@media \(max-width: 1023px\)/);
   assert.match(adminCss, /@media \(max-width: 759px\)/);
   assert.match(adminCss, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test("admin visual system follows canonical brand tokens without duplicate overview heading", () => {
+  for (const token of [
+    "--brand-primary",
+    "--brand-accent",
+    "--brand-dark",
+    "--brand-surface",
+    "--brand-soft",
+    "--brand-card",
+  ]) {
+    assert.match(adminCss, new RegExp(`var\\(${token}\\)`));
+  }
+
+  assert.doesNotMatch(adminCss, /background: var\(--brand-dark\)/);
+  assert.match(overviewSource, /<h2 id="overview-title">Platform Durumu<\/h2>/);
+  assert.doesNotMatch(overviewSource, /<h[1-6][^>]*>Genel Bakış<\/h[1-6]>/);
+
+  for (const handler of [
+    "submitNewBusiness",
+    "submitEditBusiness",
+    "deleteBusiness",
+    "extendSubscription",
+    "setActive",
+    "setPassive",
+    "blockBusiness",
+  ]) {
+    assert.match(adminPageSource, new RegExp(`function ${handler}\\(`));
+  }
 });
 
 test("dashboard KPI implementation stays on loaded businesses without order or storage access", () => {

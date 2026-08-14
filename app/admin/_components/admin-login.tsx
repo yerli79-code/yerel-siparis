@@ -17,7 +17,7 @@ export function AdminLoading() {
   return (
     <main className={styles.loadingPage}>
       <section className={styles.loadingCard} aria-live="polite" aria-busy="true">
-        <PlatformBrand className={styles.loadingBrand} />
+        <PlatformBrand className={styles.loadingBrand} publicVariant />
         <span className={styles.spinner} aria-hidden="true" />
         <div>
           <h1>Yönetim Paneli</h1>
@@ -41,7 +41,7 @@ export default function AdminLogin({
     <main className={styles.loginPage}>
       <div className={styles.loginShell}>
         <section className={styles.loginBrandPanel} aria-labelledby="admin-login-brand-title">
-          <PlatformBrand className={styles.loginBrand} onDark />
+          <PlatformBrand className={styles.loginBrand} publicVariant />
           <div className={styles.loginBrandCopy}>
             <span className={styles.loginEyebrow}>Yerel işletmeler için</span>
             <h1 id="admin-login-brand-title">Yönetim Paneli</h1>
@@ -55,7 +55,7 @@ export default function AdminLogin({
 
         <section className={styles.loginFormPanel} aria-labelledby="admin-login-title">
           <div className={styles.loginMobileBrand}>
-            <PlatformBrand className={styles.loginMobileLogo} />
+            <PlatformBrand className={styles.loginMobileLogo} publicVariant />
             <h1>Yönetim Paneli</h1>
           </div>
           <div className={styles.loginFormHeading}>

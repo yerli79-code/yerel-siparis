@@ -113,7 +113,7 @@ export default function AdminShell({
     <div className={styles.shellRoot}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarBrand}>
-          <PlatformBrand className={styles.sidebarLogo} onDark />
+          <PlatformBrand className={styles.sidebarLogo} publicVariant />
           <span>Yönetim Paneli</span>
         </div>
         {navigation}
@@ -126,7 +126,7 @@ export default function AdminShell({
       <div className={styles.mainColumn}>
         <header className={styles.mobileHeader}>
           <div className={styles.mobileIdentity}>
-            <PlatformBrand className={styles.mobileLogo} />
+            <PlatformBrand className={styles.mobileLogo} publicVariant />
             <div className={styles.mobileTitle}>
               <span>Yönetim Paneli</span>
               <h1>{copy.title}</h1>

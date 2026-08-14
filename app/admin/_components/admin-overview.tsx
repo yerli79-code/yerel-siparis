@@ -22,8 +22,8 @@ export default function AdminOverview({
     <section className={styles.overview} id="genel-bakis" aria-labelledby="overview-title">
       <div className={styles.overviewHeading}>
         <div>
-          <span className={styles.sectionEyebrow}>Platform durumu</span>
-          <h2 id="overview-title">Genel Bakış</h2>
+          <span className={styles.sectionEyebrow}>Yönetim özeti</span>
+          <h2 id="overview-title">Platform Durumu</h2>
           <p>İşletmelerin güncel durumunu ve yaklaşan abonelik ihtiyaçlarını izleyin.</p>
         </div>
         <button type="button" onClick={onManageBusinesses}>
@@ -63,7 +63,15 @@ export default function AdminOverview({
                       <strong>{business.name}</strong>
                       <small>{formatDate(business.subscriptionExpiresAt)}</small>
                     </span>
-                    <span className={styles.attentionBadge}>{badge}</span>
+                    <span
+                      className={`${styles.attentionBadge} ${
+                        badge === "Aktif"
+                          ? styles.attentionBadgeActive
+                          : styles.attentionBadgeWarning
+                      }`}
+                    >
+                      {badge}
+                    </span>
                     <span className={styles.attentionArrow} aria-hidden="true">›</span>
                   </button>
                 );
