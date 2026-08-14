@@ -21,6 +21,7 @@ const logoutRoute = source("app/api/admin/auth/logout/route.ts");
 
 const dataRoutes = [
   "app/api/admin/list-businesses/route.ts",
+  "app/api/admin/overview/route.ts",
   "app/api/admin/create-business/route.ts",
   "app/api/admin/update-business/route.ts",
   "app/api/admin/update-subscription/route.ts",
@@ -31,7 +32,7 @@ const mutationRoutes = [
   loginRoute,
   refreshRoute,
   logoutRoute,
-  ...dataRoutes.slice(1),
+  ...dataRoutes.slice(2),
 ];
 
 async function withMockFetch<T>(
@@ -187,9 +188,10 @@ test("legacy admin session cleanup removes only the exact retired key at startup
   );
   const cleanupEnd = adminClient.indexOf("async function refreshAdminSession");
   const cleanupSource = adminClient.slice(cleanupStart, cleanupEnd);
+  const startupStart = adminPage.indexOf("useEffect(() => {");
   const startupEffect = adminPage.slice(
-    adminPage.indexOf("useEffect(() => {"),
-    adminPage.indexOf("}, []);") + "}, []);".length,
+    startupStart,
+    adminPage.indexOf("}, []);", startupStart) + "}, []);".length,
   );
 
   assert.ok(cleanupStart >= 0);

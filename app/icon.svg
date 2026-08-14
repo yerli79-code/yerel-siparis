@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Yerel Sipariş">
+  <defs>
+    <linearGradient id="brand-green" x1="24" y1="16" x2="138" y2="148" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#23912F"/>
+      <stop offset="1" stop-color="#095D27"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="36" fill="url(#brand-green)"/>
+  <path d="M39 44h82l8 25c1 5-2 10-7 12-7 3-14 0-17-6-3 6-9 9-15 7-5-1-8-4-10-8-2 4-5 7-10 8-6 2-12-1-15-7-3 6-10 9-17 6-5-2-8-7-7-12l8-25Z" fill="#fff"/>
+  <path d="M45 82v35c0 6 5 11 11 11h48c6 0 11-5 11-11V82" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 89c-10 0-18 8-18 18 0 13 18 28 18 28s18-15 18-28c0-10-8-18-18-18Z" fill="#fff"/>
+  <circle cx="80" cy="107" r="6" fill="#095D27"/>
+</svg>

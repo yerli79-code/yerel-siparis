@@ -569,6 +569,48 @@
   margin-top: 16px;
 }
 
+.mainContent :global(.admin-pagination) {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: 16px;
+  background: var(--brand-card);
+  padding: 14px;
+  box-shadow: var(--admin-shadow);
+}
+
+.mainContent :global(.admin-pagination > div) {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  color: var(--brand-dark);
+  text-align: center;
+}
+
+.mainContent :global(.admin-pagination span) {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mainContent :global(.admin-pagination button) {
+  min-height: 44px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand-primary);
+  padding: 10px 16px;
+  font-weight: 700;
+}
+
+.mainContent :global(.admin-pagination button:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .mainContent :global(.section-title) {
   align-items: flex-start;
   gap: 16px;
@@ -1514,6 +1556,21 @@
 
   .mainContent {
     padding: 20px 14px 36px;
+  }
+
+  .mainContent :global(.admin-pagination) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .mainContent :global(.admin-pagination > div) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .mainContent :global(.admin-pagination button) {
+    width: 100%;
+    min-width: 0;
   }
 
   .overview {

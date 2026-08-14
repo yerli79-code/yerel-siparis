@@ -1,5 +1,10 @@
 import type { Business } from "./businesses";
 import { requestAdminApi } from "./admin-client";
+import type {
+  AdminBusinessListQuery,
+  AdminBusinessListResponse,
+} from "./admin/business-list-contract";
+import type { AdminKpis } from "./subscription";
 
 export type SubscriptionUpdatePayload = {
   subscription_status: "active" | "expired" | "blocked";
@@ -122,12 +127,28 @@ function verifySubscriptionUpdate(
   }
 }
 
-export async function fetchAdminBusinessesFromSupabase(
-  fallbackBusinesses: Business[] = [],
-): Promise<Business[]> {
-  const response = await requestAdminApi("/api/admin/list-businesses", {
+export async function fetchAdminBusinessPage(
+  query: AdminBusinessListQuery,
+  signal?: AbortSignal,
+): Promise<AdminBusinessListResponse> {
+  const searchParams = new URLSearchParams();
+  if (query.q) searchParams.set("q", query.q);
+  searchParams.set("page", String(query.page));
+  searchParams.set("pageSize", String(query.pageSize));
+  searchParams.set("access", query.access);
+  searchParams.set("subscription", query.subscription);
+  searchParams.set("created", query.created);
+  searchParams.set("sort", query.sort);
+  if (query.city) searchParams.set("city", query.city);
+  if (query.district) searchParams.set("district", query.district);
+
+  const response = await requestAdminApi(
+    `/api/admin/list-businesses?${searchParams}`,
+    {
     method: "GET",
-  });
+      signal,
+    },
+  );
 
   const text = await response.text();
   const body = parseSupabaseBody(text);
@@ -136,21 +157,41 @@ export async function fetchAdminBusinessesFromSupabase(
     throw new Error("Liste yüklenemedi. Lütfen tekrar deneyin.");
   }
 
-  const rows: SupabaseBusinessRow[] = Array.isArray(body)
-    ? (body as SupabaseBusinessRow[])
-    : Array.isArray(body?.businesses)
-      ? (body.businesses as SupabaseBusinessRow[])
-      : [];
+  if (
+    !body ||
+    !Array.isArray(body.items) ||
+    typeof body.pagination?.page !== "number" ||
+    typeof body.pagination?.pageSize !== "number" ||
+    typeof body.pagination?.total !== "number" ||
+    typeof body.pagination?.totalPages !== "number"
+  ) {
+    throw new Error("Liste yüklenemedi. Lütfen tekrar deneyin.");
+  }
 
-  const fallbackBySlug = new Map(
-    fallbackBusinesses.map((business) => [business.slug, business]),
-  );
+  return body as AdminBusinessListResponse;
+}
 
-  const mappedBusinesses = rows.map((row: SupabaseBusinessRow) =>
-    mergeSupabaseBusiness(row, fallbackBySlug.get(row.slug)),
-  );
+export async function fetchAdminOverview(signal?: AbortSignal): Promise<AdminKpis> {
+  const response = await requestAdminApi("/api/admin/overview", {
+    method: "GET",
+    signal,
+  });
+  const text = await response.text();
+  const body = parseSupabaseBody(text) as Partial<AdminKpis> | null;
+  const keys: Array<keyof AdminKpis> = [
+    "total",
+    "active",
+    "inactive",
+    "createdLastSevenDays",
+    "activeSubscriptions",
+    "expiringSubscriptions",
+  ];
 
-  return mappedBusinesses;
+  if (!response.ok || !body || keys.some((key) => typeof body[key] !== "number")) {
+    throw new Error("Yönetim özeti yüklenemedi. Lütfen tekrar deneyin.");
+  }
+
+  return body as AdminKpis;
 }
 
 export async function createBusinessWithAccount(

@@ -1,35 +1,31 @@
 ﻿"use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import LocationSelector from "../../components/LocationSelector";
-import {
-  readBusinesses,
-  updateBusiness,
-  writeBusinesses,
-} from "../../lib/business-storage";
 import type { Business } from "../../lib/businesses";
 import {
   createBusinessWithAccount,
   deleteBusinessInSupabase,
-  fetchAdminBusinessesFromSupabase,
+  fetchAdminBusinessPage,
+  fetchAdminOverview,
   updateBusinessInSupabase,
   updateBusinessSubscriptionInSupabase,
 } from "../../lib/supabase-admin";
 import {
   addDaysFromToday,
-  calculateAdminKpis,
   canReactivateBusinessAccess,
   formatDate,
   getAdminSubscriptionStatusLabel,
   getBadge,
   getRemainingDays,
-  hasActiveSubscription,
   isEndingWithinDays,
   isSubscriptionExpired,
+  type AdminKpis,
   withBusinessAccess,
   withReactivatedBusinessAccess,
 } from "../../lib/subscription";
 import {
+  clearLegacyAdminBusinessCache,
   clearLegacyAdminBrowserSession,
   loginAdmin,
   logoutAdmin as requestAdminLogout,
@@ -39,8 +35,16 @@ import {
   findProvinceByName,
   getDistricts,
   getProvinces,
-  normalizeLocationLabel,
 } from "../../lib/locations";
+import {
+  ADMIN_BUSINESS_DEFAULT_PAGE_SIZE,
+  type AdminBusinessAccessFilter,
+  type AdminBusinessCreatedFilter,
+  type AdminBusinessListQuery,
+  type AdminBusinessPagination,
+  type AdminBusinessSort,
+  type AdminBusinessSubscriptionFilter,
+} from "../../lib/admin/business-list-contract";
 import AdminLogin, { AdminLoading } from "./_components/admin-login";
 import AdminOverview from "./_components/admin-overview";
 import AdminShell, { type AdminSection } from "./_components/admin-shell";
@@ -113,15 +117,6 @@ type CreatedBusinessCredentials = {
   temporaryPassword: string;
 };
 
-type AdminStatusFilter = "all" | "active" | "passive";
-type AdminSubscriptionFilter =
-  | "all"
-  | "active"
-  | "expired"
-  | "passive"
-  | "blocked"
-  | "ending7"
-  | "ending30";
 type AdminConfirmAction = {
   businessName: string;
   actionName: string;
@@ -160,28 +155,21 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function normalizeSearch(value: string | null | undefined) {
-  return (value || "")
-    .toLocaleLowerCase("tr-TR")
-    .replaceAll("ç", "c")
-    .replaceAll("ğ", "g")
-    .replaceAll("ı", "i")
-    .replaceAll("ö", "o")
-    .replaceAll("ş", "s")
-    .replaceAll("ü", "u")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
+const emptyAdminKpis: AdminKpis = {
+  total: 0,
+  active: 0,
+  inactive: 0,
+  createdLastSevenDays: 0,
+  activeSubscriptions: 0,
+  expiringSubscriptions: 0,
+};
 
-function sameLocationLabel(
-  first: string | null | undefined,
-  second: string | null | undefined,
-) {
-  return (
-    normalizeLocationLabel(first).toLocaleLowerCase("tr-TR") ===
-    normalizeLocationLabel(second).toLocaleLowerCase("tr-TR")
-  );
-}
+const emptyPagination: AdminBusinessPagination = {
+  page: 1,
+  pageSize: ADMIN_BUSINESS_DEFAULT_PAGE_SIZE,
+  total: 0,
+  totalPages: 0,
+};
 
 export default function AdminPage() {
   const [isAdminAuthorized, setIsAdminAuthorized] = useState(false);
@@ -192,6 +180,7 @@ export default function AdminPage() {
   const [isAdminSigningIn, setIsAdminSigningIn] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [businessLoadError, setBusinessLoadError] = useState(false);
+  const [overviewLoadError, setOverviewLoadError] = useState(false);
   const [isRefreshingBusinesses, setIsRefreshingBusinesses] = useState(false);
   const [message, setMessage] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -209,11 +198,23 @@ export default function AdminPage() {
     useState<EditBusinessForm | null>(null);
   const [isUpdatingBusiness, setIsUpdatingBusiness] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AdminStatusFilter>("all");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<AdminBusinessAccessFilter>("all");
   const [subscriptionFilter, setSubscriptionFilter] =
-    useState<AdminSubscriptionFilter>("all");
+    useState<AdminBusinessSubscriptionFilter>("all");
+  const [createdFilter, setCreatedFilter] =
+    useState<AdminBusinessCreatedFilter>("all");
+  const [sort, setSort] = useState<AdminBusinessSort>("newest");
   const [cityFilter, setCityFilter] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ADMIN_BUSINESS_DEFAULT_PAGE_SIZE);
+  const [pagination, setPagination] =
+    useState<AdminBusinessPagination>(emptyPagination);
+  const [adminKpis, setAdminKpis] = useState<AdminKpis>(emptyAdminKpis);
+  const [isInitialListLoading, setIsInitialListLoading] = useState(true);
+  const [isInitialOverviewLoading, setIsInitialOverviewLoading] = useState(true);
   const [activeAdminSection, setActiveAdminSection] =
     useState<AdminSection>("overview");
   const [expandedBusinessId, setExpandedBusinessId] = useState("");
@@ -221,7 +222,8 @@ export default function AdminPage() {
     null,
   );
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
-  const adminKpis = calculateAdminKpis(businesses);
+  const listRequestSequence = useRef(0);
+  const overviewRequestSequence = useRef(0);
   const attentionBusinesses = businesses
     .filter(
       (business) =>
@@ -237,52 +239,13 @@ export default function AdminPage() {
     ? getDistricts(selectedFilterProvince.id)
     : [];
   const trimmedSearchQuery = searchQuery.trim();
-  const normalizedSearchQuery = normalizeSearch(trimmedSearchQuery);
-  const filteredBusinesses = businesses.filter((business) => {
-    const searchableText = normalizeSearch(
-      [
-        business.name,
-        business.slug,
-        business.whatsappOrderNumber,
-        business.city,
-        business.district,
-        business.neighborhood,
-        business.address,
-      ].join(" "),
-    );
-    const matchesSearch =
-      !normalizedSearchQuery || searchableText.includes(normalizedSearchQuery);
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && business.isActive) ||
-      (statusFilter === "passive" && !business.isActive);
-    const matchesSubscription =
-      subscriptionFilter === "all" ||
-      (subscriptionFilter === "active" && hasActiveSubscription(business)) ||
-      (subscriptionFilter === "expired" && isSubscriptionExpired(business)) ||
-      (subscriptionFilter === "passive" &&
-        !business.isActive &&
-        business.subscriptionStatus !== "blocked") ||
-      (subscriptionFilter === "blocked" &&
-        business.subscriptionStatus === "blocked") ||
-      (subscriptionFilter === "ending7" && isEndingWithinDays(business, 7)) ||
-      (subscriptionFilter === "ending30" && isEndingWithinDays(business, 30));
-    const matchesCity = !cityFilter || sameLocationLabel(business.city, cityFilter);
-    const matchesDistrict =
-      !districtFilter || sameLocationLabel(business.district, districtFilter);
-
-    return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesSubscription &&
-      matchesCity &&
-      matchesDistrict
-    );
-  });
+  const filteredBusinesses = businesses;
   const hasActiveFilters = Boolean(
     trimmedSearchQuery ||
     statusFilter !== "all" ||
     subscriptionFilter !== "all" ||
+    createdFilter !== "all" ||
+    sort !== "newest" ||
     cityFilter ||
     districtFilter,
   );
@@ -303,15 +266,59 @@ export default function AdminPage() {
           }[subscriptionFilter]
         }`
       : "",
+    createdFilter === "last7" ? "Oluşturulma: Son 7 gün" : "",
+    sort === "name_asc" ? "Sıralama: İşletme adı" : "",
     cityFilter ? `Şehir: ${cityFilter}` : "",
     districtFilter ? `İlçe: ${districtFilter}` : "",
   ].filter(Boolean);
   const listedBusinesses = filteredBusinesses;
+  const visibleFrom = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
+  const visibleTo = Math.min(
+    pagination.page * pagination.pageSize,
+    pagination.total,
+  );
+  const isGlobalBusinessListEmpty = !hasActiveFilters && pagination.total === 0;
+
+  const loadBusinessPage = useCallback(
+    async (query: AdminBusinessListQuery, signal?: AbortSignal) => {
+      const sequence = ++listRequestSequence.current;
+      const result = await fetchAdminBusinessPage(query, signal);
+      if (signal?.aborted || sequence !== listRequestSequence.current) return null;
+
+      const nextBusinesses: Business[] = result.items.map((business) => ({
+        ...business,
+        productCategories: [],
+      }));
+      setBusinesses(nextBusinesses);
+      setPagination(result.pagination);
+      setBusinessLoadError(false);
+      setManualDates(
+        Object.fromEntries(
+          nextBusinesses.map((business) => [
+            business.slug,
+            dateInputValue(business.subscriptionExpiresAt),
+          ]),
+        ),
+      );
+      return result;
+    },
+    [],
+  );
+
+  const loadOverview = useCallback(async (signal?: AbortSignal) => {
+    const sequence = ++overviewRequestSequence.current;
+    const result = await fetchAdminOverview(signal);
+    if (signal?.aborted || sequence !== overviewRequestSequence.current) return null;
+    setAdminKpis(result);
+    setOverviewLoadError(false);
+    return result;
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
 
     clearLegacyAdminBrowserSession();
+    clearLegacyAdminBusinessCache();
 
     async function checkAdminSession() {
       try {
@@ -341,41 +348,70 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearchQuery(trimmedSearchQuery);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [trimmedSearchQuery]);
+
+  useEffect(() => {
     if (!isAdminAuthorized) return;
+    const controller = new AbortController();
+    setIsRefreshingBusinesses(true);
 
-    const storedBusinesses = readBusinesses();
-    setBusinesses(storedBusinesses);
-    setManualDates(
-      Object.fromEntries(
-        storedBusinesses.map((business) => [
-          business.slug,
-          dateInputValue(business.subscriptionExpiresAt),
-        ]),
-      ),
-    );
-
-    async function loadSupabaseBusinesses() {
-      try {
-        const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(storedBusinesses);
-        writeBusinesses(fetchedBusinesses);
-        setBusinesses(fetchedBusinesses);
-        setBusinessLoadError(false);
-        setManualDates(
-          Object.fromEntries(
-            fetchedBusinesses.map((business) => [
-              business.slug,
-              dateInputValue(business.subscriptionExpiresAt),
-            ]),
-          ),
-        );
-      } catch {
-        console.warn("Admin işletme listesi yenilenemedi.");
+    loadBusinessPage(
+      {
+        q: debouncedSearchQuery,
+        page,
+        pageSize,
+        access: statusFilter,
+        subscription: subscriptionFilter,
+        created: createdFilter,
+        sort,
+        city: cityFilter,
+        district: districtFilter,
+      },
+      controller.signal,
+    )
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         setBusinessLoadError(true);
-      }
-    }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsRefreshingBusinesses(false);
+          setIsInitialListLoading(false);
+        }
+      });
 
-    loadSupabaseBusinesses();
-  }, [isAdminAuthorized]);
+    return () => controller.abort();
+  }, [
+    cityFilter,
+    createdFilter,
+    debouncedSearchQuery,
+    districtFilter,
+    isAdminAuthorized,
+    loadBusinessPage,
+    page,
+    pageSize,
+    sort,
+    statusFilter,
+    subscriptionFilter,
+  ]);
+
+  useEffect(() => {
+    if (!isAdminAuthorized) return;
+    const controller = new AbortController();
+    loadOverview(controller.signal)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setOverviewLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsInitialOverviewLoading(false);
+      });
+    return () => controller.abort();
+  }, [isAdminAuthorized, loadOverview]);
 
   function updateNewBusinessForm(
     field: keyof NewBusinessForm,
@@ -465,8 +501,11 @@ export default function AdminPage() {
     setSearchQuery("");
     setStatusFilter("all");
     setSubscriptionFilter("all");
+    setCreatedFilter("all");
+    setSort("newest");
     setCityFilter("");
     setDistrictFilter("");
+    setPage(1);
   }
 
   function switchAdminSection(section: AdminSection) {
@@ -502,20 +541,32 @@ export default function AdminPage() {
     }
   }
 
-  async function refreshBusinessesFromSupabase() {
-    const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(readBusinesses());
-    writeBusinesses(fetchedBusinesses);
-    setBusinesses(fetchedBusinesses);
-    setBusinessLoadError(false);
-    setManualDates(
-      Object.fromEntries(
-        fetchedBusinesses.map((business) => [
-          business.slug,
-          dateInputValue(business.subscriptionExpiresAt),
-        ]),
-      ),
-    );
-    return fetchedBusinesses;
+  function currentListQuery(targetPage = page): AdminBusinessListQuery {
+    return {
+      q: debouncedSearchQuery,
+      page: targetPage,
+      pageSize,
+      access: statusFilter,
+      subscription: subscriptionFilter,
+      created: createdFilter,
+      sort,
+      city: cityFilter,
+      district: districtFilter,
+    };
+  }
+
+  async function refreshBusinessesFromSupabase(targetPage = page) {
+    return loadBusinessPage(currentListQuery(targetPage));
+  }
+
+  async function refreshAdminData(targetPage = page) {
+    const [listResult, overviewResult] = await Promise.allSettled([
+      refreshBusinessesFromSupabase(targetPage),
+      loadOverview(),
+    ]);
+    if (listResult.status === "rejected") setBusinessLoadError(true);
+    if (overviewResult.status === "rejected") setOverviewLoadError(true);
+    return listResult.status === "fulfilled" && overviewResult.status === "fulfilled";
   }
 
   async function refreshAdminList() {
@@ -524,7 +575,8 @@ export default function AdminPage() {
     setErrorDetail("");
 
     try {
-      await refreshBusinessesFromSupabase();
+      const refreshed = await refreshAdminData();
+      if (!refreshed) throw new Error("Admin verileri yenilenemedi.");
       setMessage("İşletme listesi yenilendi.");
     } catch {
       setMessage("İşletme listesi yenilenemedi.");
@@ -598,7 +650,7 @@ export default function AdminPage() {
           isActive: newBusinessForm.isActive,
         },
       );
-      await refreshBusinessesFromSupabase();
+      await refreshAdminData();
       setCreatedBusinessCredentials({
         email: newBusinessForm.ownerEmail.trim(),
         temporaryPassword: newBusinessForm.temporaryPassword,
@@ -669,7 +721,7 @@ export default function AdminPage() {
           isActive: editingBusiness.isActive,
         },
       );
-      await refreshBusinessesFromSupabase();
+      await refreshAdminData();
       setEditingBusiness(null);
       setMessage("İşletme bilgileri güncellendi.");
     } catch {
@@ -718,40 +770,13 @@ export default function AdminPage() {
         subscription_expires_at: nextBusiness.subscriptionExpiresAt,
         is_active: nextBusiness.isActive,
       } as const;
-      const syncedBusiness = await updateBusinessSubscriptionInSupabase(
+      await updateBusinessSubscriptionInSupabase(
         nextBusiness,
         payload,
       );
-      const locallyUpdatedBusinesses = updateBusiness(syncedBusiness);
-
-      try {
-        const fetchedBusinesses = await fetchAdminBusinessesFromSupabase(
-          locallyUpdatedBusinesses,
-        );
-        const verifiedBusinesses = fetchedBusinesses.map((business) =>
-          business.slug === syncedBusiness.slug ? syncedBusiness : business,
-        );
-        writeBusinesses(verifiedBusinesses);
-        setBusinesses(verifiedBusinesses);
-        setManualDates(
-          Object.fromEntries(
-            verifiedBusinesses.map((business) => [
-              business.slug,
-              dateInputValue(business.subscriptionExpiresAt),
-            ]),
-          ),
-        );
-      } catch {
-        console.warn("Admin işletme listesi güncelleme sonrası yenilenemedi.");
-        setBusinesses(locallyUpdatedBusinesses);
-        setManualDates((current) => ({
-          ...current,
-          [syncedBusiness.slug]: dateInputValue(syncedBusiness.subscriptionExpiresAt),
-        }));
-      }
+      await refreshAdminData();
       setMessage(successMessage);
     } catch {
-      console.error("Admin abonelik güncelleme hatası.");
       setMessage("Abonelik güncelleme başarısız.");
       setErrorDetail("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
     } finally {
@@ -837,7 +862,7 @@ export default function AdminPage() {
       setSavingSlug(business.slug);
       setMessage("İşletme kayıt kimliği bulunamadı. Liste yenileniyor...");
       setErrorDetail("");
-      await refreshBusinessesFromSupabase();
+      await refreshAdminData();
       setSavingSlug("");
       return;
     }
@@ -848,7 +873,9 @@ export default function AdminPage() {
 
     try {
       const result = await deleteBusinessInSupabase(business.id);
-      await refreshBusinessesFromSupabase();
+      const targetPage = businesses.length === 1 && page > 1 ? page - 1 : page;
+      if (targetPage !== page) setPage(targetPage);
+      await refreshAdminData(targetPage);
       setMessage(
         result.notFound
           ? "İşletme zaten silinmiş veya bulunamadı. Liste yenilendi."
@@ -870,6 +897,12 @@ export default function AdminPage() {
     setMessage("");
     setErrorDetail("");
     setBusinessLoadError(false);
+    setOverviewLoadError(false);
+    setBusinesses([]);
+    setAdminKpis(emptyAdminKpis);
+    setPagination(emptyPagination);
+    setIsInitialListLoading(true);
+    setIsInitialOverviewLoading(true);
   }
 
   if (isCheckingAdmin) {
@@ -890,6 +923,10 @@ export default function AdminPage() {
     );
   }
 
+  if (isInitialListLoading || isInitialOverviewLoading) {
+    return <AdminLoading />;
+  }
+
   return (
     <AdminShell
       activeSection={activeAdminSection}
@@ -899,7 +936,7 @@ export default function AdminPage() {
       onNavigate={switchAdminSection}
       onRefresh={refreshAdminList}
     >
-        {message || errorDetail || businessLoadError ? (
+        {message || errorDetail || businessLoadError || overviewLoadError ? (
           <div className={adminStyles.feedbackStack}>
             {message ? (
               <p className={adminStyles.statusMessage} aria-live="polite">
@@ -911,11 +948,17 @@ export default function AdminPage() {
                 {errorDetail}
               </p>
             ) : null}
-            {businessLoadError ? (
+            {businessLoadError || overviewLoadError ? (
               <div className={adminStyles.loadErrorCard} role="alert">
                 <div>
-                  <strong>İşletmeler yüklenemedi.</strong>
-                  <p>Son kayıtları almak için yeniden deneyin.</p>
+                  <strong>
+                    {businessLoadError && overviewLoadError
+                      ? "Yönetim verileri yüklenemedi."
+                      : businessLoadError
+                        ? "İşletmeler yüklenemedi."
+                        : "Yönetim özeti yüklenemedi."}
+                  </strong>
+                  <p>Güncel verileri almak için yeniden deneyin.</p>
                 </div>
                 <button
                   disabled={isRefreshingBusinesses}
@@ -982,19 +1025,24 @@ export default function AdminPage() {
           <div className="section-title">
             <h2>İşletme Ara ve Filtrele</h2>
             <span>
-              {businesses.length} işletmeden {filteredBusinesses.length} tanesi gösteriliyor
+              {pagination.total === 0
+                ? "0 işletme bulundu"
+                : `${pagination.total} işletmeden ${visibleFrom}–${visibleTo} arası gösteriliyor`}
             </span>
           </div>
           <div className="customer-form admin-filter-form">
             <div className="field admin-filter-search">
               <label htmlFor="adminBusinessSearch">
-                İşletme adı, slug, WhatsApp, şehir, ilçe, mahalle veya adres ara
+                İşletme adı, slug, e-posta, WhatsApp, şehir, ilçe, mahalle veya adres ara
               </label>
               <input
                 id="adminBusinessSearch"
                 placeholder="Örn: kebap, test-isletmesi, 905..."
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setPage(1);
+                }}
               />
             </div>
             <div className="field">
@@ -1002,9 +1050,10 @@ export default function AdminPage() {
               <select
                 id="adminStatusFilter"
                 value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value as AdminStatusFilter)
-                }
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as AdminBusinessAccessFilter);
+                  setPage(1);
+                }}
               >
                 <option value="all">Tümü</option>
                 <option value="active">Aktif</option>
@@ -1016,11 +1065,12 @@ export default function AdminPage() {
               <select
                 id="adminSubscriptionFilter"
                 value={subscriptionFilter}
-                onChange={(event) =>
+                onChange={(event) => {
                   setSubscriptionFilter(
-                    event.target.value as AdminSubscriptionFilter,
-                  )
-                }
+                    event.target.value as AdminBusinessSubscriptionFilter,
+                  );
+                  setPage(1);
+                }}
               >
                 <option value="all">Tümü</option>
                 <option value="active">Aktif abonelik</option>
@@ -1039,6 +1089,7 @@ export default function AdminPage() {
                 onChange={(event) => {
                   setCityFilter(event.target.value);
                   setDistrictFilter("");
+                  setPage(1);
                 }}
               >
                 <option value="">Tüm şehirler</option>
@@ -1055,7 +1106,10 @@ export default function AdminPage() {
                 disabled={!selectedFilterProvince}
                 id="adminDistrictFilter"
                 value={districtFilter}
-                onChange={(event) => setDistrictFilter(event.target.value)}
+                onChange={(event) => {
+                  setDistrictFilter(event.target.value);
+                  setPage(1);
+                }}
               >
                 <option value="">
                   {selectedFilterProvince ? "Tüm ilçeler" : "Önce şehir seçin"}
@@ -1067,10 +1121,54 @@ export default function AdminPage() {
                 ))}
               </select>
             </div>
+            <div className="field">
+              <label htmlFor="adminCreatedFilter">Oluşturulma</label>
+              <select
+                id="adminCreatedFilter"
+                value={createdFilter}
+                onChange={(event) => {
+                  setCreatedFilter(event.target.value as AdminBusinessCreatedFilter);
+                  setPage(1);
+                }}
+              >
+                <option value="all">Tüm tarihler</option>
+                <option value="last7">Son 7 günde eklenenler</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="adminBusinessSort">Sıralama</label>
+              <select
+                id="adminBusinessSort"
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.target.value as AdminBusinessSort);
+                  setPage(1);
+                }}
+              >
+                <option value="newest">En yeni</option>
+                <option value="name_asc">İşletme adı (A–Z)</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="adminBusinessPageSize">Sayfa başına</label>
+              <select
+                id="adminBusinessPageSize"
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
             <div className="admin-filter-footer">
               <p>
-                Toplam {businesses.length} işletmeden {filteredBusinesses.length} tanesi
-                gösteriliyor.
+                {pagination.total === 0
+                  ? "0 işletme bulundu."
+                  : `${pagination.total} işletmeden ${visibleFrom}–${visibleTo} arası gösteriliyor.`}
+                {isRefreshingBusinesses ? " Liste yenileniyor…" : ""}
               </p>
               <button
                 disabled={!hasActiveFilters}
@@ -1102,19 +1200,7 @@ export default function AdminPage() {
                   Filtreleri Temizle
                 </button>
               </div>
-            ) : (
-              <div className="admin-filter-preview">
-                <strong>Gösterilen işletmeler</strong>
-                <div>
-                  {filteredBusinesses.slice(0, 6).map((business) => (
-                    <span key={business.slug}>{business.name}</span>
-                  ))}
-                  {filteredBusinesses.length > 6 ? (
-                    <span>+{filteredBusinesses.length - 6} işletme daha</span>
-                  ) : null}
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </section>
         ) : null}
@@ -1301,24 +1387,24 @@ export default function AdminPage() {
           {filteredBusinesses.length === 0 ? (
             <div className="section admin-empty-state">
               <h2>
-                {businesses.length === 0
+                {isGlobalBusinessListEmpty
                   ? "Henüz işletme bulunmuyor."
                   : "Sonuç bulunamadı"}
               </h2>
               <p>
-                {businesses.length === 0
+                {isGlobalBusinessListEmpty
                   ? "İlk işletmenizi oluşturarak yönetim alanını kullanmaya başlayın."
                   : "Arama veya filtreleri değiştirerek tekrar deneyin."}
               </p>
               <button
                 type="button"
                 onClick={() =>
-                  businesses.length === 0
+                  isGlobalBusinessListEmpty
                     ? switchAdminSection("create")
                     : clearAdminFilters()
                 }
               >
-                {businesses.length === 0 ? "Yeni İşletme Ekle" : "Filtreleri temizle"}
+                {isGlobalBusinessListEmpty ? "Yeni İşletme Ekle" : "Filtreleri temizle"}
               </button>
             </div>
           ) : null}
@@ -1727,6 +1813,36 @@ export default function AdminPage() {
               </article>
             );
           })}
+          {pagination.totalPages > 0 ? (
+            <nav className="admin-pagination" aria-label="İşletme listesi sayfaları">
+              <button
+                disabled={pagination.page <= 1 || isRefreshingBusinesses}
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                Önceki
+              </button>
+              <div>
+                <strong>
+                  Sayfa {pagination.page} / {pagination.totalPages}
+                </strong>
+                <span>
+                  {pagination.total} işletmeden {visibleFrom}–{visibleTo} arası gösteriliyor
+                </span>
+              </div>
+              <button
+                disabled={
+                  pagination.page >= pagination.totalPages || isRefreshingBusinesses
+                }
+                type="button"
+                onClick={() =>
+                  setPage((current) => Math.min(pagination.totalPages, current + 1))
+                }
+              >
+                Sonraki
+              </button>
+            </nav>
+          ) : null}
         </section>
         ) : null}
     </AdminShell>
