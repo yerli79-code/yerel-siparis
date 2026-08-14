@@ -110,6 +110,42 @@ test("admin login exposes accessible fields without implementation provider copy
   assert.doesNotMatch(adminPageSource, /Supabase ID/i);
 });
 
+test("admin subscription controls keep enum values with Turkish user-facing labels", () => {
+  const createFormSource = adminPageSource.match(
+    /<section[^>]*id="yeni-isletme"[^]*?<\/form>/,
+  )?.[0];
+  const editFormSource = adminPageSource.match(
+    /<form[^>]*admin-edit-form[^]*?<\/form>/,
+  )?.[0];
+
+  assert.ok(createFormSource);
+  assert.ok(editFormSource);
+  assert.doesNotMatch(adminPageSource, />Supabase businesses</);
+  assert.equal((adminPageSource.match(/>İşletme kaydı</g) ?? []).length, 2);
+
+  for (const formSource of [createFormSource, editFormSource]) {
+    assert.match(formSource, /<option value="active">Aktif<\/option>/);
+    assert.match(formSource, /<option value="expired">Süresi Dolmuş<\/option>/);
+    assert.match(formSource, /<option value="blocked">Engelli<\/option>/);
+  }
+
+  assert.match(
+    adminPageSource,
+    /id="adminSubscriptionFilter"[^]*<option value="blocked">Engelli<\/option>/,
+  );
+  assert.match(adminPageSource, /blocked: "Engelli"/);
+  assert.doesNotMatch(adminPageSource, /Engelli \/ blocked/);
+  assert.doesNotMatch(adminPageSource, />\s*(?:active|expired|blocked)\s*</);
+  assert.doesNotMatch(
+    adminPageSource,
+    /\{business\.subscriptionStatus\}|\$\{business\.subscriptionStatus\}/,
+  );
+  assert.match(
+    adminPageSource,
+    /subscriptionStatus: "active" \| "expired" \| "blocked";/,
+  );
+});
+
 test("admin shell provides only real overview and business navigation", () => {
   assert.match(shellSource, /<nav[^]*Genel Bakış[^]*İşletmeler[^]*<\/nav>/);
   assert.match(shellSource, /aria-current=/);

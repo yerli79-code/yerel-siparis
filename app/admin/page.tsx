@@ -179,6 +179,14 @@ function sameLocationLabel(
   );
 }
 
+function getSubscriptionStatusLabel(status: Business["subscriptionStatus"]) {
+  return {
+    active: "Aktif",
+    expired: "Süresi Dolmuş",
+    blocked: "Engelli",
+  }[status];
+}
+
 export default function AdminPage() {
   const [isAdminAuthorized, setIsAdminAuthorized] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
@@ -293,7 +301,7 @@ export default function AdminPage() {
             active: "Aktif abonelik",
             expired: "Süresi dolmuş",
             passive: "Pasif",
-            blocked: "Engelli / blocked",
+            blocked: "Engelli",
             ending7: "Son 7 gün içinde bitecekler",
             ending30: "Son 30 gün içinde bitecekler",
           }[subscriptionFilter]
@@ -1016,7 +1024,7 @@ export default function AdminPage() {
                 <option value="active">Aktif abonelik</option>
                 <option value="expired">Süresi dolmuş</option>
                 <option value="passive">Pasif</option>
-                <option value="blocked">Engelli / blocked</option>
+                <option value="blocked">Engelli</option>
                 <option value="ending7">Son 7 gün içinde bitecekler</option>
                 <option value="ending30">Son 30 gün içinde bitecekler</option>
               </select>
@@ -1113,7 +1121,7 @@ export default function AdminPage() {
         <section className="section admin-create-business" id="yeni-isletme">
           <div className="section-title">
             <h2>Yeni İşletme Ekle</h2>
-            <span>Supabase businesses</span>
+            <span>İşletme kaydı</span>
           </div>
           <form className="customer-form admin-create-form" onSubmit={submitNewBusiness}>
             <div className="field">
@@ -1221,9 +1229,9 @@ export default function AdminPage() {
                   )
                 }
               >
-                <option value="expired">expired</option>
-                <option value="active">active</option>
-                <option value="blocked">blocked</option>
+                <option value="expired">Süresi Dolmuş</option>
+                <option value="active">Aktif</option>
+                <option value="blocked">Engelli</option>
               </select>
             </div>
             <div className="field">
@@ -1345,7 +1353,7 @@ export default function AdminPage() {
                     <span className={`status admin-status ${badge.toLowerCase().replaceAll(" ", "-")}`}>
                       {badge}
                     </span>
-                    <span>{business.subscriptionStatus}</span>
+                    <span>{getSubscriptionStatusLabel(business.subscriptionStatus)}</span>
                     <span>{formatDate(business.subscriptionExpiresAt)}</span>
                     <span>{business.isActive ? "Aktif" : "Pasif"}</span>
                   </span>
@@ -1380,7 +1388,7 @@ export default function AdminPage() {
                           <p><strong>Başlangıç</strong><span>{formatDate(business.subscriptionStartedAt)}</span></p>
                           <p><strong>Abonelik bitiş</strong><span>{formatDate(business.subscriptionExpiresAt)}</span></p>
                           <p><strong>Kalan gün</strong><span>{Math.max(0, remainingDays)}</span></p>
-                          <p><strong>Durum</strong><span>{`${business.subscriptionStatus} / ${business.isActive ? "aktif" : "pasif"}`}</span></p>
+                          <p><strong>Durum</strong><span>{`${getSubscriptionStatusLabel(business.subscriptionStatus)} / ${business.isActive ? "aktif" : "pasif"}`}</span></p>
                         </div>
                         <div className="admin-extension-actions">
                           {extensionDays.map((days) => (
@@ -1467,7 +1475,7 @@ export default function AdminPage() {
                           >
                             <div className="section-title admin-inline-title">
                               <h3>İşletme Bilgilerini Düzenle</h3>
-                              <span>Supabase businesses</span>
+                              <span>İşletme kaydı</span>
                             </div>
                             <div className="field">
                               <label htmlFor={`edit-name-${business.slug}`}>İşletme adı</label>
@@ -1561,9 +1569,9 @@ export default function AdminPage() {
                                   )
                                 }
                               >
-                                <option value="expired">expired</option>
-                                <option value="active">active</option>
-                                <option value="blocked">blocked</option>
+                                <option value="expired">Süresi Dolmuş</option>
+                                <option value="active">Aktif</option>
+                                <option value="blocked">Engelli</option>
                               </select>
                             </div>
                             <div className="field">
