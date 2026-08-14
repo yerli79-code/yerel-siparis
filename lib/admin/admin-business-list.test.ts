@@ -7,6 +7,9 @@ import { clearLegacyAdminBusinessCache } from "../admin-client.ts";
 const root = new URL("../../", import.meta.url);
 const source = (path: string) => readFileSync(new URL(path, root), "utf8");
 const adminPage = source("app/admin/page.tsx");
+const businessDetailPage = source(
+  "app/admin/isletmeler/[id]/business-detail-client.tsx",
+);
 const adminClient = source("lib/admin-client.ts");
 const adminApiClient = source("lib/supabase-admin.ts");
 const listRoute = source("app/api/admin/list-businesses/route.ts");
@@ -104,13 +107,15 @@ test("admin search is debounced by 300ms and stale requests cannot win", () => {
 });
 
 test("list and overview load failures update only their own error state", () => {
+  const listStart = adminPage.indexOf("    loadBusinessPage(");
+  const overviewStart = adminPage.indexOf("    loadOverview(controller.signal)");
   const listEffect = adminPage.slice(
-    adminPage.indexOf("loadBusinessPage(\n      {"),
-    adminPage.indexOf("  }, [\n    cityFilter"),
+    listStart,
+    overviewStart,
   );
   const overviewEffect = adminPage.slice(
-    adminPage.indexOf("loadOverview(controller.signal)"),
-    adminPage.indexOf("  }, [isAdminAuthorized, loadOverview]"),
+    overviewStart,
+    adminPage.indexOf("  function updateNewBusinessForm", overviewStart),
   );
 
   assert.match(listEffect, /\.catch\([^]*setBusinessLoadError\(true\)/);
@@ -134,17 +139,17 @@ test("search, filters, sort and page size reset pagination", () => {
   }
 });
 
-test("all admin mutations refresh both current page and overview", () => {
+test("list creation refreshes list and overview while detail mutations refresh detail", () => {
   assert.match(adminPage, /async function refreshAdminData[\s\S]*refreshBusinessesFromSupabase[\s\S]*loadOverview/);
   assert.match(adminPage, /createBusinessWithAccount[\s\S]*await refreshAdminData\(\)/);
-  assert.match(adminPage, /updateBusinessInSupabase[\s\S]*await refreshAdminData\(\)/);
-  assert.match(adminPage, /updateBusinessSubscriptionInSupabase[\s\S]*await refreshAdminData\(\)/);
-  assert.match(adminPage, /deleteBusinessInSupabase[\s\S]*await refreshAdminData\(targetPage\)/);
+  assert.match(businessDetailPage, /updateAdminBusinessSafely[\s\S]*setDetail/);
+  assert.match(businessDetailPage, /updateBusinessSubscriptionInSupabase[\s\S]*await loadDetail\(\)/);
 });
 
-test("deleting the last row of a later page returns to the previous page", () => {
-  assert.match(adminPage, /businesses\.length === 1 && page > 1 \? page - 1 : page/);
-  assert.match(adminPage, /setPage\(targetPage\)/);
+test("list no longer carries inline deletion and links to the UUID detail page", () => {
+  assert.doesNotMatch(adminPage, /deleteBusinessInSupabase/);
+  assert.match(adminPage, /href=\{`\/admin\/isletmeler\/\$\{business\.id\}`\}/);
+  assert.match(businessDetailPage, /deleteBusinessInSupabase/);
 });
 
 test("pagination UI exposes totals, disabled boundaries and responsive controls", () => {

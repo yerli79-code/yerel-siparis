@@ -4,6 +4,9 @@ export type AdminErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
   | "INVALID_REQUEST"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "DUPLICATE_SLUG"
   | "SESSION_EXPIRED"
   | "CSRF_REJECTED"
   | "ADMIN_UNAVAILABLE";

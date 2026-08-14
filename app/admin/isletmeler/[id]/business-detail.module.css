@@ -1,0 +1,135 @@
+.root {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  color: var(--brand-dark);
+}
+
+.backRow a,
+.stateCard a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--brand-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.identityCard,
+.card,
+.stateCard,
+.skeleton {
+  min-width: 0;
+  border: 1px solid rgba(9, 93, 39, 0.16);
+  border-radius: 18px;
+  background: var(--brand-card);
+  padding: 20px;
+  box-shadow: 0 18px 46px rgba(17, 44, 30, 0.08);
+}
+
+.identityCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 24px;
+  background: linear-gradient(135deg, var(--brand-card), rgba(220, 235, 199, 0.38));
+}
+
+.identityCard h2,
+.card h3,
+.stateCard h2,
+.dialog h2 {
+  margin: 5px 0;
+  font-family: var(--font-poppins), Arial, sans-serif;
+}
+
+.identityCard h2 { font-size: clamp(24px, 4vw, 34px); }
+.identityCard p, .help, .editForm p, .dialog p { margin: 0; color: #5f6f65; line-height: 1.6; }
+.eyebrow { color: var(--brand-primary); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+
+.badges { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.badges span { border: 1px solid; border-radius: 999px; padding: 7px 10px; font-size: 12px; font-weight: 800; }
+.goodBadge { border-color: rgba(35, 145, 47, .25) !important; background: rgba(220, 235, 199, .65); color: var(--brand-primary); }
+.warningBadge { border-color: #fde68a !important; background: #fffbeb; color: #92400e; }
+.dangerBadge { border-color: #fecaca !important; background: #fff1f2; color: #991b1b; }
+
+.identityDates { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 0; }
+.identityDates div { display: grid; gap: 3px; }
+.identityDates dt, .infoList dt { color: #5f6f65; font-size: 12px; }
+.identityDates dd, .infoList dd { margin: 0; overflow-wrap: anywhere; font-weight: 700; }
+
+.twoColumn { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.cardHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.cardHeading button, .stateCard button, .reloadButton { min-height: 44px; border: 1px solid rgba(9, 93, 39, .24); border-radius: 12px; background: var(--brand-card); color: var(--brand-primary); padding: 9px 14px; font-weight: 700; }
+
+.infoList { display: grid; gap: 0; margin: 16px 0 0; }
+.infoList div { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(0, 1.3fr); gap: 14px; border-top: 1px solid rgba(9, 93, 39, .1); padding: 11px 0; }
+
+.editForm { display: grid; gap: 9px; margin-top: 16px; }
+.editForm label, .manualDate label { color: #425448; font-size: 13px; font-weight: 700; }
+.editForm input, .manualDate input { width: 100%; min-width: 0; min-height: 46px; border: 1px solid rgba(9, 93, 39, .22); border-radius: 12px; background: var(--brand-surface); color: var(--brand-dark); padding: 10px 12px; }
+.editForm p { font-size: 12px; }
+
+.actions, .extensionActions, .criticalActions { display: flex; flex-wrap: wrap; gap: 9px; }
+.actions button, .extensionActions button, .criticalActions button, .manualDate button { min-height: 44px; border: 1px solid rgba(9, 93, 39, .22); border-radius: 12px; background: var(--brand-card); color: var(--brand-primary); padding: 9px 13px; font-weight: 700; }
+.primaryButton { border-color: var(--brand-primary) !important; background: var(--brand-primary) !important; color: white !important; }
+.dangerButton { border-color: #a51d24 !important; background: #a51d24 !important; color: white !important; }
+
+.metricsGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.metricsGrid div, .countGrid div { display: grid; gap: 6px; border: 1px solid rgba(9, 93, 39, .12); border-radius: 14px; background: var(--brand-surface); padding: 13px; }
+.metricsGrid span, .countGrid span, .orderList span { color: #5f6f65; font-size: 11px; }
+.metricsGrid strong { overflow-wrap: anywhere; font-size: 13px; }
+.extensionActions button { background: rgba(220, 235, 199, .55); }
+
+.manualDate { display: grid; gap: 7px; margin-top: 16px; }
+.manualDate > div { display: grid; grid-template-columns: minmax(0, 260px) auto; gap: 9px; }
+.countGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.countGrid strong { font-family: var(--font-poppins), Arial, sans-serif; font-size: 28px; }
+
+.orderList { display: grid; gap: 9px; margin-top: 16px; }
+.orderList article { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; border: 1px solid rgba(9, 93, 39, .12); border-radius: 14px; background: var(--brand-surface); padding: 13px; }
+.orderList article > div { display: grid; min-width: 0; gap: 4px; }
+.orderList strong { overflow-wrap: anywhere; font-size: 12px; }
+
+.criticalCard { border-color: #fecaca; background: #fffafa; }
+.criticalActions { margin-top: 16px; }
+.criticalActions button { border-color: #fecaca; background: #fff1f2; color: #991b1b; }
+
+.success, .error { margin: 0; border: 1px solid rgba(35, 145, 47, .22); border-radius: 13px; background: rgba(220, 235, 199, .42); color: var(--brand-primary); padding: 12px 14px; font-weight: 700; }
+.error { border-color: #fecaca; background: #fff1f2; color: #991b1b; }
+.reloadButton { width: fit-content; }
+
+.skeleton { display: grid; gap: 12px; }
+.skeleton span { height: 56px; border-radius: 12px; background: linear-gradient(90deg, var(--brand-soft), var(--brand-surface), var(--brand-soft)); background-size: 220% 100%; animation: pulse 1.5s ease infinite; }
+
+.dialogBackdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(17, 44, 30, .44); padding: 16px; backdrop-filter: blur(5px); }
+.dialog { width: min(480px, 100%); border: 1px solid rgba(9, 93, 39, .18); border-radius: 20px; background: var(--brand-card); padding: 24px; box-shadow: 0 26px 70px rgba(17, 44, 30, .2); }
+.dialog .actions { margin-top: 20px; }
+
+.root :where(button, a, input):focus-visible { outline: 3px solid rgba(35, 145, 47, .3); outline-offset: 3px; }
+.root button:disabled { cursor: not-allowed; opacity: .55; }
+
+@keyframes pulse { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+
+@media (max-width: 900px) {
+  .metricsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .orderList article { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .root { gap: 14px; }
+  .identityCard, .card, .stateCard, .skeleton { padding: 16px; }
+  .identityCard, .twoColumn { grid-template-columns: minmax(0, 1fr); }
+  .badges { justify-content: flex-start; }
+  .infoList div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .manualDate > div { grid-template-columns: minmax(0, 1fr); }
+  .manualDate button { width: 100%; }
+  .orderList article { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 420px) {
+  .metricsGrid { grid-template-columns: minmax(0, 1fr); }
+  .orderList article { grid-template-columns: minmax(0, 1fr); }
+  .actions button, .criticalActions button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) { .skeleton span { animation: none; } }

@@ -794,6 +794,7 @@
   background: transparent;
   color: var(--brand-dark);
   padding: 16px 18px;
+  text-decoration: none;
 }
 
 .mainContent :global(.admin-compact-row:hover) {

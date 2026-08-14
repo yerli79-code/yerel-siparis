@@ -4,6 +4,11 @@ import type {
   AdminBusinessListQuery,
   AdminBusinessListResponse,
 } from "./admin/business-list-contract";
+import type {
+  AdminBusinessDetail,
+  AdminBusinessSafePatch,
+  AdminBusinessSafePatchResult,
+} from "./admin/business-detail-contract";
 import type { AdminKpis } from "./subscription";
 
 export type SubscriptionUpdatePayload = {
@@ -101,6 +106,76 @@ function mergeSupabaseBusiness(
 
 function parseSupabaseBody(text: string) {
   return text ? JSON.parse(text) : null;
+}
+
+export class AdminBusinessRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code: string,
+  ) {
+    super(message);
+    this.name = "AdminBusinessRequestError";
+  }
+}
+
+function businessRequestError(response: Response, body: unknown, fallback: string) {
+  const error = body && typeof body === "object" && "error" in body
+    ? (body as { error?: { code?: unknown; message?: unknown } }).error
+    : null;
+  return new AdminBusinessRequestError(
+    typeof error?.message === "string" ? error.message : fallback,
+    response.status,
+    typeof error?.code === "string" ? error.code : "ADMIN_UNAVAILABLE",
+  );
+}
+
+export async function fetchAdminBusinessDetail(
+  businessId: string,
+  signal?: AbortSignal,
+): Promise<AdminBusinessDetail> {
+  const response = await requestAdminApi(`/api/admin/businesses/${encodeURIComponent(businessId)}`, {
+    method: "GET",
+    signal,
+  });
+  const text = await response.text();
+  const body = parseSupabaseBody(text);
+  if (!response.ok) {
+    throw businessRequestError(response, body, "İşletme bilgileri yüklenemedi.");
+  }
+  if (!body?.business?.id || !body?.business?.updatedAt || !Array.isArray(body?.recentOrders)) {
+    throw new AdminBusinessRequestError(
+      "İşletme bilgileri yüklenemedi.",
+      503,
+      "ADMIN_UNAVAILABLE",
+    );
+  }
+  return body as AdminBusinessDetail;
+}
+
+export async function updateAdminBusinessSafely(
+  businessId: string,
+  patch: AdminBusinessSafePatch,
+): Promise<AdminBusinessSafePatchResult> {
+  const response = await requestAdminApi(`/api/admin/businesses/${encodeURIComponent(businessId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const text = await response.text();
+  const body = parseSupabaseBody(text);
+  if (!response.ok) {
+    throw businessRequestError(response, body, "İşletme kaydedilemedi.");
+  }
+  const business = body?.business as AdminBusinessSafePatchResult | undefined;
+  if (!business?.id || !business.updatedAt) {
+    throw new AdminBusinessRequestError(
+      "Güncel işletme bilgisi alınamadı.",
+      503,
+      "ADMIN_UNAVAILABLE",
+    );
+  }
+  return business;
 }
 
 function nullableDateKey(value: string | null | undefined) {

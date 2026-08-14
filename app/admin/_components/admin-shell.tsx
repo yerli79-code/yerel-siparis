@@ -15,6 +15,10 @@ type AdminShellProps = {
   onLogout: () => void;
   onNavigate: (section: AdminNavigationSection) => void;
   onRefresh: () => void;
+  pageDescription?: string;
+  pageTitle?: string;
+  refreshLabel?: string;
+  showCreateAction?: boolean;
 };
 
 const sectionCopy: Record<AdminSection, { title: string; description: string }> = {
@@ -64,6 +68,10 @@ export default function AdminShell({
   onLogout,
   onNavigate,
   onRefresh,
+  pageDescription,
+  pageTitle,
+  refreshLabel = "Listeyi Yenile",
+  showCreateAction = true,
 }: AdminShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const activeNavigation = activeSection === "overview" ? "overview" : "businesses";
@@ -129,7 +137,7 @@ export default function AdminShell({
             <PlatformBrand className={styles.mobileLogo} publicVariant />
             <div className={styles.mobileTitle}>
               <span>Yönetim Paneli</span>
-              <h1>{copy.title}</h1>
+              <h1>{pageTitle ?? copy.title}</h1>
             </div>
           </div>
           <button
@@ -164,16 +172,18 @@ export default function AdminShell({
             <span>Menü</span>
           </div>
           {navigation}
-          <button
-            className={styles.mobileCreateButton}
-            type="button"
-            onClick={() => {
-              onCreateBusiness();
-              setIsMobileMenuOpen(false);
-            }}
-          >
-            Yeni İşletme Ekle
-          </button>
+          {showCreateAction ? (
+            <button
+              className={styles.mobileCreateButton}
+              type="button"
+              onClick={() => {
+                onCreateBusiness();
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              Yeni İşletme Ekle
+            </button>
+          ) : null}
           <button className={styles.mobileLogout} type="button" onClick={onLogout}>
             <LogoutIcon />
             <span>Çıkış Yap</span>
@@ -183,20 +193,22 @@ export default function AdminShell({
         <header className={styles.pageHeader}>
           <div>
             <span className={styles.pageEyebrow}>Yönetim Paneli</span>
-            <h1>{copy.title}</h1>
-            <p>{copy.description}</p>
+            <h1>{pageTitle ?? copy.title}</h1>
+            <p>{pageDescription ?? copy.description}</p>
           </div>
           <div className={styles.pageActions}>
             <button disabled={isRefreshing} type="button" onClick={onRefresh}>
               <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
                 <path d="M20 6v5h-5M4 18v-5h5M6.1 8a7 7 0 0 1 11.8-2L20 8M4 16l2.1 2a7 7 0 0 0 11.8-2" />
               </svg>
-              {isRefreshing ? "Yenileniyor..." : "Listeyi Yenile"}
+              {isRefreshing ? "Yenileniyor..." : refreshLabel}
             </button>
-            <button className={styles.primaryAction} type="button" onClick={onCreateBusiness}>
-              <span aria-hidden="true">+</span>
-              Yeni İşletme
-            </button>
+            {showCreateAction ? (
+              <button className={styles.primaryAction} type="button" onClick={onCreateBusiness}>
+                <span aria-hidden="true">+</span>
+                Yeni İşletme
+              </button>
+            ) : null}
           </div>
         </header>
 
