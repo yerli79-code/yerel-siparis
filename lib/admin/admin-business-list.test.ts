@@ -103,6 +103,22 @@ test("admin search is debounced by 300ms and stale requests cannot win", () => {
   assert.match(adminPage, /sequence !== listRequestSequence\.current/);
 });
 
+test("list and overview load failures update only their own error state", () => {
+  const listEffect = adminPage.slice(
+    adminPage.indexOf("loadBusinessPage(\n      {"),
+    adminPage.indexOf("  }, [\n    cityFilter"),
+  );
+  const overviewEffect = adminPage.slice(
+    adminPage.indexOf("loadOverview(controller.signal)"),
+    adminPage.indexOf("  }, [isAdminAuthorized, loadOverview]"),
+  );
+
+  assert.match(listEffect, /\.catch\([^]*setBusinessLoadError\(true\)/);
+  assert.doesNotMatch(listEffect, /setOverviewLoadError\(true\)/);
+  assert.match(overviewEffect, /\.catch\([^]*setOverviewLoadError\(true\)/);
+  assert.doesNotMatch(overviewEffect, /setBusinessLoadError\(true\)/);
+});
+
 test("search, filters, sort and page size reset pagination", () => {
   for (const setter of [
     "setSearchQuery",

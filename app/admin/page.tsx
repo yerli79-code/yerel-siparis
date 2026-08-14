@@ -375,7 +375,7 @@ export default function AdminPage() {
     )
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setOverviewLoadError(true);
+        setBusinessLoadError(true);
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -405,7 +405,7 @@ export default function AdminPage() {
     loadOverview(controller.signal)
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setBusinessLoadError(true);
+        setOverviewLoadError(true);
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsInitialOverviewLoading(false);

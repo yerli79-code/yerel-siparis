@@ -331,6 +331,26 @@ function toProfileInput(form: ProfileForm): BusinessProfileInput {
   };
 }
 
+function BusinessIdentityLogo({
+  business,
+}: {
+  business: BusinessPanelBusiness;
+}) {
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+
+  if (!business.logoUrl || failedLogoUrl === business.logoUrl) return null;
+
+  return (
+    <span className="business-panel-identity-logo">
+      <img
+        alt={`${business.name} logosu`}
+        src={business.logoUrl}
+        onError={() => setFailedLogoUrl(business.logoUrl)}
+      />
+    </span>
+  );
+}
+
 export default function PanelPage() {
   const router = useRouter();
   const [, setAccessToken] = useState("");
@@ -1544,7 +1564,10 @@ export default function PanelPage() {
           <div className="business-panel-header-copy">
             <PlatformBrand className="panel-platform-brand" publicVariant />
             <span className="business-panel-eyebrow">İşletme Paneli</span>
-            <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
+            <div className="business-panel-identity">
+              {business ? <BusinessIdentityLogo business={business} /> : null}
+              <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
+            </div>
             <p>Günlük siparişlerinizi ve işletmenizi tek ekrandan yönetin.</p>
           </div>
           {business ? (
