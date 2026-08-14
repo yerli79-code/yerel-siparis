@@ -4,6 +4,7 @@ export type AdminSessionDTO = {
 };
 
 const LEGACY_ADMIN_SESSION_KEY = "yerel-siparis-admin-auth-session";
+const LEGACY_ADMIN_BUSINESS_CACHE_KEY = "yerel-siparis-businesses-v2";
 
 export function clearLegacyAdminBrowserSession() {
   if (typeof window === "undefined") return;
@@ -12,6 +13,16 @@ export function clearLegacyAdminBrowserSession() {
     window.sessionStorage.removeItem(LEGACY_ADMIN_SESSION_KEY);
   } catch {
     // Legacy storage cleanup must not prevent the admin UI from starting.
+  }
+}
+
+export function clearLegacyAdminBusinessCache() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem(LEGACY_ADMIN_BUSINESS_CACHE_KEY);
+  } catch {
+    // Legacy PII cleanup must not prevent the server-backed admin UI from starting.
   }
 }
 

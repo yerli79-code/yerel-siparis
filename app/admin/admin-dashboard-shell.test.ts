@@ -393,7 +393,9 @@ test("extension-day buttons use visible soft-green brand actions", () => {
   assert.match(hoverStyle, /color: var\(--brand-card\)/);
 });
 
-test("dashboard KPI implementation stays on loaded businesses without order or storage access", () => {
-  assert.match(dashboardSource, /businesses\.reduce/);
+test("dashboard KPI presentation stays independent from paginated business rows", () => {
+  assert.match(adminPageSource, /fetchAdminOverview/);
+  assert.match(adminPageSource, /setAdminKpis\(result\)/);
+  assert.doesNotMatch(adminPageSource, /calculateAdminKpis\(businesses\)/);
   assert.doesNotMatch(dashboardSource, /fetch\(|order|localStorage|sessionStorage/i);
 });
