@@ -690,7 +690,6 @@
 .mainContent :global(.admin-filter-footer button),
 .mainContent :global(.admin-filter-empty button),
 .mainContent :global(.admin-empty-state button),
-.mainContent :global(.admin-extension-actions button),
 .mainContent :global(.admin-business-actions button:not(.admin-primary-action):not(.danger-button)),
 .mainContent :global(.manual-subscription button) {
   min-height: 44px;
@@ -705,10 +704,14 @@
 
 .mainContent :global(.admin-extension-actions button) {
   min-width: 0;
-  border-color: rgba(9, 93, 39, 0.24);
+  min-height: 44px;
+  border: 1px solid rgba(9, 93, 39, 0.3);
+  border-radius: 12px;
   background: var(--brand-soft);
   color: var(--brand-primary);
+  padding: 10px 14px;
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(9, 93, 39, 0.08);
 }
 
 .mainContent :global(.admin-extension-actions button:not(:disabled):hover) {

@@ -18,14 +18,16 @@ import {
 import {
   addDaysFromToday,
   calculateAdminKpis,
-  canActivateBusiness,
+  canReactivateBusinessAccess,
   formatDate,
+  getAdminSubscriptionStatusLabel,
   getBadge,
   getRemainingDays,
   hasActiveSubscription,
   isEndingWithinDays,
   isSubscriptionExpired,
   withBusinessAccess,
+  withReactivatedBusinessAccess,
 } from "../../lib/subscription";
 import {
   clearLegacyAdminBrowserSession,
@@ -179,14 +181,6 @@ function sameLocationLabel(
     normalizeLocationLabel(first).toLocaleLowerCase("tr-TR") ===
     normalizeLocationLabel(second).toLocaleLowerCase("tr-TR")
   );
-}
-
-function getSubscriptionStatusLabel(status: Business["subscriptionStatus"]) {
-  return {
-    active: "Aktif",
-    expired: "Süresi Dolmuş",
-    blocked: "Engelli",
-  }[status];
 }
 
 export default function AdminPage() {
@@ -819,7 +813,7 @@ export default function AdminPage() {
   }
 
   function setActive(business: Business) {
-    const nextBusiness = withBusinessAccess(business, true);
+    const nextBusiness = withReactivatedBusinessAccess(business);
     if (!nextBusiness) {
       setMessage("İşletmeyi aktifleştirmeden önce geçerli bir abonelik tanımlayın.");
       return;
@@ -1336,8 +1330,7 @@ export default function AdminPage() {
             const badge = getBadge(business);
             const businessRowId = business.id || business.slug;
             const isExpanded = expandedBusinessId === businessRowId;
-            const canReactivate =
-              !business.isActive && canActivateBusiness(business);
+            const canReactivate = canReactivateBusinessAccess(business);
 
             return (
               <article
@@ -1363,7 +1356,7 @@ export default function AdminPage() {
                     <span className={`status admin-status ${badge.toLowerCase().replaceAll(" ", "-")}`}>
                       {badge}
                     </span>
-                    <span>{getSubscriptionStatusLabel(business.subscriptionStatus)}</span>
+                    <span>{getAdminSubscriptionStatusLabel(business)}</span>
                     <span>{formatDate(business.subscriptionExpiresAt)}</span>
                     <span>{business.isActive ? "Aktif" : "Pasif"}</span>
                   </span>
@@ -1398,7 +1391,7 @@ export default function AdminPage() {
                           <p><strong>Başlangıç</strong><span>{formatDate(business.subscriptionStartedAt)}</span></p>
                           <p><strong>Abonelik bitiş</strong><span>{formatDate(business.subscriptionExpiresAt)}</span></p>
                           <p><strong>Kalan gün</strong><span>{Math.max(0, remainingDays)}</span></p>
-                          <p><strong>Durum</strong><span>{`${getSubscriptionStatusLabel(business.subscriptionStatus)} / ${business.isActive ? "aktif" : "pasif"}`}</span></p>
+                          <p><strong>Durum</strong><span>{`${getAdminSubscriptionStatusLabel(business)} / ${business.isActive ? "aktif" : "pasif"}`}</span></p>
                         </div>
                         <div className="admin-extension-actions">
                           {extensionDays.map((days) => (

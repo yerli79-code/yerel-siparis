@@ -68,6 +68,58 @@ export function canActivateBusiness(business: Business, now = Date.now()) {
   return Number.isFinite(expiresAt) && expiresAt > now;
 }
 
+export function canReactivateBusinessAccess(
+  business: Business,
+  now = Date.now(),
+) {
+  if (
+    business.isActive ||
+    business.subscriptionStatus === "blocked" ||
+    !business.subscriptionExpiresAt
+  ) {
+    return false;
+  }
+
+  const expiresAt = new Date(business.subscriptionExpiresAt).getTime();
+  return (
+    Number.isFinite(expiresAt) &&
+    expiresAt > now &&
+    (business.subscriptionStatus === "active" ||
+      business.subscriptionStatus === "expired")
+  );
+}
+
+export function withReactivatedBusinessAccess(
+  business: Business,
+  now = Date.now(),
+): Business | null {
+  if (!canReactivateBusinessAccess(business, now)) return null;
+
+  return {
+    ...business,
+    subscriptionStatus: "active",
+    isActive: true,
+  };
+}
+
+export function getAdminSubscriptionStatusLabel(
+  business: Business,
+  now = Date.now(),
+) {
+  if (
+    business.subscriptionStatus === "expired" &&
+    canReactivateBusinessAccess(business, now)
+  ) {
+    return "Düzeltme Gerekli";
+  }
+
+  return {
+    active: "Aktif",
+    expired: "Süresi Dolmuş",
+    blocked: "Engelli",
+  }[business.subscriptionStatus];
+}
+
 export function withBusinessAccess(
   business: Business,
   isActive: false,

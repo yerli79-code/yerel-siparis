@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import type { Business } from "../../lib/businesses";
 // @ts-expect-error Node's type-stripping test runner requires the source extension.
-import { calculateAdminKpis, canActivateBusiness, withBusinessAccess } from "../../lib/subscription.ts";
+import { calculateAdminKpis, canActivateBusiness, canReactivateBusinessAccess, getAdminSubscriptionStatusLabel, withBusinessAccess, withReactivatedBusinessAccess } from "../../lib/subscription.ts";
 
 const root = new URL("../../", import.meta.url);
 const source = (path: string) => readFileSync(new URL(path, root), "utf8");
@@ -252,7 +252,7 @@ test("valid passive business can be reactivated without changing subscription", 
     isActive: false,
   });
 
-  const next = withBusinessAccess(current, true, now);
+  const next = withReactivatedBusinessAccess(current, now);
 
   assert.ok(next);
   assert.equal(next.subscriptionStatus, "active");
@@ -278,16 +278,97 @@ test("expired, blocked, missing and elapsed subscriptions cannot be reactivated"
   }
 });
 
+test("admin access recovery detects only passive future subscriptions", () => {
+  const now = Date.parse("2026-08-14T12:00:00.000Z");
+  const future = "2026-09-13T23:59:59.999Z";
+  const past = "2026-08-01T00:00:00.000Z";
+
+  assert.equal(canReactivateBusinessAccess(business({ slug: "normal", subscriptionStatus: "active", subscriptionExpiresAt: future, isActive: false }), now), true);
+  assert.equal(canReactivateBusinessAccess(business({ slug: "legacy", subscriptionStatus: "expired", subscriptionExpiresAt: future, isActive: false }), now), true);
+  assert.equal(canReactivateBusinessAccess(business({ slug: "past", subscriptionStatus: "expired", subscriptionExpiresAt: past, isActive: false }), now), false);
+  assert.equal(canReactivateBusinessAccess(business({ slug: "null", subscriptionStatus: "expired", subscriptionExpiresAt: null, isActive: false }), now), false);
+  assert.equal(canReactivateBusinessAccess(business({ slug: "blocked", subscriptionStatus: "blocked", subscriptionExpiresAt: future, isActive: false }), now), false);
+  assert.equal(canReactivateBusinessAccess(business({ slug: "invalid", subscriptionStatus: "expired", subscriptionExpiresAt: "invalid", isActive: false }), now), false);
+  assert.equal(canReactivateBusinessAccess(business({ slug: "already-active", subscriptionStatus: "active", subscriptionExpiresAt: future, isActive: true }), now), false);
+});
+
+test("legacy passive recovery repairs status while preserving subscription dates", () => {
+  const now = Date.parse("2026-08-14T12:00:00.000Z");
+  const startedAt = "2026-08-14T00:00:00.000Z";
+  const expiresAt = "2026-09-13T23:59:59.999Z";
+  const current = business({
+    slug: "legacy-passive",
+    subscriptionStatus: "expired",
+    subscriptionStartedAt: startedAt,
+    subscriptionExpiresAt: expiresAt,
+    isActive: false,
+  });
+
+  assert.equal(canActivateBusiness(current, now), false);
+  const next = withReactivatedBusinessAccess(current, now);
+
+  assert.ok(next);
+  assert.equal(next.subscriptionStatus, "active");
+  assert.equal(next.subscriptionStartedAt, startedAt);
+  assert.equal(next.subscriptionExpiresAt, expiresAt);
+  assert.equal(next.isActive, true);
+});
+
+test("recovered business keeps active subscription through access cycles", () => {
+  const now = Date.parse("2026-08-14T12:00:00.000Z");
+  const startedAt = "2026-08-14T00:00:00.000Z";
+  const expiresAt = "2026-09-13T23:59:59.999Z";
+  const recovered = withReactivatedBusinessAccess(
+    business({ slug: "cycle", subscriptionStatus: "expired", subscriptionStartedAt: startedAt, subscriptionExpiresAt: expiresAt, isActive: false }),
+    now,
+  );
+
+  assert.ok(recovered);
+  const passive = withBusinessAccess(recovered, false);
+  const activeAgain = withReactivatedBusinessAccess(passive, now);
+  const passiveAgain = withBusinessAccess(activeAgain!, false);
+
+  for (const next of [passive, activeAgain!, passiveAgain]) {
+    assert.equal(next.subscriptionStatus, "active");
+    assert.equal(next.subscriptionStartedAt, startedAt);
+    assert.equal(next.subscriptionExpiresAt, expiresAt);
+  }
+  assert.equal(passive.isActive, false);
+  assert.equal(activeAgain!.isActive, true);
+  assert.equal(passiveAgain.isActive, false);
+});
+
+test("legacy passive records use an explicit admin recovery label", () => {
+  const now = Date.parse("2026-08-14T12:00:00.000Z");
+  const future = "2026-09-13T23:59:59.999Z";
+  const legacy = business({ slug: "legacy-label", subscriptionStatus: "expired", subscriptionExpiresAt: future, isActive: false });
+
+  assert.equal(getAdminSubscriptionStatusLabel(legacy, now), "Düzeltme Gerekli");
+  assert.equal(getAdminSubscriptionStatusLabel(business({ slug: "real-expired", subscriptionStatus: "expired", subscriptionExpiresAt: null, isActive: false }), now), "Süresi Dolmuş");
+  assert.equal(
+    (adminPageSource.match(/getAdminSubscriptionStatusLabel\(business\)/g) ?? []).length,
+    2,
+  );
+});
+
 test("critical access control switches copy by state without duplicate activation CTA", () => {
   assert.match(adminPageSource, /business\.isActive \? \([^]*Pasife Al[^]*\) : canReactivate \? \([^]*Aktife Al[^]*\) : null/);
   assert.match(adminPageSource, /actionName: "Pasife al"/);
   assert.match(adminPageSource, /actionName: "Aktife al"/);
-  assert.match(adminPageSource, /!business\.isActive && canActivateBusiness\(business\)/);
+  assert.match(adminPageSource, /const canReactivate = canReactivateBusinessAccess\(business\)/);
+  assert.match(adminPageSource, /const nextBusiness = withReactivatedBusinessAccess\(business\)/);
+  assert.equal(
+    (adminPageSource.match(/withReactivatedBusinessAccess\(business\)/g) ?? []).length,
+    1,
+  );
   assert.doesNotMatch(adminPageSource, /subscriptionStatus: "expired", isActive: false/);
   assert.doesNotMatch(adminPageSource, />\s*Aktif Et\s*</);
 });
 
 test("extension-day buttons use visible soft-green brand actions", () => {
+  const genericStyle = adminCss.match(
+    /\.mainContent :global\(\.admin-filter-footer button\),([^]*?) \{[^}]*background: var\(--brand-card\)/,
+  )?.[1];
   const normalStyle = adminCss.match(
     /\.mainContent :global\(\.admin-extension-actions button\) \{([^}]*)\}/,
   )?.[1];
@@ -295,10 +376,17 @@ test("extension-day buttons use visible soft-green brand actions", () => {
     /\.mainContent :global\(\.admin-extension-actions button:not\(:disabled\):hover\) \{([^}]*)\}/,
   )?.[1];
 
+  assert.ok(genericStyle);
+  assert.doesNotMatch(genericStyle, /admin-extension-actions/);
   assert.ok(normalStyle);
-  assert.match(normalStyle, /border-color: rgba\(9, 93, 39, 0\.24\)/);
+  assert.match(normalStyle, /border: 1px solid rgba\(9, 93, 39, 0\.3\)/);
   assert.match(normalStyle, /background: var\(--brand-soft\)/);
   assert.match(normalStyle, /color: var\(--brand-primary\)/);
+  assert.match(normalStyle, /box-shadow: 0 4px 12px rgba\(9, 93, 39, 0\.08\)/);
+  assert.ok(
+    adminCss.indexOf(".admin-extension-actions button) {") >
+      adminCss.indexOf(".admin-filter-footer button),"),
+  );
   assert.ok(hoverStyle);
   assert.match(hoverStyle, /border-color: var\(--brand-primary\)/);
   assert.match(hoverStyle, /background: var\(--brand-primary\)/);
