@@ -18,12 +18,14 @@ import {
 import {
   addDaysFromToday,
   calculateAdminKpis,
+  canActivateBusiness,
   formatDate,
   getBadge,
   getRemainingDays,
   hasActiveSubscription,
   isEndingWithinDays,
   isSubscriptionExpired,
+  withBusinessAccess,
 } from "../../lib/subscription";
 import {
   clearLegacyAdminBrowserSession,
@@ -811,14 +813,20 @@ export default function AdminPage() {
 
   function setPassive(business: Business) {
     commit(
-      { ...business, subscriptionStatus: "expired", isActive: false },
+      withBusinessAccess(business, false),
       `${business.name} pasife alındı.`,
     );
   }
 
   function setActive(business: Business) {
+    const nextBusiness = withBusinessAccess(business, true);
+    if (!nextBusiness) {
+      setMessage("İşletmeyi aktifleştirmeden önce geçerli bir abonelik tanımlayın.");
+      return;
+    }
+
     commit(
-      { ...business, subscriptionStatus: "active", isActive: true },
+      nextBusiness,
       `${business.name} aktif edildi.`,
     );
   }
@@ -1328,6 +1336,8 @@ export default function AdminPage() {
             const badge = getBadge(business);
             const businessRowId = business.id || business.slug;
             const isExpanded = expandedBusinessId === businessRowId;
+            const canReactivate =
+              !business.isActive && canActivateBusiness(business);
 
             return (
               <article
@@ -1382,7 +1392,7 @@ export default function AdminPage() {
                       <section className="admin-control-group">
                         <h3>Abonelik</h3>
                         <p className="admin-control-help">
-                          Süre uzatma, manuel tarih ve aktif etme işlemleri.
+                          Süre uzatma ve manuel abonelik tarihi işlemleri.
                         </p>
                         <div className="info-grid admin-info-grid">
                           <p><strong>Başlangıç</strong><span>{formatDate(business.subscriptionStartedAt)}</span></p>
@@ -1443,23 +1453,6 @@ export default function AdminPage() {
                               Kaydet
                             </button>
                           </div>
-                        </div>
-                        <div className="admin-actions admin-business-actions admin-routine-actions">
-                          <button
-                            disabled={isSaving}
-                            type="button"
-                            onClick={() =>
-                              requestAdminActionConfirmation({
-                                businessName: business.name,
-                                actionName: "Aktif et",
-                                description:
-                                  "İşletme aktif abonelik durumuna alınacak ve erişimi açılacak.",
-                                onConfirm: () => setActive(business),
-                              })
-                            }
-                          >
-                            Aktif Et
-                          </button>
                         </div>
                       </section>
 
@@ -1648,22 +1641,40 @@ export default function AdminPage() {
                           Bu işlemler işletmenin erişimini veya kayıtlarını doğrudan etkiler.
                         </p>
                         <div className="admin-actions admin-business-actions">
-                          <button
-                            disabled={isSaving}
-                            type="button"
-                            onClick={() =>
-                              requestAdminActionConfirmation({
-                                businessName: business.name,
-                                actionName: "Pasife al",
-                                description:
-                                  "İşletme pasif duruma alınacak ve aktif abonelik erişimi kapanacak.",
-                                isCritical: true,
-                                onConfirm: () => setPassive(business),
-                              })
-                            }
-                          >
-                            Pasife Al
-                          </button>
+                          {business.isActive ? (
+                            <button
+                              disabled={isSaving}
+                              type="button"
+                              onClick={() =>
+                                requestAdminActionConfirmation({
+                                  businessName: business.name,
+                                  actionName: "Pasife al",
+                                  description:
+                                    "İşletmenin platform erişimi kapatılacak; abonelik durumu ve tarihleri korunacak.",
+                                  isCritical: true,
+                                  onConfirm: () => setPassive(business),
+                                })
+                              }
+                            >
+                              Pasife Al
+                            </button>
+                          ) : canReactivate ? (
+                            <button
+                              disabled={isSaving}
+                              type="button"
+                              onClick={() =>
+                                requestAdminActionConfirmation({
+                                  businessName: business.name,
+                                  actionName: "Aktife al",
+                                  description:
+                                    "Geçerli abonelik korunarak işletmenin platform erişimi tekrar açılacak.",
+                                  onConfirm: () => setActive(business),
+                                })
+                              }
+                            >
+                              Aktife Al
+                            </button>
+                          ) : null}
                           <button
                             disabled={isSaving}
                             className="danger-button"

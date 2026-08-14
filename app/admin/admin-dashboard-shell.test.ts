@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import type { Business } from "../../lib/businesses";
 // @ts-expect-error Node's type-stripping test runner requires the source extension.
-import { calculateAdminKpis } from "../../lib/subscription.ts";
+import { calculateAdminKpis, canActivateBusiness, withBusinessAccess } from "../../lib/subscription.ts";
 
 const root = new URL("../../", import.meta.url);
 const source = (path: string) => readFileSync(new URL(path, root), "utf8");
@@ -219,6 +219,90 @@ test("admin visual system follows canonical brand tokens without duplicate overv
   ]) {
     assert.match(adminPageSource, new RegExp(`function ${handler}\\(`));
   }
+});
+
+test("passive access preserves active subscription state and dates", () => {
+  const startedAt = "2026-08-01T00:00:00.000Z";
+  const expiresAt = "2026-10-01T00:00:00.000Z";
+  const current = business({
+    slug: "active-business",
+    subscriptionStatus: "active",
+    subscriptionStartedAt: startedAt,
+    subscriptionExpiresAt: expiresAt,
+    isActive: true,
+  });
+
+  const next = withBusinessAccess(current, false);
+
+  assert.equal(next.subscriptionStatus, "active");
+  assert.equal(next.subscriptionStartedAt, startedAt);
+  assert.equal(next.subscriptionExpiresAt, expiresAt);
+  assert.equal(next.isActive, false);
+});
+
+test("valid passive business can be reactivated without changing subscription", () => {
+  const now = Date.parse("2026-08-14T12:00:00.000Z");
+  const startedAt = "2026-08-01T00:00:00.000Z";
+  const expiresAt = "2026-10-01T00:00:00.000Z";
+  const current = business({
+    slug: "passive-business",
+    subscriptionStatus: "active",
+    subscriptionStartedAt: startedAt,
+    subscriptionExpiresAt: expiresAt,
+    isActive: false,
+  });
+
+  const next = withBusinessAccess(current, true, now);
+
+  assert.ok(next);
+  assert.equal(next.subscriptionStatus, "active");
+  assert.equal(next.subscriptionStartedAt, startedAt);
+  assert.equal(next.subscriptionExpiresAt, expiresAt);
+  assert.equal(next.isActive, true);
+});
+
+test("expired, blocked, missing and elapsed subscriptions cannot be reactivated", () => {
+  const now = Date.parse("2026-08-14T12:00:00.000Z");
+  const future = "2026-10-01T00:00:00.000Z";
+  const elapsed = "2026-08-01T00:00:00.000Z";
+  const cases = [
+    business({ slug: "expired", subscriptionStatus: "expired", subscriptionExpiresAt: future }),
+    business({ slug: "blocked", subscriptionStatus: "blocked", subscriptionExpiresAt: future }),
+    business({ slug: "missing", subscriptionStatus: "active", subscriptionExpiresAt: null }),
+    business({ slug: "elapsed", subscriptionStatus: "active", subscriptionExpiresAt: elapsed }),
+  ];
+
+  for (const current of cases) {
+    assert.equal(canActivateBusiness(current, now), false);
+    assert.equal(withBusinessAccess(current, true, now), null);
+  }
+});
+
+test("critical access control switches copy by state without duplicate activation CTA", () => {
+  assert.match(adminPageSource, /business\.isActive \? \([^]*Pasife Al[^]*\) : canReactivate \? \([^]*Aktife Al[^]*\) : null/);
+  assert.match(adminPageSource, /actionName: "Pasife al"/);
+  assert.match(adminPageSource, /actionName: "Aktife al"/);
+  assert.match(adminPageSource, /!business\.isActive && canActivateBusiness\(business\)/);
+  assert.doesNotMatch(adminPageSource, /subscriptionStatus: "expired", isActive: false/);
+  assert.doesNotMatch(adminPageSource, />\s*Aktif Et\s*</);
+});
+
+test("extension-day buttons use visible soft-green brand actions", () => {
+  const normalStyle = adminCss.match(
+    /\.mainContent :global\(\.admin-extension-actions button\) \{([^}]*)\}/,
+  )?.[1];
+  const hoverStyle = adminCss.match(
+    /\.mainContent :global\(\.admin-extension-actions button:not\(:disabled\):hover\) \{([^}]*)\}/,
+  )?.[1];
+
+  assert.ok(normalStyle);
+  assert.match(normalStyle, /border-color: rgba\(9, 93, 39, 0\.24\)/);
+  assert.match(normalStyle, /background: var\(--brand-soft\)/);
+  assert.match(normalStyle, /color: var\(--brand-primary\)/);
+  assert.ok(hoverStyle);
+  assert.match(hoverStyle, /border-color: var\(--brand-primary\)/);
+  assert.match(hoverStyle, /background: var\(--brand-primary\)/);
+  assert.match(hoverStyle, /color: var\(--brand-card\)/);
 });
 
 test("dashboard KPI implementation stays on loaded businesses without order or storage access", () => {

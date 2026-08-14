@@ -704,7 +704,22 @@
 }
 
 .mainContent :global(.admin-extension-actions button) {
-  background: rgba(220, 235, 199, 0.44);
+  min-width: 0;
+  border-color: rgba(9, 93, 39, 0.24);
+  background: var(--brand-soft);
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.mainContent :global(.admin-extension-actions button:not(:disabled):hover) {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--brand-card);
+}
+
+.mainContent :global(.admin-extension-actions button:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .mainContent :global(.admin-filter-empty button),

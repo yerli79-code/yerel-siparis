@@ -56,12 +56,39 @@ export function getAccessMessage(business: Business) {
   return "";
 }
 
+export function canActivateBusiness(business: Business, now = Date.now()) {
+  if (
+    business.subscriptionStatus !== "active" ||
+    !business.subscriptionExpiresAt
+  ) {
+    return false;
+  }
+
+  const expiresAt = new Date(business.subscriptionExpiresAt).getTime();
+  return Number.isFinite(expiresAt) && expiresAt > now;
+}
+
+export function withBusinessAccess(
+  business: Business,
+  isActive: false,
+  now?: number,
+): Business;
+export function withBusinessAccess(
+  business: Business,
+  isActive: true,
+  now?: number,
+): Business | null;
+export function withBusinessAccess(
+  business: Business,
+  isActive: boolean,
+  now = Date.now(),
+) {
+  if (isActive && !canActivateBusiness(business, now)) return null;
+  return { ...business, isActive };
+}
+
 export function hasActiveSubscription(business: Business) {
-  return (
-    business.isActive &&
-    business.subscriptionStatus === "active" &&
-    getRemainingDays(business.subscriptionExpiresAt) > 0
-  );
+  return business.isActive && canActivateBusiness(business);
 }
 
 export function isSubscriptionExpired(business: Business) {
