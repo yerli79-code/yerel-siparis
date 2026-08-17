@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import LocationSelector from "../../../../components/LocationSelector";
 import type { Business } from "../../../../lib/businesses";
 import {
   clearLegacyAdminBrowserSession,
@@ -11,7 +12,10 @@ import {
   logoutAdmin,
   readAdminSession,
 } from "../../../../lib/admin-client";
-import type { AdminBusinessDetail } from "../../../../lib/admin/business-detail-contract";
+import type {
+  AdminBusinessDetail,
+  AdminBusinessSafePatchResult,
+} from "../../../../lib/admin/business-detail-contract";
 import {
   AdminBusinessRequestError,
   deleteBusinessInSupabase,
@@ -40,6 +44,47 @@ type ConfirmAction = {
   critical?: boolean;
   run: () => Promise<void>;
 };
+
+type EditableBusinessProfile = Pick<
+  AdminBusinessSafePatchResult,
+  | "name"
+  | "slug"
+  | "description"
+  | "category"
+  | "whatsappOrderNumber"
+  | "city"
+  | "district"
+  | "neighborhood"
+  | "address"
+>;
+
+const emptyEditableProfile: EditableBusinessProfile = {
+  name: "",
+  slug: "",
+  description: "",
+  category: "",
+  whatsappOrderNumber: "",
+  city: "",
+  district: "",
+  neighborhood: "",
+  address: "",
+};
+
+function editableProfileFromBusiness(
+  business: AdminBusinessDetail["business"] | AdminBusinessSafePatchResult,
+): EditableBusinessProfile {
+  return {
+    name: business.name,
+    slug: business.slug,
+    description: business.description,
+    category: business.category,
+    whatsappOrderNumber: business.whatsappOrderNumber,
+    city: business.city,
+    district: business.district,
+    neighborhood: business.neighborhood,
+    address: business.address,
+  };
+}
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "-";
@@ -149,8 +194,9 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
   const [mutationError, setMutationError] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editSlug, setEditSlug] = useState("");
+  const [editProfile, setEditProfile] = useState<EditableBusinessProfile>(
+    emptyEditableProfile,
+  );
   const [conflict, setConflict] = useState(false);
   const [manualDate, setManualDate] = useState("");
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -240,8 +286,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
 
   function beginEdit() {
     if (!detail) return;
-    setEditName(detail.business.name);
-    setEditSlug(detail.business.slug);
+    setEditProfile(editableProfileFromBusiness(detail.business));
     setEditing(true);
     setConflict(false);
     setMessage("");
@@ -257,8 +302,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
     setConflict(false);
     try {
       const updated = await updateAdminBusinessSafely(detail.business.id, {
-        name: editName,
-        slug: editSlug,
+        ...editProfile,
         expectedUpdatedAt: detail.business.updatedAt,
       });
       setDetail((current) =>
@@ -267,17 +311,14 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
               ...current,
               business: {
                 ...current.business,
-                name: updated.name,
-                slug: updated.slug,
-                updatedAt: updated.updatedAt,
+                ...updated,
               },
             }
           : current,
       );
-      setEditName(updated.name);
-      setEditSlug(updated.slug);
+      setEditProfile(editableProfileFromBusiness(updated));
       setEditing(false);
-      setMessage("İşletme adı ve slug güncellendi.");
+      setMessage("İşletme profil bilgileri güncellendi.");
     } catch (error) {
       if (error instanceof AdminBusinessRequestError) {
         setMutationError(error.message);
@@ -293,8 +334,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
   async function loadLatestAfterConflict() {
     const latest = await loadDetail();
     if (!latest) return;
-    setEditName(latest.business.name);
-    setEditSlug(latest.business.slug);
+    setEditProfile(editableProfileFromBusiness(latest.business));
     setConflict(false);
     setMutationError("");
     setMessage("Güncel bilgiler yüklendi. Değişikliklerinizi yeniden kontrol edin.");
@@ -436,11 +476,97 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
                 </div>
                 {editing ? (
                   <form className={styles.editForm} onSubmit={saveEdit}>
-                    <label htmlFor="detail-business-name">İşletme adı</label>
-                    <input id="detail-business-name" maxLength={160} required value={editName} onChange={(event) => setEditName(event.target.value)} />
-                    <label htmlFor="detail-business-slug">Slug</label>
-                    <input id="detail-business-slug" maxLength={100} required value={editSlug} onChange={(event) => setEditSlug(event.target.value)} />
-                    <p>Yalnız işletme adı ve slug düzenlenebilir. Kayıt başka bir işlemde değişirse kaydetme durdurulur.</p>
+                    <div className={styles.editField}>
+                      <label htmlFor="detail-business-name">İşletme adı</label>
+                      <input
+                        disabled={busy}
+                        id="detail-business-name"
+                        maxLength={160}
+                        required
+                        value={editProfile.name}
+                        onChange={(event) =>
+                          setEditProfile((current) => ({ ...current, name: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className={styles.editField}>
+                      <label htmlFor="detail-business-slug">Slug</label>
+                      <input
+                        disabled={busy}
+                        id="detail-business-slug"
+                        maxLength={100}
+                        required
+                        value={editProfile.slug}
+                        onChange={(event) =>
+                          setEditProfile((current) => ({ ...current, slug: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className={styles.editField}>
+                      <label htmlFor="detail-business-category">Kategori</label>
+                      <input
+                        disabled={busy}
+                        id="detail-business-category"
+                        value={editProfile.category}
+                        onChange={(event) =>
+                          setEditProfile((current) => ({ ...current, category: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className={`${styles.editField} ${styles.fullWidth}`}>
+                      <label htmlFor="detail-business-description">Açıklama</label>
+                      <textarea
+                        disabled={busy}
+                        id="detail-business-description"
+                        value={editProfile.description}
+                        onChange={(event) =>
+                          setEditProfile((current) => ({ ...current, description: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className={`${styles.editField} ${styles.fullWidth}`}>
+                      <label htmlFor="detail-business-whatsapp">WhatsApp sipariş numarası</label>
+                      <input
+                        disabled={busy}
+                        id="detail-business-whatsapp"
+                        inputMode="tel"
+                        required
+                        value={editProfile.whatsappOrderNumber}
+                        onChange={(event) =>
+                          setEditProfile((current) => ({
+                            ...current,
+                            whatsappOrderNumber: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <fieldset className={`${styles.editLocation} ${styles.fullWidth}`} disabled={busy}>
+                      <legend>Konum</legend>
+                      <LocationSelector
+                        idPrefix="detailBusinessLocation"
+                        required={false}
+                        value={{
+                          city: editProfile.city,
+                          district: editProfile.district,
+                          neighborhood: editProfile.neighborhood,
+                        }}
+                        onChange={(location) =>
+                          setEditProfile((current) => ({ ...current, ...location }))
+                        }
+                      />
+                    </fieldset>
+                    <div className={`${styles.editField} ${styles.fullWidth}`}>
+                      <label htmlFor="detail-business-address">Adres</label>
+                      <textarea
+                        disabled={busy}
+                        id="detail-business-address"
+                        value={editProfile.address}
+                        onChange={(event) =>
+                          setEditProfile((current) => ({ ...current, address: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <p className={styles.fullWidth}>Profil alanları tek işlemde kaydedilir. Kayıt başka bir işlemde değişirse kaydetme durdurulur.</p>
                     <div className={styles.actions}>
                       <button className={styles.primaryButton} disabled={busy} type="submit">{busy ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}</button>
                       <button disabled={busy} type="button" onClick={() => setEditing(false)}>Vazgeç</button>

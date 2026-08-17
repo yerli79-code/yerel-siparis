@@ -64,10 +64,19 @@
 .infoList { display: grid; gap: 0; margin: 16px 0 0; }
 .infoList div { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(0, 1.3fr); gap: 14px; border-top: 1px solid rgba(9, 93, 39, .1); padding: 11px 0; }
 
-.editForm { display: grid; gap: 9px; margin-top: 16px; }
-.editForm label, .manualDate label { color: #425448; font-size: 13px; font-weight: 700; }
-.editForm input, .manualDate input { width: 100%; min-width: 0; min-height: 46px; border: 1px solid rgba(9, 93, 39, .22); border-radius: 12px; background: var(--brand-surface); color: var(--brand-dark); padding: 10px 12px; }
+.editForm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.editField { display: grid; min-width: 0; gap: 7px; }
+.fullWidth { grid-column: 1 / -1; }
+.editForm label, .editLocation legend, .manualDate label { color: #425448; font-size: 13px; font-weight: 700; }
+.editForm input, .editForm select, .editForm textarea, .manualDate input { width: 100%; min-width: 0; min-height: 46px; border: 1px solid rgba(9, 93, 39, .22); border-radius: 12px; background: var(--brand-surface); color: var(--brand-dark); padding: 10px 12px; }
+.editForm textarea { min-height: 104px; resize: vertical; }
+.editLocation { min-width: 0; margin: 0; border: 0; padding: 0; }
+.editLocation legend { margin-bottom: 8px; padding: 0; }
+.editLocation :global(.location-selector) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.editLocation :global(.field) { display: grid; min-width: 0; gap: 7px; }
+.editLocation :global(.location-selector-neighborhood) { grid-column: 1 / -1; }
 .editForm p { font-size: 12px; }
+.editForm .actions { grid-column: 1 / -1; }
 
 .actions, .extensionActions, .criticalActions { display: flex; flex-wrap: wrap; gap: 9px; }
 .actions button, .extensionActions button, .criticalActions button, .manualDate button { min-height: 44px; border: 1px solid rgba(9, 93, 39, .22); border-radius: 12px; background: var(--brand-card); color: var(--brand-primary); padding: 9px 13px; font-weight: 700; }
@@ -111,6 +120,7 @@
 @keyframes pulse { from { background-position: 100% 0; } to { background-position: -120% 0; } }
 
 @media (max-width: 900px) {
+  .twoColumn { grid-template-columns: minmax(0, 1fr); }
   .metricsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .orderList article { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -119,6 +129,8 @@
   .root { gap: 14px; }
   .identityCard, .card, .stateCard, .skeleton { padding: 16px; }
   .identityCard, .twoColumn { grid-template-columns: minmax(0, 1fr); }
+  .editForm, .editLocation :global(.location-selector) { grid-template-columns: minmax(0, 1fr); }
+  .editLocation :global(.location-selector-neighborhood) { grid-column: auto; }
   .badges { justify-content: flex-start; }
   .infoList div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .manualDate > div { grid-template-columns: minmax(0, 1fr); }

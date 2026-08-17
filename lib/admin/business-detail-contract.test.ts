@@ -24,6 +24,18 @@ const adminHttp = source("lib/admin/http.ts");
 
 const businessId = "11111111-1111-4111-8111-111111111111";
 const updatedAt = "2026-08-14T10:00:00.000Z";
+const expandedPatch = {
+  name: "Örnek İşletme",
+  slug: "ornek-isletme",
+  description: "Açıklama",
+  category: "Kebap",
+  whatsappOrderNumber: "905551112233",
+  city: "İstanbul",
+  district: "Kadıköy",
+  neighborhood: "Caferağa Mahallesi",
+  address: "Moda Caddesi No: 1",
+  expectedUpdatedAt: updatedAt,
+};
 
 test("canonical business UUID is accepted and slug-like identifiers are rejected", () => {
   assert.equal(isCanonicalUuid(businessId), true);
@@ -31,72 +43,155 @@ test("canonical business UUID is accepted and slug-like identifiers are rejected
   assert.equal(isCanonicalUuid("11111111-1111-1111-1111-111111111111"), false);
 });
 
-test("safe patch trims names and normalizes Turkish slug characters", () => {
+test("valid expanded safe patch trims profile fields and normalizes Turkish slug characters", () => {
   assert.deepEqual(
     parseAdminBusinessSafePatch({
+      ...expandedPatch,
       name: "  Örnek İşletme  ",
       slug: " Örnek İşletme ",
-      expectedUpdatedAt: updatedAt,
+      description: "  Açıklama  ",
+      category: "  Kebap  ",
+      whatsappOrderNumber: "  905551112233  ",
+      city: "  İstanbul  ",
+      district: "  Kadıköy  ",
+      neighborhood: "  Caferağa Mahallesi  ",
+      address: "  Moda Caddesi No: 1  ",
     }),
-    { name: "Örnek İşletme", slug: "ornek-isletme", expectedUpdatedAt: updatedAt },
+    expandedPatch,
   );
   assert.equal(normalizeAdminBusinessSlug("ÇĞIÖŞÜ test"), "cgiosu-test");
 });
 
 test("safe patch rejects empty names and slugs", () => {
   assert.throws(
-    () => parseAdminBusinessSafePatch({ name: " ", slug: "ok", expectedUpdatedAt: updatedAt }),
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, name: " " }),
     AdminBusinessDetailContractError,
   );
   assert.throws(
-    () => parseAdminBusinessSafePatch({ name: "Ok", slug: "---", expectedUpdatedAt: updatedAt }),
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, slug: "---" }),
     AdminBusinessDetailContractError,
   );
 });
 
 test("safe patch rejects missing or invalid concurrency versions", () => {
   assert.throws(
-    () => parseAdminBusinessSafePatch({ name: "Ok", slug: "ok", expectedUpdatedAt: "display date" }),
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, expectedUpdatedAt: "display date" }),
     AdminBusinessDetailContractError,
   );
 });
 
-test("safe patch is an exact allowlist", () => {
-  for (const forbidden of ["isActive", "subscriptionStatus", "ownerId", "isOpen"]) {
+test("extra isActive is rejected by the exact allowlist", () => {
+  assert.throws(
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, isActive: true }),
+    AdminBusinessDetailContractError,
+  );
+});
+
+test("extra subscriptionStatus is rejected by the exact allowlist", () => {
+  assert.throws(
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, subscriptionStatus: "active" }),
+    AdminBusinessDetailContractError,
+  );
+});
+
+test("extra ownerId or email is rejected by the exact allowlist", () => {
+  for (const forbidden of ["ownerId", "email"]) {
     assert.throws(
       () => parseAdminBusinessSafePatch({
-        name: "Ok",
-        slug: "ok",
-        expectedUpdatedAt: updatedAt,
-        [forbidden]: true,
+        ...expandedPatch,
+        [forbidden]: "forbidden",
       }),
       AdminBusinessDetailContractError,
     );
   }
 });
 
+test("description accepts trimmed empty text and rejects non-string values", () => {
+  assert.equal(parseAdminBusinessSafePatch({ ...expandedPatch, description: "   " }).description, "");
+  assert.throws(
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, description: null }),
+    AdminBusinessDetailContractError,
+  );
+});
+
+test("free-text category is trimmed, may be empty and rejects non-string values", () => {
+  assert.equal(parseAdminBusinessSafePatch({ ...expandedPatch, category: "  Fırın  " }).category, "Fırın");
+  assert.equal(parseAdminBusinessSafePatch({ ...expandedPatch, category: "  " }).category, "");
+  assert.throws(
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, category: ["Fırın"] }),
+    AdminBusinessDetailContractError,
+  );
+});
+
+test("WhatsApp is required, trimmed and never echoed in validation errors", () => {
+  assert.equal(
+    parseAdminBusinessSafePatch({ ...expandedPatch, whatsappOrderNumber: " 905551112233 " })
+      .whatsappOrderNumber,
+    "905551112233",
+  );
+  for (const invalid of ["", 905551112233]) {
+    assert.throws(
+      () => parseAdminBusinessSafePatch({ ...expandedPatch, whatsappOrderNumber: invalid }),
+      (error: unknown) =>
+        error instanceof AdminBusinessDetailContractError &&
+        !error.message.includes("905551112233"),
+    );
+  }
+});
+
+test("location and address fields are trimmed strings and preserve empty legacy values", () => {
+  for (const field of ["city", "district", "neighborhood"] as const) {
+    assert.equal(parseAdminBusinessSafePatch({ ...expandedPatch, [field]: " " })[field], "");
+    assert.throws(
+      () => parseAdminBusinessSafePatch({ ...expandedPatch, [field]: null }),
+      AdminBusinessDetailContractError,
+    );
+  }
+  assert.equal(parseAdminBusinessSafePatch({ ...expandedPatch, address: "  " }).address, "");
+  assert.throws(
+    () => parseAdminBusinessSafePatch({ ...expandedPatch, address: 1 }),
+    AdminBusinessDetailContractError,
+  );
+});
+
 test("concurrency filter always contains both UUID and raw updated_at", () => {
   const params = buildAdminBusinessSafePatchParams(businessId, updatedAt);
   assert.equal(params.get("id"), `eq.${businessId}`);
   assert.equal(params.get("updated_at"), `eq.${updatedAt}`);
-  assert.equal(params.get("select"), "id,name,slug,updated_at");
+  assert.equal(
+    params.get("select"),
+    "id,name,slug,description,category,whatsapp_order_number,city,district,neighborhood,address,updated_at",
+  );
 });
 
-test("two-tab stale edit cannot overwrite the newer row", () => {
-  const row = { name: "İlk", slug: "ilk", updatedAt };
-  const apply = (expected: string, name: string, nextUpdatedAt: string) => {
+test("expanded two-tab stale edit cannot overwrite a newer description", () => {
+  const row = { description: "İlk", address: "Eski adres", whatsappOrderNumber: "905550000000", updatedAt };
+  const apply = (
+    expected: string,
+    changes: Partial<typeof row>,
+    nextUpdatedAt: string,
+  ) => {
     const filters = buildAdminBusinessSafePatchParams(businessId, expected);
     if (filters.get("updated_at") !== `eq.${row.updatedAt}`) return false;
-    row.name = name;
+    Object.assign(row, changes);
     row.updatedAt = nextUpdatedAt;
     return true;
   };
 
   const tabA = row.updatedAt;
   const tabB = row.updatedAt;
-  assert.equal(apply(tabA, "A güncelledi", "2026-08-14T10:01:00.000Z"), true);
-  assert.equal(apply(tabB, "B ezdi", "2026-08-14T10:02:00.000Z"), false);
-  assert.equal(row.name, "A güncelledi");
+  assert.equal(apply(tabA, { description: "A güncelledi" }, "2026-08-14T10:01:00.000Z"), true);
+  assert.equal(
+    apply(
+      tabB,
+      { address: "B adresi", whatsappOrderNumber: "905559999999" },
+      "2026-08-14T10:02:00.000Z",
+    ),
+    false,
+  );
+  assert.equal(row.description, "A güncelledi");
+  assert.equal(row.address, "Eski adres");
+  assert.equal(row.whatsappOrderNumber, "905550000000");
 });
 
 test("detail route uses async params, requireAdmin and same-origin CSRF", () => {
@@ -143,9 +238,49 @@ test("last and recent orders use stable PII-free queries with a five-row limit",
   assert.match(dal, /fetchOrders\(businessId, ADMIN_RECENT_ORDER_LIMIT\)/);
 });
 
-test("safe update sends only name and slug and distinguishes stale from missing", () => {
-  assert.match(dal, /JSON\.stringify\(\{ name: patch\.name, slug: patch\.slug \}\)/);
+test("safe update explicitly maps only safe camelCase fields to database columns", () => {
+  for (const mapping of [
+    "name: patch.name",
+    "slug: patch.slug",
+    "description: patch.description",
+    "category: patch.category",
+    "whatsapp_order_number: patch.whatsappOrderNumber",
+    "city: patch.city",
+    "district: patch.district",
+    "neighborhood: patch.neighborhood",
+    "address: patch.address",
+  ]) {
+    assert.match(dal, new RegExp(mapping.replace(".", "\\.")));
+  }
   assert.doesNotMatch(dal, /JSON\.stringify\(patch\)/);
+  assert.match(dal, /fetchBusinessLocation\(businessId\)/);
+  assert.match(dal, /hasBusinessLocationChanged\(currentLocation, patch\)/);
+  assert.match(dal, /isValidStandardBusinessLocation\(patch\)/);
+});
+
+test("safe update success DTO maps every safe profile field and excludes owner data", () => {
+  for (const mapping of [
+    "id: row.id",
+    "name: row.name",
+    "slug: row.slug",
+    "description: row.description",
+    "category: row.category",
+    "whatsappOrderNumber: row.whatsapp_order_number",
+    "city: row.city",
+    "district: row.district",
+    "neighborhood: row.neighborhood",
+    "address: row.address",
+    "updatedAt: row.updated_at",
+  ]) {
+    assert.match(dal, new RegExp(mapping.replace(".", "\\.")));
+  }
+  const resultBlock = dal.slice(dal.lastIndexOf("return {"));
+  assert.doesNotMatch(resultBlock, /owner_id|ownerId|email/);
+});
+
+test("safe update distinguishes duplicate slug, stale update and missing business", () => {
+  assert.match(dal, /databaseCode === "23505"/);
+  assert.match(dal, /"DUPLICATE_SLUG"/);
   assert.match(dal, /businessExists\(businessId\)/);
   assert.match(dal, /başka bir işlemde güncellendi/);
 });
@@ -165,6 +300,46 @@ test("conflict UX keeps edits and requires an explicit latest-data reload", () =
   assert.match(client, /setConflict\(error\.code === "CONFLICT"\)/);
   assert.match(client, /Güncel Bilgileri Yükle/);
   assert.match(client, /loadLatestAfterConflict/);
+});
+
+test("safe edit form exposes all profile fields but not owner or operational settings", () => {
+  const editForm = client.slice(
+    client.indexOf("<form className={styles.editForm}"),
+    client.indexOf("</form>", client.indexOf("<form className={styles.editForm}")),
+  );
+  for (const id of [
+    "detail-business-name",
+    "detail-business-slug",
+    "detail-business-category",
+    "detail-business-description",
+    "detail-business-whatsapp",
+    "detailBusinessLocation",
+    "detail-business-address",
+  ]) {
+    assert.match(editForm, new RegExp(id));
+  }
+  for (const forbidden of [
+    "owner.email",
+    "ownerId",
+    "isActive",
+    "isOpen",
+    "subscriptionStatus",
+    "paymentMethodMode",
+    "minimumOrderAmount",
+    "preparationTimeMinutes",
+    "deliveryStatus",
+    "logoUrl",
+    "coverImageUrl",
+    "orderNote",
+  ]) {
+    assert.doesNotMatch(editForm, new RegExp(forbidden.replace(".", "\\.")));
+  }
+});
+
+test("owner email remains read-only outside the safe edit form", () => {
+  assert.match(client, /<dt>E-posta<\/dt><dd>\{detail\.owner\.email/);
+  assert.match(client, /<dt>Yetki<\/dt><dd>Salt okunur<\/dd>/);
+  assert.doesNotMatch(client, /value=\{detail\.owner\.email\}/);
 });
 
 test("safe edit waits for PATCH success before changing persistent detail state", () => {

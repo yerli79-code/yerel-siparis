@@ -12,6 +12,11 @@ import {
   type AdminBusinessSafePatchResult,
   type AdminOrderSummary,
 } from "./business-detail-contract";
+import {
+  hasBusinessLocationChanged,
+  isValidStandardBusinessLocation,
+  type BusinessLocationInput,
+} from "../locations/server";
 
 type BusinessRow = {
   id?: unknown;
@@ -221,15 +226,60 @@ async function businessExists(businessId: string) {
   return body.length === 1;
 }
 
+async function fetchBusinessLocation(
+  businessId: string,
+): Promise<BusinessLocationInput | null> {
+  const params = new URLSearchParams({
+    id: `eq.${businessId}`,
+    select: "city,district,neighborhood",
+    limit: "1",
+  });
+  const response = await adminServiceFetch(`/rest/v1/businesses?${params}`);
+  const body = await readJsonBody(response);
+  if (!response.ok || !Array.isArray(body)) {
+    throw new AdminError("ADMIN_UNAVAILABLE", "İşletme konumu doğrulanamadı.", 503);
+  }
+  const row = body[0];
+  return row
+    ? {
+        city: typeof row.city === "string" ? row.city : "",
+        district: typeof row.district === "string" ? row.district : "",
+        neighborhood: typeof row.neighborhood === "string" ? row.neighborhood : "",
+      }
+    : null;
+}
+
 export async function updateAdminBusinessSafely(
   businessId: string,
   patch: AdminBusinessSafePatch,
 ): Promise<AdminBusinessSafePatchResult> {
+  const currentLocation = await fetchBusinessLocation(businessId);
+  if (
+    (!currentLocation || hasBusinessLocationChanged(currentLocation, patch)) &&
+    !(await isValidStandardBusinessLocation(patch))
+  ) {
+    throw new AdminError(
+      "INVALID_REQUEST",
+      "Lütfen geçerli il, ilçe ve Mahalle / Köy seçin.",
+      400,
+    );
+  }
+
   const params = buildAdminBusinessSafePatchParams(businessId, patch.expectedUpdatedAt);
   const response = await adminServiceFetch(`/rest/v1/businesses?${params}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Prefer: "return=representation" },
-    body: JSON.stringify({ name: patch.name, slug: patch.slug }),
+    body: JSON.stringify({
+      name: patch.name,
+      slug: patch.slug,
+      description: patch.description,
+      category: patch.category,
+      whatsapp_order_number: patch.whatsappOrderNumber,
+      city: patch.city,
+      district: patch.district,
+      neighborhood: patch.neighborhood,
+      address: patch.address,
+    }),
   });
   const body = await readJsonBody(response);
 
@@ -262,10 +312,29 @@ export async function updateAdminBusinessSafely(
     typeof row.id !== "string" ||
     typeof row.name !== "string" ||
     typeof row.slug !== "string" ||
+    typeof row.description !== "string" ||
+    typeof row.category !== "string" ||
+    typeof row.whatsapp_order_number !== "string" ||
+    typeof row.city !== "string" ||
+    typeof row.district !== "string" ||
+    typeof row.neighborhood !== "string" ||
+    typeof row.address !== "string" ||
     typeof row.updated_at !== "string"
   ) {
     throw new AdminError("ADMIN_UNAVAILABLE", "Güncel işletme bilgisi alınamadı.", 503);
   }
 
-  return { id: row.id, name: row.name, slug: row.slug, updatedAt: row.updated_at };
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    category: row.category,
+    whatsappOrderNumber: row.whatsapp_order_number,
+    city: row.city,
+    district: row.district,
+    neighborhood: row.neighborhood,
+    address: row.address,
+    updatedAt: row.updated_at,
+  };
 }
