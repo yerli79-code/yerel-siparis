@@ -12,6 +12,9 @@ const shellSource = source("app/admin/_components/admin-shell.tsx");
 const overviewSource = source("app/admin/_components/admin-overview.tsx");
 const dashboardSource = source("lib/subscription.ts");
 const adminPageSource = source("app/admin/page.tsx");
+const businessDetailSource = source(
+  "app/admin/isletmeler/[id]/business-detail-client.tsx",
+);
 const adminCss = source("app/admin/_components/admin.module.css");
 
 function business(
@@ -129,20 +132,14 @@ test("admin subscription controls keep enum values with Turkish user-facing labe
   const createFormSource = adminPageSource.match(
     /<section[^>]*id="yeni-isletme"[^]*?<\/form>/,
   )?.[0];
-  const editFormSource = adminPageSource.match(
-    /<form[^>]*admin-edit-form[^]*?<\/form>/,
-  )?.[0];
-
   assert.ok(createFormSource);
-  assert.ok(editFormSource);
   assert.doesNotMatch(adminPageSource, />Supabase businesses</);
-  assert.equal((adminPageSource.match(/>İşletme kaydı</g) ?? []).length, 2);
+  assert.equal((adminPageSource.match(/>İşletme kaydı</g) ?? []).length, 1);
 
-  for (const formSource of [createFormSource, editFormSource]) {
-    assert.match(formSource, /<option value="active">Aktif<\/option>/);
-    assert.match(formSource, /<option value="expired">Süresi Dolmuş<\/option>/);
-    assert.match(formSource, /<option value="blocked">Engelli<\/option>/);
-  }
+  assert.match(createFormSource, /<option value="active">Aktif<\/option>/);
+  assert.match(createFormSource, /<option value="expired">Süresi Dolmuş<\/option>/);
+  assert.match(createFormSource, /<option value="blocked">Engelli<\/option>/);
+  assert.doesNotMatch(businessDetailSource, /<option value="(?:active|expired|blocked)"/);
 
   assert.match(
     adminPageSource,
@@ -208,16 +205,9 @@ test("admin visual system follows canonical brand tokens without duplicate overv
   assert.match(overviewSource, /<h2 id="overview-title">Platform Durumu<\/h2>/);
   assert.doesNotMatch(overviewSource, /<h[1-6][^>]*>Genel Bakış<\/h[1-6]>/);
 
-  for (const handler of [
-    "submitNewBusiness",
-    "submitEditBusiness",
-    "deleteBusiness",
-    "extendSubscription",
-    "setActive",
-    "setPassive",
-    "blockBusiness",
-  ]) {
-    assert.match(adminPageSource, new RegExp(`function ${handler}\\(`));
+  assert.match(adminPageSource, /function submitNewBusiness\(/);
+  for (const handler of ["saveEdit", "deleteBusiness", "commitSubscription"]) {
+    assert.match(businessDetailSource, new RegExp(`function ${handler}\\(`));
   }
 });
 
@@ -347,22 +337,21 @@ test("legacy passive records use an explicit admin recovery label", () => {
   assert.equal(getAdminSubscriptionStatusLabel(business({ slug: "real-expired", subscriptionStatus: "expired", subscriptionExpiresAt: null, isActive: false }), now), "Süresi Dolmuş");
   assert.equal(
     (adminPageSource.match(/getAdminSubscriptionStatusLabel\(business\)/g) ?? []).length,
-    2,
+    1,
   );
 });
 
 test("critical access control switches copy by state without duplicate activation CTA", () => {
-  assert.match(adminPageSource, /business\.isActive \? \([^]*Pasife Al[^]*\) : canReactivate \? \([^]*Aktife Al[^]*\) : null/);
-  assert.match(adminPageSource, /actionName: "Pasife al"/);
-  assert.match(adminPageSource, /actionName: "Aktife al"/);
-  assert.match(adminPageSource, /const canReactivate = canReactivateBusinessAccess\(business\)/);
-  assert.match(adminPageSource, /const nextBusiness = withReactivatedBusinessAccess\(business\)/);
+  assert.match(businessDetailSource, /legacyBusiness\.isActive \? \([^]*Pasife Al[^]*\) : canReactivateBusinessAccess\(legacyBusiness\) \? \([^]*Aktife Al[^]*\) : null/);
+  assert.match(businessDetailSource, /title: "Pasife al"/);
+  assert.match(businessDetailSource, /title: "Aktife al"/);
+  assert.match(businessDetailSource, /canReactivateBusinessAccess\(legacyBusiness\)/);
+  assert.match(businessDetailSource, /withReactivatedBusinessAccess\(legacyBusiness\)/);
   assert.equal(
-    (adminPageSource.match(/withReactivatedBusinessAccess\(business\)/g) ?? []).length,
+    (businessDetailSource.match(/withReactivatedBusinessAccess\(legacyBusiness\)/g) ?? []).length,
     1,
   );
-  assert.doesNotMatch(adminPageSource, /subscriptionStatus: "expired", isActive: false/);
-  assert.doesNotMatch(adminPageSource, />\s*Aktif Et\s*</);
+  assert.doesNotMatch(businessDetailSource, />\s*Aktif Et\s*</);
 });
 
 test("extension-day buttons use visible soft-green brand actions", () => {

@@ -7,9 +7,10 @@ import { test } from "node:test";
 const readText = (path: string) => readFileSync(resolve(path), "utf8");
 
 test("browser favicon uses the canonical green public mark", () => {
+  const normalizeLines = (value: string) => value.replaceAll("\r\n", "\n");
   assert.equal(
-    readText("app/icon.svg").trim(),
-    readText("public/brand/yerel-siparis-public-mark.svg").trim(),
+    normalizeLines(readText("app/icon.svg")).trim(),
+    normalizeLines(readText("public/brand/yerel-siparis-public-mark.svg")).trim(),
   );
   assert.match(readText("app/icon.svg"), /#095D27/);
 });
