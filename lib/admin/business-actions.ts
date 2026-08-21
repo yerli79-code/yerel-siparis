@@ -84,6 +84,7 @@ export async function applyAdminBusinessAction(
   const result = parseAdminBusinessActionRpcResult(body);
   if (!result) return unavailable();
   if (!result.ok) return mapLogicalFailure(result.code);
+  if (result.business.id !== input.businessId) return unavailable();
   if (!isExpectedAdminBusinessAuditAction(input.action, result.auditAction)) {
     return unavailable();
   }

@@ -347,7 +347,7 @@ test("safe edit waits for PATCH success before changing persistent detail state"
   assert.ok(save.indexOf("await updateAdminBusinessSafely") < save.indexOf("setDetail"));
 });
 
-test("legacy access, subscription and delete capabilities remain on the detail page", () => {
+test("access, audited subscription and legacy delete capabilities remain on the detail page", () => {
   for (const label of [
     "Pasife Al",
     "Aktife Al",
@@ -358,7 +358,9 @@ test("legacy access, subscription and delete capabilities remain on the detail p
     assert.match(client, new RegExp(label.replace("+", "\\+")));
   }
   assert.match(client, /const extensionDays = \[30, 60, 90, 180, 365\]/);
-  assert.match(client, /updateBusinessSubscriptionInSupabase/);
+  assert.match(client, /deactivateAdminBusiness/);
+  assert.match(client, /extendAdminBusinessSubscription/);
+  assert.doesNotMatch(client, /updateBusinessSubscriptionInSupabase/);
   assert.match(client, /deleteBusinessInSupabase/);
 });
 

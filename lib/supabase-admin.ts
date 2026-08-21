@@ -9,6 +9,10 @@ import type {
   AdminBusinessSafePatch,
   AdminBusinessSafePatchResult,
 } from "./admin/business-detail-contract";
+import type {
+  AdminBusinessCriticalDto,
+  AdminBusinessExtensionDays,
+} from "./admin/business-actions-contract";
 import type { AdminKpis } from "./subscription";
 
 export type SubscriptionUpdatePayload = {
@@ -105,7 +109,12 @@ function mergeSupabaseBusiness(
 }
 
 function parseSupabaseBody(text: string) {
-  return text ? JSON.parse(text) : null;
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 export class AdminBusinessRequestError extends Error {
@@ -128,6 +137,182 @@ function businessRequestError(response: Response, body: unknown, fallback: strin
     response.status,
     typeof error?.code === "string" ? error.code : "ADMIN_UNAVAILABLE",
   );
+}
+
+export type AdminBusinessCriticalMutationResult = {
+  business: AdminBusinessCriticalDto;
+  auditAction: string;
+};
+
+const CRITICAL_RESPONSE_KEYS = new Set(["business", "auditAction"]);
+const CRITICAL_BUSINESS_KEYS = new Set([
+  "id",
+  "isActive",
+  "subscriptionStatus",
+  "subscriptionStartedAt",
+  "subscriptionExpiresAt",
+  "updatedAt",
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: Set<string>) {
+  const actual = Object.keys(value);
+  return actual.length === keys.size && actual.every((key) => keys.has(key));
+}
+
+function isTimestamp(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && Number.isFinite(Date.parse(value));
+}
+
+function isNullableTimestamp(value: unknown): value is string | null {
+  return value === null || isTimestamp(value);
+}
+
+function parseAdminBusinessCriticalMutationResult(
+  value: unknown,
+  requestedBusinessId: string,
+): AdminBusinessCriticalMutationResult | null {
+  if (!isRecord(value) || !hasExactKeys(value, CRITICAL_RESPONSE_KEYS)) return null;
+  if (!isRecord(value.business) || !hasExactKeys(value.business, CRITICAL_BUSINESS_KEYS)) {
+    return null;
+  }
+
+  const business = value.business;
+  if (
+    business.id !== requestedBusinessId ||
+    typeof business.isActive !== "boolean" ||
+    (business.subscriptionStatus !== "active" &&
+      business.subscriptionStatus !== "expired" &&
+      business.subscriptionStatus !== "blocked") ||
+    !isNullableTimestamp(business.subscriptionStartedAt) ||
+    !isNullableTimestamp(business.subscriptionExpiresAt) ||
+    !isTimestamp(business.updatedAt) ||
+    typeof value.auditAction !== "string" ||
+    !value.auditAction
+  ) {
+    return null;
+  }
+
+  return {
+    business: {
+      id: business.id,
+      isActive: business.isActive,
+      subscriptionStatus: business.subscriptionStatus,
+      subscriptionStartedAt: business.subscriptionStartedAt,
+      subscriptionExpiresAt: business.subscriptionExpiresAt,
+      updatedAt: business.updatedAt,
+    },
+    auditAction: value.auditAction,
+  };
+}
+
+async function requestAdminBusinessCriticalMutation(
+  businessId: string,
+  actionPath: string,
+  method: "POST" | "PATCH",
+  body: Record<string, unknown>,
+): Promise<AdminBusinessCriticalMutationResult> {
+  const response = await requestAdminApi(
+    `/api/admin/businesses/${encodeURIComponent(businessId)}/${actionPath}`,
+    {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  const text = await response.text();
+  const responseBody = parseSupabaseBody(text);
+  if (!response.ok) {
+    throw businessRequestError(
+      response,
+      responseBody,
+      "Kritik işlem tamamlanamadı. Lütfen tekrar deneyin.",
+    );
+  }
+
+  const result = parseAdminBusinessCriticalMutationResult(responseBody, businessId);
+  if (!result) {
+    throw new AdminBusinessRequestError(
+      "Güncel işletme bilgisi alınamadı.",
+      503,
+      "ADMIN_UNAVAILABLE",
+    );
+  }
+  return result;
+}
+
+export function mergeAdminBusinessCriticalState<T extends AdminBusinessCriticalDto>(
+  current: T,
+  authoritative: AdminBusinessCriticalDto,
+): T {
+  if (current.id !== authoritative.id) return current;
+  return { ...current, ...authoritative };
+}
+
+export function deactivateAdminBusiness(
+  businessId: string,
+  expectedUpdatedAt: string,
+) {
+  return requestAdminBusinessCriticalMutation(businessId, "deactivate", "POST", {
+    expectedUpdatedAt,
+  });
+}
+
+export function reactivateAdminBusiness(
+  businessId: string,
+  expectedUpdatedAt: string,
+) {
+  return requestAdminBusinessCriticalMutation(businessId, "reactivate", "POST", {
+    expectedUpdatedAt,
+  });
+}
+
+export function blockAdminBusiness(
+  businessId: string,
+  expectedUpdatedAt: string,
+) {
+  return requestAdminBusinessCriticalMutation(businessId, "block", "POST", {
+    expectedUpdatedAt,
+  });
+}
+
+export function resetAdminBusinessSubscription(
+  businessId: string,
+  expectedUpdatedAt: string,
+) {
+  return requestAdminBusinessCriticalMutation(
+    businessId,
+    "reset-subscription",
+    "POST",
+    { expectedUpdatedAt },
+  );
+}
+
+export function extendAdminBusinessSubscription(
+  businessId: string,
+  days: AdminBusinessExtensionDays,
+  expectedUpdatedAt: string,
+) {
+  return requestAdminBusinessCriticalMutation(businessId, "subscription", "PATCH", {
+    operation: "extend",
+    days,
+    expectedUpdatedAt,
+  });
+}
+
+export function setAdminBusinessSubscriptionDate(
+  businessId: string,
+  expiresOn: string,
+  expectedUpdatedAt: string,
+) {
+  return requestAdminBusinessCriticalMutation(businessId, "subscription", "PATCH", {
+    operation: "setDate",
+    expiresOn,
+    expectedUpdatedAt,
+  });
 }
 
 export async function fetchAdminBusinessDetail(

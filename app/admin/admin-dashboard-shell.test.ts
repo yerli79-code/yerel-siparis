@@ -206,7 +206,7 @@ test("admin visual system follows canonical brand tokens without duplicate overv
   assert.doesNotMatch(overviewSource, /<h[1-6][^>]*>Genel Bakış<\/h[1-6]>/);
 
   assert.match(adminPageSource, /function submitNewBusiness\(/);
-  for (const handler of ["saveEdit", "deleteBusiness", "commitSubscription"]) {
+  for (const handler of ["saveEdit", "deleteBusiness", "commitCriticalAction"]) {
     assert.match(businessDetailSource, new RegExp(`function ${handler}\\(`));
   }
 });
@@ -346,11 +346,9 @@ test("critical access control switches copy by state without duplicate activatio
   assert.match(businessDetailSource, /title: "Pasife al"/);
   assert.match(businessDetailSource, /title: "Aktife al"/);
   assert.match(businessDetailSource, /canReactivateBusinessAccess\(legacyBusiness\)/);
-  assert.match(businessDetailSource, /withReactivatedBusinessAccess\(legacyBusiness\)/);
-  assert.equal(
-    (businessDetailSource.match(/withReactivatedBusinessAccess\(legacyBusiness\)/g) ?? []).length,
-    1,
-  );
+  assert.match(businessDetailSource, /deactivateAdminBusiness/);
+  assert.match(businessDetailSource, /reactivateAdminBusiness/);
+  assert.doesNotMatch(businessDetailSource, /withReactivatedBusinessAccess\(legacyBusiness\)/);
   assert.doesNotMatch(businessDetailSource, />\s*Aktif Et\s*</);
 });
 
