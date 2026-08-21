@@ -47,6 +47,12 @@ import {
   persistPublicCart,
   readPublicCart,
 } from "../../../lib/public-cart-storage";
+import {
+  composePublicOrderDeliveryAddress,
+  emptyPublicOrderDeliveryAddress,
+  parsePublicOrderDeliveryAddress,
+  type PublicOrderDeliveryAddress,
+} from "../../../lib/public-order-address";
 
 type SavedCustomerDetails = Pick<Customer, "fullName" | "phone" | "address">;
 
@@ -72,7 +78,6 @@ type PublicOrderView = "menu" | "checkout";
 type DisplayBusiness = Business & {
   city?: string | null;
   logoUrl?: string | null;
-  coverImageUrl?: string | null;
 };
 
 type DisplayProductCategory = ProductCategory & {
@@ -284,6 +289,8 @@ export default function PublicBusinessPageClient({
   >(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
+  const [deliveryAddress, setDeliveryAddress] =
+    useState<PublicOrderDeliveryAddress>(emptyPublicOrderDeliveryAddress);
   const [orderType, setOrderType] = useState<OrderType>("delivery");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [paymentMethodError, setPaymentMethodError] = useState("");
@@ -302,6 +309,7 @@ export default function PublicBusinessPageClient({
   const cartSectionRef = useRef<HTMLElement | null>(null);
   const cartCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const cartTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuScrollPositionRef = useRef(0);
   const pendingOrderAttemptRef = useRef<PendingOrderAttempt | null>(null);
   const activeOrderRequestRef = useRef<PendingOrderAttempt | null>(null);
   const isRecordingOrderRef = useRef(false);
@@ -313,6 +321,7 @@ export default function PublicBusinessPageClient({
     checkoutHistoryEntryRef.current = false;
     setView("menu");
     window.setTimeout(() => {
+      window.scrollTo({ top: menuScrollPositionRef.current });
       cartTriggerRef.current?.focus();
     }, 0);
   }, []);
@@ -327,6 +336,7 @@ export default function PublicBusinessPageClient({
       phone: savedDetails.phone,
       address: savedDetails.address,
     }));
+    setDeliveryAddress(parsePublicOrderDeliveryAddress(savedDetails.address));
     setRememberCustomerDetails(true);
     setHasSavedCustomerDetails(true);
   }, []);
@@ -484,6 +494,7 @@ export default function PublicBusinessPageClient({
 
   function openCheckout() {
     if (view === "checkout" || cart.length === 0) return;
+    menuScrollPositionRef.current = window.scrollY;
     if (!checkoutHistoryEntryRef.current) {
       const currentHistoryState =
         typeof window.history.state === "object" && window.history.state !== null
@@ -497,6 +508,7 @@ export default function PublicBusinessPageClient({
       checkoutHistoryEntryRef.current = true;
     }
     setView("checkout");
+    window.setTimeout(() => window.scrollTo({ top: 0 }), 0);
   }
 
   function closeCheckout() {
@@ -554,7 +566,6 @@ export default function PublicBusinessPageClient({
       })
     : categoryFilteredCategories;
   const displayBusiness = currentBusiness as DisplayBusiness;
-  const coverImageUrl = displayBusiness.coverImageUrl?.trim();
   const addressText = [
     currentBusiness.neighborhood,
     currentBusiness.district,
@@ -562,11 +573,6 @@ export default function PublicBusinessPageClient({
   ]
     .filter(Boolean)
     .join(" / ");
-  const heroStyle = coverImageUrl
-    ? {
-        backgroundImage: `linear-gradient(135deg, rgba(23, 33, 27, 0.68), rgba(var(--primary-hover-rgb), 0.78)), url("${coverImageUrl.replaceAll('"', "%22")}")`,
-      }
-    : undefined;
   const minimumOrderAmount =
     typeof currentBusiness.minimumOrderAmount === "number" &&
     Number.isFinite(currentBusiness.minimumOrderAmount) &&
@@ -581,11 +587,6 @@ export default function PublicBusinessPageClient({
       : null;
   const isOrderingOpen = currentBusiness.isOpen !== false;
   const orderNote = currentBusiness.orderNote?.trim() || "";
-  const hasExplicitOrderInfo =
-    Boolean(currentBusiness.deliveryStatus?.trim()) ||
-    minimumOrderAmount !== null ||
-    preparationTimeMinutes !== null ||
-    Boolean(orderNote);
   const minimumRemaining =
     minimumOrderAmount !== null ? Math.max(minimumOrderAmount - total, 0) : 0;
   const minimumOrderWarning =
@@ -598,7 +599,6 @@ export default function PublicBusinessPageClient({
     currentBusiness.deliveryStatus?.trim() || "",
     minimumOrderAmount !== null ? `Min. ${formatPrice(minimumOrderAmount)}` : "",
     preparationTimeMinutes !== null ? `Tahmini ${preparationTimeMinutes} dk` : "",
-    !isOrderingOpen ? "Şu an kapalı" : hasExplicitOrderInfo ? "Açık" : "",
   ].filter(Boolean);
   const isOrderSubmitDisabled =
     cart.length === 0 ||
@@ -732,6 +732,20 @@ export default function PublicBusinessPageClient({
     }
   }
 
+  function updateDeliveryAddress(
+    field: keyof PublicOrderDeliveryAddress,
+    value: string,
+  ) {
+    if (isRecordingOrderRef.current) return;
+
+    const nextDeliveryAddress = { ...deliveryAddress, [field]: value };
+    setDeliveryAddress(nextDeliveryAddress);
+    updateCustomer(
+      "address",
+      composePublicOrderDeliveryAddress(nextDeliveryAddress),
+    );
+  }
+
   function toggleRememberCustomerDetails(shouldRemember: boolean) {
     setRememberCustomerDetails(shouldRemember);
     if (shouldRemember) {
@@ -761,6 +775,7 @@ export default function PublicBusinessPageClient({
       phone: "",
       address: "",
     }));
+    setDeliveryAddress({ ...emptyPublicOrderDeliveryAddress });
   }
 
   function createMessage(attempt: PendingOrderAttempt, orderNumber: number) {
@@ -858,8 +873,8 @@ export default function PublicBusinessPageClient({
       setWarning("Lütfen Ad Soyad ve Telefon alanlarını doldurun.");
       return;
     }
-    if (orderType === "delivery" && !customer.address.trim()) {
-      setWarning("Teslimat için adres bilgisi girin.");
+    if (orderType === "delivery" && !deliveryAddress.streetAddress.trim()) {
+      setWarning("Teslimat için açık adres bilgisi girin.");
       return;
     }
 
@@ -869,10 +884,13 @@ export default function PublicBusinessPageClient({
       return;
     }
 
+    const normalizedDeliveryAddress = composePublicOrderDeliveryAddress(
+      deliveryAddress,
+    );
     const normalizedCustomer = {
       fullName: customer.fullName.trim(),
       phone: customer.phone.trim(),
-      address: orderType === "delivery" ? customer.address.trim() : null,
+      address: orderType === "delivery" ? normalizedDeliveryAddress : null,
       note: customer.note.trim(),
     };
     const normalizedItems = cart
@@ -1106,8 +1124,8 @@ export default function PublicBusinessPageClient({
             categories={categories}
             formatPrice={formatPrice}
             hasAnyProducts={hasAnyProducts}
-            heroStyle={heroStyle}
             isOrderingOpen={isOrderingOpen}
+            isMobileViewport={isMobileViewport}
             isRecordingOrder={isRecordingOrder}
             logoText={getLogoText(currentBusiness)}
             orderInfoItems={orderInfoItems}
@@ -1131,6 +1149,7 @@ export default function PublicBusinessPageClient({
             cartItemCount={cartItemCount}
             cartSectionRef={cartSectionRef}
             customer={customer}
+            deliveryAddress={deliveryAddress}
             verifiedWhatsAppMessage={verifiedWhatsAppMessage}
             fixedPaymentOption={fixedPaymentOption}
             formatPrice={formatPrice}
@@ -1167,6 +1186,7 @@ export default function PublicBusinessPageClient({
             onSubmitOrder={submitOrder}
             onToggleRememberCustomerDetails={toggleRememberCustomerDetails}
             onUpdateCustomer={updateCustomer}
+            onUpdateDeliveryAddress={updateDeliveryAddress}
             onUpdateOrderType={(nextOrderType) => {
               setWarning("");
               clearPendingOrderAttempt();

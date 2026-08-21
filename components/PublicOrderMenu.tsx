@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties, RefObject } from "react";
+import type { RefObject } from "react";
 import type { Business, Product, ProductCategory } from "../lib/businesses";
 
 type PublicOrderBusiness = Business & {
@@ -17,7 +17,6 @@ type PublicOrderMenuCartItem = Product & {
 
 type PublicOrderMenuProps = {
   business: PublicOrderBusiness;
-  heroStyle?: CSSProperties;
   logoText: string;
   addressText: string;
   orderInfoItems: string[];
@@ -36,6 +35,7 @@ type PublicOrderMenuProps = {
   cartLength: number;
   cartItemCount: number;
   total: number;
+  isMobileViewport: boolean;
   isRecordingOrder: boolean;
   cartTriggerRef: RefObject<HTMLButtonElement | null>;
   formatPrice: (price: number) => string;
@@ -49,7 +49,6 @@ type PublicOrderMenuProps = {
 
 export default function PublicOrderMenu({
   business,
-  heroStyle,
   logoText,
   addressText,
   orderInfoItems,
@@ -68,6 +67,7 @@ export default function PublicOrderMenu({
   cartLength,
   cartItemCount,
   total,
+  isMobileViewport,
   isRecordingOrder,
   cartTriggerRef,
   formatPrice,
@@ -86,7 +86,7 @@ export default function PublicOrderMenu({
 
   return (
     <>
-      <header className="hero business-hero public-order-hero" style={heroStyle}>
+      <header className="hero business-hero public-order-hero">
         <div className="hero-content business-hero-content public-order-hero-content">
           <Link
             aria-label="İşletmelere dön"
@@ -110,9 +110,17 @@ export default function PublicOrderMenu({
             )}
             <div className="public-order-identity-copy">
               <h1>{business.name}</h1>
+              <span className="public-order-platform-label">Yerel Sipariş&apos;te</span>
               {businessSecondaryText ? <p>{businessSecondaryText}</p> : null}
             </div>
           </div>
+          <span
+            aria-label={isOrderingOpen ? "İşletme siparişe açık" : "İşletme siparişe kapalı"}
+            className={`public-order-status ${isOrderingOpen ? "open" : "closed"}`}
+          >
+            <span aria-hidden="true" />
+            {isOrderingOpen ? "Açık" : "Kapalı"}
+          </span>
         </div>
       </header>
 
@@ -302,7 +310,8 @@ export default function PublicOrderMenu({
                                   type="button"
                                   onClick={() => onAddItem(product)}
                                 >
-                                  +
+                                  <span aria-hidden="true">+</span>
+                                  <span>Ekle</span>
                                 </button>
                               )}
                             </div>
@@ -316,9 +325,83 @@ export default function PublicOrderMenu({
             ))}
           </section>
 
-          {shouldShowCartBar ? (
+          <aside className="public-order-desktop-cart" aria-label="Sipariş özeti">
+            <div className="public-order-desktop-cart-card">
+              <div className="public-order-desktop-cart-heading">
+                <div>
+                  <span>Sipariş özeti</span>
+                  <strong>Sepetim</strong>
+                </div>
+                <b>{cartItemCount}</b>
+              </div>
+              {cart.length === 0 ? (
+                <div className="public-order-desktop-cart-empty">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <circle cx="9" cy="20" r="1" />
+                    <circle cx="19" cy="20" r="1" />
+                    <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H7" />
+                  </svg>
+                  <p>Sepetiniz boş.</p>
+                  <span>Menüden ürün ekleyerek başlayın.</span>
+                </div>
+              ) : (
+                <div className="public-order-desktop-cart-items">
+                  {cart.map((item) => (
+                    <div className="public-order-desktop-cart-item" key={item.id}>
+                      {item.imageUrl ? (
+                        <img alt="" src={item.imageUrl} />
+                      ) : (
+                        <span aria-hidden="true" className="public-order-desktop-cart-fallback">
+                          {item.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
+                        </span>
+                      )}
+                      <div className="public-order-desktop-cart-copy">
+                        <strong>{item.name}</strong>
+                        <span>{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                      <div className="public-order-desktop-cart-quantity">
+                        <button
+                          aria-label={`${item.name} adedini azalt`}
+                          disabled={!isOrderingOpen || isRecordingOrder}
+                          type="button"
+                          onClick={() => onDecreaseItem(item.id)}
+                        >
+                          −
+                        </button>
+                        <output aria-label={`${item.quantity} adet`}>{item.quantity}</output>
+                        <button
+                          aria-label={`${item.name} adedini artır`}
+                          disabled={!isOrderingOpen || isRecordingOrder}
+                          type="button"
+                          onClick={() => onIncreaseItem(item.id)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="public-order-desktop-cart-total">
+                <span>Toplam</span>
+                <strong>{formatPrice(total)}</strong>
+              </div>
+              <button
+                className="public-order-desktop-cart-button"
+                disabled={cart.length === 0 || !isOrderingOpen || isRecordingOrder}
+                ref={!isMobileViewport ? cartTriggerRef : undefined}
+                type="button"
+                onClick={onOpenCheckout}
+              >
+                Siparişi tamamla
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </aside>
+
+          {shouldShowCartBar && isMobileViewport ? (
             <button
-              aria-label="Siparişi Tamamla"
+              aria-label={`Sepetim, ${cartItemCount} ürün, ${formatPrice(total)}`}
               aria-controls="public-order-cart-panel"
               aria-expanded={false}
               className="public-order-cart-bar"
