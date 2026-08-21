@@ -610,6 +610,26 @@ test("mock success with a different endpoint audit action becomes ADMIN_UNAVAILA
   );
 });
 
+test("mock RPC success for a different business ID becomes controlled 503", async () => {
+  const module = loadBusinessActionsModule();
+  const wrongBusinessId = "33333333-3333-4333-8333-333333333333";
+  await assert.rejects(
+    () =>
+      module.applyAdminBusinessAction(actionInput, async () =>
+        Response.json({
+          ...success,
+          business: { ...success.business, id: wrongBusinessId },
+          auditAction: "business.deactivated",
+        }),
+      ),
+    (error: unknown) =>
+      error instanceof TestAdminError &&
+      error.code === "ADMIN_UNAVAILABLE" &&
+      error.status === 503 &&
+      !error.message.includes(wrongBusinessId),
+  );
+});
+
 test("mock non-JSON and HTTP 500 transports become ADMIN_UNAVAILABLE", async () => {
   const module = loadBusinessActionsModule();
   for (const response of [
@@ -894,6 +914,7 @@ test("transport and malformed RPC failures become controlled 503", () => {
   assert.match(dal, /catch \{[\s\S]*return unavailable\(\)/);
   assert.match(dal, /if \(!response\.ok\) return unavailable\(\)/);
   assert.match(dal, /if \(!result\) return unavailable\(\)/);
+  assert.match(dal, /if \(result\.business\.id !== input\.businessId\) return unavailable\(\)/);
   assert.match(dal, /"ADMIN_UNAVAILABLE"[\s\S]*503/);
   assert.doesNotMatch(dal, /response\.statusText|console\.(log|warn|error)/);
 });
@@ -912,7 +933,7 @@ test("stale conflict is returned without a blind retry", () => {
   assert.doesNotMatch(dal, /retry|while\s*\(|for\s*\(/i);
 });
 
-test("legacy routes and current critical UI remain present and unchanged in this phase", () => {
+test("legacy routes and hard delete remain while critical UI leaves the legacy subscription helper", () => {
   for (const path of [
     "app/api/admin/update-subscription/route.ts",
     "app/api/admin/update-business/route.ts",
@@ -920,9 +941,10 @@ test("legacy routes and current critical UI remain present and unchanged in this
   ]) {
     assert.equal(existsSync(new URL(path, root)), true);
   }
-  for (const marker of ["Kalıcı Sil", "updateBusinessSubscriptionInSupabase", "deleteBusinessInSupabase"]) {
+  for (const marker of ["Kalıcı Sil", "deleteBusinessInSupabase"]) {
     assert.match(detailClient, new RegExp(marker));
   }
+  assert.doesNotMatch(detailClient, /updateBusinessSubscriptionInSupabase/);
 });
 
 test("controlled INVALID_STATE code and private no-store response headers are shared", () => {

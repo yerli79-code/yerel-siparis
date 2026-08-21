@@ -18,25 +18,29 @@ import type {
 } from "../../../../lib/admin/business-detail-contract";
 import {
   AdminBusinessRequestError,
+  blockAdminBusiness,
+  deactivateAdminBusiness,
   deleteBusinessInSupabase,
+  extendAdminBusinessSubscription,
   fetchAdminBusinessDetail,
+  mergeAdminBusinessCriticalState,
+  reactivateAdminBusiness,
+  resetAdminBusinessSubscription,
+  setAdminBusinessSubscriptionDate,
   updateAdminBusinessSafely,
-  updateBusinessSubscriptionInSupabase,
+  type AdminBusinessCriticalMutationResult,
 } from "../../../../lib/supabase-admin";
 import {
-  addDaysFromToday,
   canReactivateBusinessAccess,
   getAdminSubscriptionStatusLabel,
   getBadge,
   getRemainingDays,
-  withBusinessAccess,
-  withReactivatedBusinessAccess,
 } from "../../../../lib/subscription";
 import AdminLogin, { AdminLoading } from "../../_components/admin-login";
 import AdminShell from "../../_components/admin-shell";
 import styles from "./business-detail.module.css";
 
-const extensionDays = [30, 60, 90, 180, 365];
+const extensionDays = [30, 60, 90, 180, 365] as const;
 
 type ConfirmAction = {
   title: string;
@@ -124,10 +128,6 @@ function dateInputValue(value: string | null | undefined) {
   if (!value) return "";
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : "";
-}
-
-function endOfSelectedDate(value: string) {
-  return new Date(`${value}T23:59:59`).toISOString();
 }
 
 function paymentLabel(value: string) {
@@ -285,17 +285,16 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
   }
 
   function beginEdit() {
-    if (!detail) return;
+    if (!detail || conflict) return;
     setEditProfile(editableProfileFromBusiness(detail.business));
     setEditing(true);
-    setConflict(false);
     setMessage("");
     setMutationError("");
   }
 
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || busy) return;
+    if (!detail || busy || conflict) return;
     setBusy(true);
     setMessage("");
     setMutationError("");
@@ -340,22 +339,52 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
     setMessage("Güncel bilgiler yüklendi. Değişikliklerinizi yeniden kontrol edin.");
   }
 
-  async function commitSubscription(next: Business, success: string) {
-    if (busy) return;
+  async function commitCriticalAction(
+    mutate: (
+      businessId: string,
+      expectedUpdatedAt: string,
+    ) => Promise<AdminBusinessCriticalMutationResult>,
+    success: string,
+  ) {
+    if (!detail || busy || conflict) return;
     setBusy(true);
     setMessage("");
     setMutationError("");
     try {
-      await updateBusinessSubscriptionInSupabase(next, {
-        subscription_status: next.subscriptionStatus,
-        subscription_started_at: next.subscriptionStartedAt ?? null,
-        subscription_expires_at: next.subscriptionExpiresAt,
-        is_active: next.isActive,
-      });
-      await loadDetail();
+      const result = await mutate(detail.business.id, detail.business.updatedAt);
+      setDetail((current) =>
+        current
+          ? {
+              ...current,
+              business: mergeAdminBusinessCriticalState(
+                current.business,
+                result.business,
+              ),
+            }
+          : current,
+      );
+      setManualDate(dateInputValue(result.business.subscriptionExpiresAt));
       setMessage(success);
-    } catch {
-      setMutationError("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
+    } catch (error) {
+      if (error instanceof AdminBusinessRequestError) {
+        if (error.code === "NOT_FOUND") {
+          setNotFound(true);
+          setDetail(null);
+          setMutationError("");
+        } else if (
+          error.status === 401 ||
+          error.code === "UNAUTHORIZED" ||
+          error.code === "SESSION_EXPIRED"
+        ) {
+          setAuthorized(false);
+          setDetail(null);
+        } else {
+          setMutationError(error.message);
+          setConflict(error.code === "CONFLICT" || error.code === "INVALID_STATE");
+        }
+      } else {
+        setMutationError("Kritik işlem tamamlanamadı. Lütfen tekrar deneyin.");
+      }
     } finally {
       setBusy(false);
     }
@@ -472,7 +501,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
               <section className={styles.card}>
                 <div className={styles.cardHeading}>
                   <div><span className={styles.eyebrow}>Temel bilgiler</span><h3>İşletme Kimliği</h3></div>
-                  {!editing ? <button type="button" onClick={beginEdit}>Düzenle</button> : null}
+                  {!editing ? <button disabled={busy || conflict} type="button" onClick={beginEdit}>Düzenle</button> : null}
                 </div>
                 {editing ? (
                   <form className={styles.editForm} onSubmit={saveEdit}>
@@ -568,7 +597,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
                     </div>
                     <p className={styles.fullWidth}>Profil alanları tek işlemde kaydedilir. Kayıt başka bir işlemde değişirse kaydetme durdurulur.</p>
                     <div className={styles.actions}>
-                      <button className={styles.primaryButton} disabled={busy} type="submit">{busy ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}</button>
+                      <button className={styles.primaryButton} disabled={busy || conflict} type="submit">{busy ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}</button>
                       <button disabled={busy} type="button" onClick={() => setEditing(false)}>Vazgeç</button>
                     </div>
                   </form>
@@ -605,21 +634,27 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
               </div>
               <div className={styles.extensionActions}>
                 {extensionDays.map((days) => (
-                  <button disabled={busy} key={days} type="button" onClick={() => setConfirmAction({
+                  <button disabled={busy || conflict} key={days} type="button" onClick={() => setConfirmAction({
                     title: `+${days} gün abonelik`,
-                    description: `Abonelik bugünden itibaren ${days} gün aktif olacak ve işletme sipariş almaya açık kalacak.`,
-                    run: () => commitSubscription({ ...legacyBusiness, subscriptionStatus: "active", subscriptionStartedAt: new Date().toISOString(), subscriptionExpiresAt: addDaysFromToday(days), isActive: true }, `${legacyBusiness.name} aboneliği ${days} gün olarak ayarlandı.`),
+                    description: `Abonelik sunucu tarafından ${days} gün uzatılacak ve işletmenin güncel durumu uygulanacak.`,
+                    run: () => commitCriticalAction(
+                      (id, expectedUpdatedAt) => extendAdminBusinessSubscription(id, days, expectedUpdatedAt),
+                      `${legacyBusiness.name} aboneliği ${days} gün uzatıldı.`,
+                    ),
                   })}>+{days} Gün</button>
                 ))}
               </div>
               <div className={styles.manualDate}>
                 <label htmlFor="detail-subscription-date">Manuel abonelik bitiş tarihi</label>
                 <div>
-                  <input id="detail-subscription-date" type="date" value={manualDate} onChange={(event) => setManualDate(event.target.value)} />
-                  <button disabled={busy || !manualDate} type="button" onClick={() => setConfirmAction({
+                  <input disabled={busy || conflict} id="detail-subscription-date" type="date" value={manualDate} onChange={(event) => setManualDate(event.target.value)} />
+                  <button disabled={busy || conflict || !manualDate} type="button" onClick={() => setConfirmAction({
                     title: "Aboneliği düzelt",
-                    description: "Seçilen tarih abonelik bitiş tarihi olarak kaydedilecek ve işletme aktif duruma alınacak.",
-                    run: () => commitSubscription({ ...legacyBusiness, subscriptionStatus: "active", subscriptionStartedAt: new Date().toISOString(), subscriptionExpiresAt: endOfSelectedDate(manualDate), isActive: true }, `${legacyBusiness.name} abonelik bitiş tarihi güncellendi.`),
+                    description: "Seçilen takvim tarihi sunucuya aynen gönderilecek ve işletmenin güncel durumu sunucu tarafından uygulanacak.",
+                    run: () => commitCriticalAction(
+                      (id, expectedUpdatedAt) => setAdminBusinessSubscriptionDate(id, manualDate, expectedUpdatedAt),
+                      `${legacyBusiness.name} abonelik bitiş tarihi güncellendi.`,
+                    ),
                   })}>Kaydet</button>
                 </div>
               </div>
@@ -686,20 +721,27 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
               <p className={styles.help}>İşlemler yalnız sunucu yanıtı başarıyla tamamlandıktan sonra ekrana yansır.</p>
               <div className={styles.criticalActions}>
                 {legacyBusiness.isActive ? (
-                  <button disabled={busy} type="button" onClick={() => setConfirmAction({
+                  <button disabled={busy || conflict} type="button" onClick={() => setConfirmAction({
                     title: "Pasife al",
                     description: "İşletmenin platform erişimi kapatılacak; abonelik durumu ve tarihleri korunacak.",
                     critical: true,
-                    run: () => commitSubscription(withBusinessAccess(legacyBusiness, false), `${legacyBusiness.name} pasife alındı.`),
+                    run: () => commitCriticalAction(
+                      deactivateAdminBusiness,
+                      `${legacyBusiness.name} pasife alındı.`,
+                    ),
                   })}>Pasife Al</button>
                 ) : canReactivateBusinessAccess(legacyBusiness) ? (
-                  <button disabled={busy} type="button" onClick={() => {
-                    const next = withReactivatedBusinessAccess(legacyBusiness);
-                    if (next) setConfirmAction({ title: "Aktife al", description: "Geçerli abonelik korunarak platform erişimi tekrar açılacak.", run: () => commitSubscription(next, `${legacyBusiness.name} aktif edildi.`) });
-                  }}>Aktife Al</button>
+                  <button disabled={busy || conflict} type="button" onClick={() => setConfirmAction({
+                    title: "Aktife al",
+                    description: "Geçerli abonelik korunarak platform erişimi tekrar açılacak.",
+                    run: () => commitCriticalAction(
+                      reactivateAdminBusiness,
+                      `${legacyBusiness.name} aktif edildi.`,
+                    ),
+                  })}>Aktife Al</button>
                 ) : null}
-                <button disabled={busy} type="button" onClick={() => setConfirmAction({ title: "Engelle", description: "İşletme engellenecek ve erişimi kapatılacak.", critical: true, run: () => commitSubscription({ ...legacyBusiness, subscriptionStatus: "blocked", isActive: false }, `${legacyBusiness.name} engellendi.`) })}>Engelle</button>
-                <button disabled={busy} type="button" onClick={() => setConfirmAction({ title: "Aboneliği sıfırla", description: "Abonelik tarihleri temizlenecek ve işletme pasife alınacak.", critical: true, run: () => commitSubscription({ ...legacyBusiness, subscriptionStatus: "expired", subscriptionStartedAt: null, subscriptionExpiresAt: null, isActive: false }, `${legacyBusiness.name} aboneliği sıfırlandı.`) })}>Aboneliği Sıfırla</button>
+                <button disabled={busy || conflict} type="button" onClick={() => setConfirmAction({ title: "Engelle", description: "İşletme engellenecek ve erişimi kapatılacak.", critical: true, run: () => commitCriticalAction(blockAdminBusiness, `${legacyBusiness.name} engellendi.`) })}>Engelle</button>
+                <button disabled={busy || conflict} type="button" onClick={() => setConfirmAction({ title: "Aboneliği sıfırla", description: "Abonelik tarihleri temizlenecek ve işletme pasife alınacak.", critical: true, run: () => commitCriticalAction(resetAdminBusinessSubscription, `${legacyBusiness.name} aboneliği sıfırlandı.`) })}>Aboneliği Sıfırla</button>
                 <button disabled={busy} type="button" onClick={() => setConfirmAction({ title: "Kalıcı sil", description: "Bu işlem işletme ve ürün kayıtlarını geri alınamaz şekilde kaldıracak.", critical: true, run: deleteBusiness })}>Kalıcı Sil</button>
               </div>
             </section>

@@ -139,11 +139,12 @@ test("search, filters, sort and page size reset pagination", () => {
   }
 });
 
-test("list creation refreshes list and overview while detail mutations refresh detail", () => {
+test("list creation refreshes list and overview while detail mutations update detail", () => {
   assert.match(adminPage, /async function refreshAdminData[\s\S]*refreshBusinessesFromSupabase[\s\S]*loadOverview/);
   assert.match(adminPage, /createBusinessWithAccount[\s\S]*await refreshAdminData\(\)/);
   assert.match(businessDetailPage, /updateAdminBusinessSafely[\s\S]*setDetail/);
-  assert.match(businessDetailPage, /updateBusinessSubscriptionInSupabase[\s\S]*await loadDetail\(\)/);
+  assert.match(businessDetailPage, /commitCriticalAction[\s\S]*mergeAdminBusinessCriticalState/);
+  assert.doesNotMatch(businessDetailPage, /updateBusinessSubscriptionInSupabase/);
 });
 
 test("list no longer carries inline deletion and links to the UUID detail page", () => {
