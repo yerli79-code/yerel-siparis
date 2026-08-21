@@ -933,9 +933,12 @@ test("stale conflict is returned without a blind retry", () => {
   assert.doesNotMatch(dal, /retry|while\s*\(|for\s*\(/i);
 });
 
-test("legacy routes and hard delete remain while critical UI leaves the legacy subscription helper", () => {
+test("safe legacy update and hard delete remain while legacy subscription mutation is retired", () => {
+  assert.equal(
+    existsSync(new URL("app/api/admin/update-subscription/route.ts", root)),
+    false,
+  );
   for (const path of [
-    "app/api/admin/update-subscription/route.ts",
     "app/api/admin/update-business/route.ts",
     "app/api/admin/delete-business/route.ts",
   ]) {

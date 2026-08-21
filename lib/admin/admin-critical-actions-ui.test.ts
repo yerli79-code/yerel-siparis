@@ -326,12 +326,12 @@ test("all critical confirmations and duplicate-click busy guard remain", () => {
   assert.match(detailSource, /disabled=\{busy\} type="button" onClick=\{runConfirmedAction\}/);
 });
 
-test("hard delete remains on the legacy endpoint and legacy routes remain present", () => {
+test("hard delete and safe legacy business update remain while subscription mutation is retired", () => {
   assert.match(detailSource, /deleteBusinessInSupabase/);
   assert.match(detailSource, /Kalıcı Sil/);
   assert.match(clientSource, /requestAdminApi\("\/api\/admin\/delete-business"/);
+  assert.equal(existsSync(new URL("app/api/admin/update-subscription/route.ts", root)), false);
   for (const path of [
-    "app/api/admin/update-subscription/route.ts",
     "app/api/admin/update-business/route.ts",
     "app/api/admin/delete-business/route.ts",
   ]) {

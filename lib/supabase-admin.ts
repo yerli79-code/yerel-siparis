@@ -15,13 +15,6 @@ import type {
 } from "./admin/business-actions-contract";
 import type { AdminKpis } from "./subscription";
 
-export type SubscriptionUpdatePayload = {
-  subscription_status: "active" | "expired" | "blocked";
-  subscription_started_at: string | null;
-  subscription_expires_at: string | null;
-  is_active: boolean;
-};
-
 export type AdminCreateBusinessInput = {
   slug: string;
   name: string;
@@ -49,10 +42,6 @@ export type AdminUpdateBusinessInput = {
   district: string;
   neighborhood: string;
   address: string;
-  subscriptionStatus: "active" | "expired" | "blocked";
-  subscriptionStartedAt: string | null;
-  subscriptionExpiresAt: string | null;
-  isActive: boolean;
 };
 
 type SupabaseBusinessRow = {
@@ -363,30 +352,6 @@ export async function updateAdminBusinessSafely(
   return business;
 }
 
-function nullableDateKey(value: string | null | undefined) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value.slice(0, 10);
-  return date.toISOString().slice(0, 10);
-}
-
-function verifySubscriptionUpdate(
-  row: SupabaseBusinessRow,
-  payload: SubscriptionUpdatePayload,
-) {
-  const hasMismatch =
-    row.subscription_status !== payload.subscription_status ||
-    row.is_active !== payload.is_active ||
-    nullableDateKey(row.subscription_started_at) !==
-      nullableDateKey(payload.subscription_started_at) ||
-    nullableDateKey(row.subscription_expires_at) !==
-      nullableDateKey(payload.subscription_expires_at);
-
-  if (hasMismatch) {
-    throw new Error("Abonelik doğrulaması tamamlanamadı.");
-  }
-}
-
 export async function fetchAdminBusinessPage(
   query: AdminBusinessListQuery,
   signal?: AbortSignal,
@@ -541,38 +506,4 @@ export async function updateBusinessInSupabase(
   }
 
   return mergeSupabaseBusiness(updatedRow);
-}
-
-export async function updateBusinessSubscriptionInSupabase(
-  business: Business,
-  payload: SubscriptionUpdatePayload,
-) {
-  const response = await requestAdminApi("/api/admin/update-subscription", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      businessId: business.id,
-      slug: business.slug,
-      ...payload,
-    }),
-  });
-
-  const text = await response.text();
-  const body = parseSupabaseBody(text);
-
-  if (!response.ok) {
-    throw new Error("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
-  }
-
-  const selectedRow = body?.business as SupabaseBusinessRow | undefined;
-
-  if (!selectedRow?.slug) {
-    throw new Error("Abonelik işlemi tamamlanamadı. Lütfen tekrar deneyin.");
-  }
-
-  verifySubscriptionUpdate(selectedRow, payload);
-
-  return mergeSupabaseBusiness(selectedRow, business);
 }

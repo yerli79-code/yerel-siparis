@@ -24,7 +24,6 @@ const dataRoutes = [
   "app/api/admin/overview/route.ts",
   "app/api/admin/create-business/route.ts",
   "app/api/admin/update-business/route.ts",
-  "app/api/admin/update-subscription/route.ts",
   "app/api/admin/delete-business/route.ts",
   "app/api/admin/businesses/[id]/route.ts",
 ].map(source);

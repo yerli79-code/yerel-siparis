@@ -434,7 +434,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
       onNavigate={(section) =>
         router.push(section === "businesses" ? "/admin?section=businesses" : "/admin")
       }
-      onRefresh={loadDetail}
+      onRefresh={loadLatestAfterConflict}
       pageDescription="Kimlik, erişim, ayar ve operasyon bilgilerini güvenli biçimde yönetin."
       pageTitle="İşletme Detayı"
       refreshLabel="Bilgileri Yenile"
