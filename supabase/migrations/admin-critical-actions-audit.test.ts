@@ -29,7 +29,7 @@ const functionIdentity =
 
 test("has exactly one timestamped P5.1E-A migration source", () => {
   assert.deepEqual(migrationFileNames, [
-    "20260817175419_add_transactional_admin_audit_foundation.sql",
+    "20260821192957_add_transactional_admin_audit_foundation.sql",
   ]);
 });
 
