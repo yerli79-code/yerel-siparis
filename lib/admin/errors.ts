@@ -6,6 +6,7 @@ export type AdminErrorCode =
   | "INVALID_REQUEST"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "INVALID_STATE"
   | "DUPLICATE_SLUG"
   | "SESSION_EXPIRED"
   | "CSRF_REJECTED"
