@@ -25,10 +25,6 @@ type UpdateBusinessPayload = {
   district?: string;
   neighborhood?: string;
   address?: string;
-  subscriptionStatus?: "active" | "expired" | "blocked";
-  subscriptionStartedAt?: string | null;
-  subscriptionExpiresAt?: string | null;
-  isActive?: boolean;
 };
 
 function jsonError(message: string, status = 400) {
@@ -102,10 +98,6 @@ async function updateBusiness(payload: UpdateBusinessPayload) {
         district: payload.district || "",
         neighborhood: payload.neighborhood || "",
         address: payload.address || "",
-        subscription_status: payload.subscriptionStatus || "expired",
-        subscription_started_at: payload.subscriptionStartedAt || null,
-        subscription_expires_at: payload.subscriptionExpiresAt || null,
-        is_active: typeof payload.isActive === "boolean" ? payload.isActive : false,
       }),
     },
   );
