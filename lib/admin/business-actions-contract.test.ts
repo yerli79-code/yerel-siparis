@@ -241,6 +241,26 @@ function criticalRequest(
 }
 
 const routeContext = (id = businessId) => ({ params: Promise.resolve({ id }) });
+const runtimeRouteCases = routes.map((route, index) => ({
+  route,
+  method: (index === routes.length - 1 ? "PATCH" : "POST") as "POST" | "PATCH",
+  path: `/api/admin/businesses/id/${routePaths[index].split("/").at(-2)}`,
+  body:
+    index === routes.length - 1
+      ? JSON.stringify({ operation: "extend", days: 30, expectedUpdatedAt: updatedAt })
+      : JSON.stringify({ expectedUpdatedAt: updatedAt }),
+}));
+
+function callRuntimeRoute(
+  route: ReturnType<typeof loadCriticalRoute>,
+  method: "POST" | "PATCH",
+  request: Request,
+  id = businessId,
+) {
+  const handler = method === "POST" ? route.handlers.POST : route.handlers.PATCH;
+  assert.ok(handler);
+  return handler(request, routeContext(id));
+}
 
 test("critical business identity accepts only canonical UUIDs", () => {
   assert.equal(isCanonicalBusinessUuid(businessId), true);
@@ -617,58 +637,66 @@ test("mock network failure becomes ADMIN_UNAVAILABLE without leaking text", asyn
   );
 });
 
-test("deactivate route returns 401 and never calls RPC when unauthenticated", async () => {
-  const route = loadCriticalRoute(simpleRoutes[0], {
-    authError: new TestAdminError("UNAUTHORIZED", "Admin oturumu bulunamadı.", 401),
-  });
-  const response = await route.handlers.POST!(
-    criticalRequest("/api/admin/businesses/id/deactivate", "POST", JSON.stringify({ expectedUpdatedAt: updatedAt })),
-    routeContext(),
-  );
-  assert.equal(response.status, 401);
-  assert.equal((await response.json()).error.code, "UNAUTHORIZED");
-  assert.equal(route.calls.rpc.length, 0);
+test("every critical route returns 401 and never calls RPC when unauthenticated", async () => {
+  for (const testCase of runtimeRouteCases) {
+    const route = loadCriticalRoute(testCase.route, {
+      authError: new TestAdminError("UNAUTHORIZED", "Admin oturumu bulunamadı.", 401),
+    });
+    const response = await callRuntimeRoute(
+      route,
+      testCase.method,
+      criticalRequest(testCase.path, testCase.method, testCase.body),
+    );
+    assert.equal(response.status, 401);
+    assert.equal((await response.json()).error.code, "UNAUTHORIZED");
+    assert.equal(route.calls.rpc.length, 0);
+  }
 });
 
-test("deactivate route returns 403 and never calls RPC for an inactive admin", async () => {
-  const route = loadCriticalRoute(simpleRoutes[0], {
-    authError: new TestAdminError("FORBIDDEN", "Bu hesap admin yetkisine sahip değil.", 403),
-  });
-  const response = await route.handlers.POST!(
-    criticalRequest("/api/admin/businesses/id/deactivate", "POST", JSON.stringify({ expectedUpdatedAt: updatedAt })),
-    routeContext(),
-  );
-  assert.equal(response.status, 403);
-  assert.equal((await response.json()).error.code, "FORBIDDEN");
-  assert.equal(route.calls.rpc.length, 0);
+test("every critical route returns 403 and never calls RPC for an inactive admin", async () => {
+  for (const testCase of runtimeRouteCases) {
+    const route = loadCriticalRoute(testCase.route, {
+      authError: new TestAdminError("FORBIDDEN", "Bu hesap admin yetkisine sahip değil.", 403),
+    });
+    const response = await callRuntimeRoute(
+      route,
+      testCase.method,
+      criticalRequest(testCase.path, testCase.method, testCase.body),
+    );
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).error.code, "FORBIDDEN");
+    assert.equal(route.calls.rpc.length, 0);
+  }
 });
 
-test("cross-origin route request returns 403 before auth or RPC", async () => {
-  const route = loadCriticalRoute(simpleRoutes[0]);
-  const response = await route.handlers.POST!(
-    criticalRequest(
-      "/api/admin/businesses/id/deactivate",
-      "POST",
-      JSON.stringify({ expectedUpdatedAt: updatedAt }),
-      "https://attacker.example",
-    ),
-    routeContext(),
-  );
-  assert.equal(response.status, 403);
-  assert.equal((await response.json()).error.code, "CSRF_REJECTED");
-  assert.equal(route.calls.auth, 0);
-  assert.equal(route.calls.rpc.length, 0);
+test("every critical route rejects cross-origin before auth or RPC", async () => {
+  for (const testCase of runtimeRouteCases) {
+    const route = loadCriticalRoute(testCase.route);
+    const response = await callRuntimeRoute(
+      route,
+      testCase.method,
+      criticalRequest(testCase.path, testCase.method, testCase.body, "https://attacker.example"),
+    );
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).error.code, "CSRF_REJECTED");
+    assert.equal(route.calls.auth, 0);
+    assert.equal(route.calls.rpc.length, 0);
+  }
 });
 
-test("invalid route UUID returns controlled 400 without RPC", async () => {
-  const route = loadCriticalRoute(simpleRoutes[0]);
-  const response = await route.handlers.POST!(
-    criticalRequest("/api/admin/businesses/slug/deactivate", "POST", JSON.stringify({ expectedUpdatedAt: updatedAt })),
-    routeContext("demo-kebap"),
-  );
-  assert.equal(response.status, 400);
-  assert.equal((await response.json()).error.code, "INVALID_REQUEST");
-  assert.equal(route.calls.rpc.length, 0);
+test("every critical route rejects an invalid UUID without RPC", async () => {
+  for (const testCase of runtimeRouteCases) {
+    const route = loadCriticalRoute(testCase.route);
+    const response = await callRuntimeRoute(
+      route,
+      testCase.method,
+      criticalRequest(testCase.path, testCase.method, testCase.body),
+      "demo-kebap",
+    );
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, "INVALID_REQUEST");
+    assert.equal(route.calls.rpc.length, 0);
+  }
 });
 
 test("malformed route JSON returns controlled 400 without RPC", async () => {
