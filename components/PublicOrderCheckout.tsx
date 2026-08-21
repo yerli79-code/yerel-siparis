@@ -4,6 +4,7 @@ import {
   PAYMENT_METHODS,
   type PaymentMethod,
 } from "../lib/payment-methods";
+import type { PublicOrderDeliveryAddress } from "../lib/public-order-address";
 
 export type PublicOrderCartItem = Product & { quantity: number };
 
@@ -30,6 +31,7 @@ type PublicOrderCheckoutProps = {
   cartItemCount: number;
   total: number;
   customer: PublicOrderCustomer;
+  deliveryAddress: PublicOrderDeliveryAddress;
   orderType: PublicOrderType;
   paymentMethod: PaymentMethod | "";
   fixedPaymentOption: FixedPaymentOption | null;
@@ -55,6 +57,10 @@ type PublicOrderCheckoutProps = {
   onUpdateOrderType: (orderType: PublicOrderType) => void;
   onUpdatePaymentMethod: (paymentMethod: PaymentMethod) => void;
   onUpdateCustomer: (field: keyof PublicOrderCustomer, value: string) => void;
+  onUpdateDeliveryAddress: (
+    field: keyof PublicOrderDeliveryAddress,
+    value: string,
+  ) => void;
   onToggleRememberCustomerDetails: (shouldRemember: boolean) => void;
   onClearSavedCustomerDetails: () => void;
   onRetryPendingOrder: () => void;
@@ -67,6 +73,7 @@ export default function PublicOrderCheckout({
   cartItemCount,
   total,
   customer,
+  deliveryAddress,
   orderType,
   paymentMethod,
   fixedPaymentOption,
@@ -81,6 +88,7 @@ export default function PublicOrderCheckout({
   isOrderingOpen,
   isRecordingOrder,
   isOrderSubmitDisabled,
+  isMobileViewport,
   cartSectionRef,
   cartCloseButtonRef,
   formatPrice,
@@ -91,6 +99,7 @@ export default function PublicOrderCheckout({
   onUpdateOrderType,
   onUpdatePaymentMethod,
   onUpdateCustomer,
+  onUpdateDeliveryAddress,
   onToggleRememberCustomerDetails,
   onClearSavedCustomerDetails,
   onRetryPendingOrder,
@@ -101,9 +110,11 @@ export default function PublicOrderCheckout({
     <div className="public-order-checkout-page">
       <section
         aria-labelledby="public-order-cart-title"
+        aria-modal={isMobileViewport ? true : undefined}
         className="order-panel public-order-cart-panel public-order-cart-panel-open"
         id="public-order-cart-panel"
         ref={cartSectionRef}
+        role={isMobileViewport ? "dialog" : undefined}
       >
         <div className="order-inner section order-card public-order-cart-sheet">
           <header className="public-order-checkout-header">
@@ -118,98 +129,24 @@ export default function PublicOrderCheckout({
                 <path d="m15 18-6-6 6-6" />
               </svg>
             </button>
-            <h1 id="public-order-cart-title">Siparişi Tamamla</h1>
+            <div className="public-order-checkout-title">
+              <h1 id="public-order-cart-title">Sipariş detayları</h1>
+              <p>Bilgilerinizi tamamlayın, siparişinizi güvenle iletelim.</p>
+            </div>
             <span aria-hidden="true" />
           </header>
 
           <form className="customer-form public-order-checkout-form" onSubmit={onSubmitOrder}>
-            <section className="public-order-checkout-section public-order-cart-section">
-              <div className="public-order-checkout-section-heading">
-                <h2>Sepetiniz ({cartItemCount})</h2>
-                {cart.length > 0 &&
-                isOrderingOpen &&
-                orderRecoveryMode !== "saved" ? (
-                  <button
-                    className="public-order-clear-cart-button"
-                    disabled={isRecordingOrder}
-                    type="button"
-                    onClick={onClearCart}
-                  >
-                    Sepeti Temizle
-                  </button>
-                ) : null}
-              </div>
-              <div className="cart public-order-cart-items">
-                {cart.length === 0 ? (
-                  <p className="empty-cart">Sepetiniz boş.</p>
-                ) : (
-                  cart.map((item) => (
-                    <div className="cart-item public-order-cart-item" key={item.id}>
-                      {item.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          alt={item.name}
-                          className="public-order-cart-item-image"
-                          src={item.imageUrl}
-                        />
-                      ) : (
-                        <div
-                          aria-hidden="true"
-                          className="public-order-cart-item-image public-order-cart-item-fallback"
-                        >
-                          {item.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
-                        </div>
-                      )}
-                      <div className="public-order-cart-item-main">
-                        <div className="cart-line public-order-cart-line">
-                          <strong>{item.name}</strong>
-                          <span>{formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                        <div className="cart-actions public-order-cart-actions">
-                          <div
-                            aria-label={`${item.name} adet kontrolü`}
-                            className="quantity public-order-quantity"
-                          >
-                            <button
-                              aria-label={`${item.name} adedini azalt`}
-                              className="quantity-button public-order-quantity-button"
-                              disabled={!isOrderingOpen || isRecordingOrder}
-                              type="button"
-                              onClick={() => onDecreaseItem(item.id)}
-                            >
-                              −
-                            </button>
-                            <strong aria-label={`${item.quantity} adet`}>{item.quantity}</strong>
-                            <button
-                              aria-label={`${item.name} adedini artır`}
-                              className="quantity-button public-order-quantity-button"
-                              disabled={!isOrderingOpen || isRecordingOrder}
-                              type="button"
-                              onClick={() => onIncreaseItem(item.id)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="public-order-totals">
-                <div className="public-order-total-row">
-                  <span>Ara Toplam</span>
-                  <strong>{formatPrice(total)}</strong>
-                </div>
-                <div className="cart-total public-order-cart-total">
-                  <span>Genel Toplam</span>
-                  <strong>{formatPrice(total)}</strong>
+            <div className="public-order-checkout-grid">
+              <div className="public-order-checkout-main">
+              <section className="public-order-checkout-section public-order-type-field">
+              <div className="public-order-section-title">
+                <span>1</span>
+                <div>
+                  <h2 className="order-type-label">Nasıl teslim alacaksınız?</h2>
+                  <p>Teslimat veya işletmeden gel-al seçeneğini belirleyin.</p>
                 </div>
               </div>
-            </section>
-
-            <section className="public-order-checkout-section public-order-type-field">
-              <h2 className="order-type-label">Sipariş Türü</h2>
               <div
                 className="order-type-toggle public-order-type-toggle"
                 role="group"
@@ -254,7 +191,7 @@ export default function PublicOrderCheckout({
                     </svg>
                   </span>
                   <span className="public-order-type-copy">
-                    <strong>Gel-al</strong>
+                    <strong>Gel-Al</strong>
                     <small>Hazır olduğunda alacağım</small>
                   </span>
                   <span className="public-order-type-check" aria-hidden="true">
@@ -264,8 +201,144 @@ export default function PublicOrderCheckout({
               </div>
             </section>
 
+            {orderType === "delivery" ? (
+              <section className="public-order-checkout-section public-order-address-section">
+                <div className="public-order-section-title">
+                  <span>2</span>
+                  <div>
+                    <h2>Teslimat adresi</h2>
+                    <p>Açık adres zorunludur; diğer alanlar doğru teslimata yardımcı olur.</p>
+                  </div>
+                </div>
+                <div className="public-order-address-grid">
+                  <div className="field public-order-field">
+                    <label htmlFor="deliveryDistrict">İlçe</label>
+                    <input
+                      autoComplete="address-level2"
+                      disabled={isRecordingOrder}
+                      id="deliveryDistrict"
+                      value={deliveryAddress.district}
+                      onChange={(event) =>
+                        onUpdateDeliveryAddress("district", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field public-order-field">
+                    <label htmlFor="deliveryNeighborhood">Mahalle</label>
+                    <input
+                      autoComplete="address-level3"
+                      disabled={isRecordingOrder}
+                      id="deliveryNeighborhood"
+                      value={deliveryAddress.neighborhood}
+                      onChange={(event) =>
+                        onUpdateDeliveryAddress("neighborhood", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field public-order-field public-order-address-wide">
+                    <label htmlFor="deliveryStreetAddress">Açık Adres *</label>
+                    <textarea
+                      autoComplete="street-address"
+                      disabled={isRecordingOrder}
+                      id="deliveryStreetAddress"
+                      required
+                      value={deliveryAddress.streetAddress}
+                      onChange={(event) =>
+                        onUpdateDeliveryAddress("streetAddress", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field public-order-field">
+                    <label htmlFor="deliveryBuilding">Apartman / Bina</label>
+                    <input
+                      disabled={isRecordingOrder}
+                      id="deliveryBuilding"
+                      value={deliveryAddress.building}
+                      onChange={(event) =>
+                        onUpdateDeliveryAddress("building", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field public-order-field">
+                    <label htmlFor="deliveryFloorUnit">Kat / Daire</label>
+                    <input
+                      disabled={isRecordingOrder}
+                      id="deliveryFloorUnit"
+                      value={deliveryAddress.floorUnit}
+                      onChange={(event) =>
+                        onUpdateDeliveryAddress("floorUnit", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="field public-order-field public-order-address-wide">
+                    <label htmlFor="deliveryDirections">Adres Tarifi</label>
+                    <textarea
+                      disabled={isRecordingOrder}
+                      id="deliveryDirections"
+                      value={deliveryAddress.directions}
+                      onChange={(event) =>
+                        onUpdateDeliveryAddress("directions", event.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <section className="public-order-checkout-section public-order-pickup-section">
+                <div className="public-order-section-title">
+                  <span>2</span>
+                  <div>
+                    <h2>Gel-Al</h2>
+                    <p>Hazır olduğunda işletmeden teslim alabilirsiniz; adres gerekmez.</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <section className="public-order-checkout-section public-order-contact-section">
+              <div className="public-order-section-title">
+                <span>3</span>
+                <div>
+                  <h2>İletişim bilgileri</h2>
+                  <p>İşletmenin siparişiniz için size ulaşabileceği bilgileri girin.</p>
+                </div>
+              </div>
+              <div className="public-order-contact-grid">
+                <div className="field public-order-field">
+                  <label htmlFor="fullName">Ad Soyad *</label>
+                  <input
+                    autoComplete="name"
+                    disabled={isRecordingOrder}
+                    id="fullName"
+                    required
+                    value={customer.fullName}
+                    onChange={(event) => onUpdateCustomer("fullName", event.target.value)}
+                  />
+                </div>
+                <div className="field public-order-field">
+                  <label htmlFor="phone">Telefon *</label>
+                  <input
+                    autoComplete="tel"
+                    disabled={isRecordingOrder}
+                    id="phone"
+                    inputMode="tel"
+                    required
+                    type="tel"
+                    value={customer.phone}
+                    onChange={(event) => onUpdateCustomer("phone", event.target.value)}
+                  />
+                </div>
+              </div>
+            </section>
+
             <fieldset className="public-order-checkout-section public-order-payment-field">
-              <legend>Ödeme Yöntemi</legend>
+              <legend className="public-order-section-title">
+                <span>4</span>
+                <span className="public-order-legend-copy">
+                  <strong>Ödeme tercihi</strong>
+                  <small>Online ödeme alınmaz.</small>
+                </span>
+              </legend>
               {fixedPaymentOption ? (
                 <div className="public-order-payment-fixed">
                   <strong>{fixedPaymentOption.displayLabel}</strong>
@@ -299,7 +372,6 @@ export default function PublicOrderCheckout({
                   </div>
                   <p className="public-order-payment-help">
                     Kart ödemesi teslimat veya gel-al sırasında fiziksel POS ile yapılır.
-                    Online ödeme alınmaz.
                   </p>
                 </>
               )}
@@ -310,53 +382,19 @@ export default function PublicOrderCheckout({
               ) : null}
             </fieldset>
 
-            <section className="public-order-checkout-section public-order-contact-section">
-              <div className="public-order-form-heading">
-              <span>İletişim Bilgileri</span>
-              <p>Bilgilerinizi girin, siparişinizi güvenle oluşturalım.</p>
-              </div>
-              <div className="field public-order-field">
-                <label htmlFor="fullName">Ad Soyad *</label>
-                <input
-                  autoComplete="name"
-                  disabled={isRecordingOrder}
-                  id="fullName"
-                  value={customer.fullName}
-                  onChange={(event) => onUpdateCustomer("fullName", event.target.value)}
-                />
-              </div>
-              <div className="field public-order-field">
-                <label htmlFor="phone">Telefon *</label>
-                <input
-                  autoComplete="tel"
-                  disabled={isRecordingOrder}
-                  id="phone"
-                  inputMode="tel"
-                  value={customer.phone}
-                  onChange={(event) => onUpdateCustomer("phone", event.target.value)}
-                />
-              </div>
-              {orderType === "delivery" ? (
-                <div className="field public-order-field">
-                  <label htmlFor="address">Teslimat Adresi *</label>
-                  <textarea
-                    autoComplete="street-address"
-                    disabled={isRecordingOrder}
-                    id="address"
-                    value={customer.address}
-                    onChange={(event) => onUpdateCustomer("address", event.target.value)}
-                  />
+            <section className="public-order-checkout-section public-order-note-section">
+              <div className="public-order-section-title public-order-section-title-plain">
+                <div>
+                  <h2>Sipariş notu</h2>
+                  <p>Ürün hazırlığıyla ilgili notunuzu işletmeye iletin.</p>
                 </div>
-              ) : (
-                <p className="pickup-address-hint public-order-pickup-hint">
-                  Gel-al siparişlerinde adres gerekmez.
-                </p>
-              )}
+              </div>
               <div className="field public-order-field public-order-note-field">
                 <label htmlFor="note">Sipariş Notu</label>
                 <textarea
                   disabled={isRecordingOrder}
                   id="note"
+                  placeholder="Örn. sos ayrı olsun (opsiyonel)"
                   value={customer.note}
                   onChange={(event) => onUpdateCustomer("note", event.target.value)}
                 />
@@ -394,6 +432,16 @@ export default function PublicOrderCheckout({
                 adresiniz ve sipariş notunuz işletmenin sipariş panelinde siparişin
                 oluşturulmasından 180 gün sonra periyodik olarak silinir. Gel-al
                 siparişlerinde adres kaydedilmez.
+              </p>
+              <p className="public-order-whatsapp-notice">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.45L3 20l1.08-4.18A8.5 8.5 0 1 1 20 11.5Z" />
+                  <path d="M8.2 8.1c.4 2.2 2.2 4 4.4 4.5l1.1-1.1 2.1 1v1.7c0 .7-.6 1.3-1.3 1.3A7.9 7.9 0 0 1 6.6 7.6c0-.7.6-1.3 1.3-1.3h1.7l1 2.1-1.1 1.1" />
+                </svg>
+                <span>
+                  Girdiğiniz iletişim ve sipariş bilgileri, siparişinizin işletmeye
+                  iletilmesi amacıyla WhatsApp üzerinden aktarılacaktır.
+                </span>
               </p>
             </section>
 
@@ -437,7 +485,7 @@ export default function PublicOrderCheckout({
                     type="button"
                     onClick={onSendVerifiedWhatsApp}
                   >
-                    WhatsApp ile devam et
+                    WhatsApp’ta Devam Et
                   </button>
                 ) : null}
               </div>
@@ -447,10 +495,102 @@ export default function PublicOrderCheckout({
               disabled={isOrderSubmitDisabled}
               type="submit"
             >
-              {isRecordingOrder
-                ? "Sipariş kaydediliyor..."
-                : "WhatsApp ile Sipariş Oluştur"}
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.45L3 20l1.08-4.18A8.5 8.5 0 1 1 20 11.5Z" />
+                <path d="M8.2 8.1c.4 2.2 2.2 4 4.4 4.5l1.1-1.1 2.1 1v1.7c0 .7-.6 1.3-1.3 1.3A7.9 7.9 0 0 1 6.6 7.6c0-.7.6-1.3 1.3-1.3h1.7l1 2.1-1.1 1.1" />
+              </svg>
+              <span>
+                {isRecordingOrder ? "Sipariş kaydediliyor..." : "WhatsApp’ta Devam Et"}
+              </span>
+              {!isRecordingOrder ? <strong>{formatPrice(total)}</strong> : null}
             </button>
+              </div>
+
+              <aside className="public-order-checkout-summary" aria-label="Sepet özeti">
+                <section className="public-order-checkout-section public-order-cart-section">
+                  <div className="public-order-checkout-section-heading">
+                    <div>
+                      <span>Siparişiniz</span>
+                      <h2>Sepetim ({cartItemCount})</h2>
+                    </div>
+                    {cart.length > 0 && isOrderingOpen && orderRecoveryMode !== "saved" ? (
+                      <button
+                        className="public-order-clear-cart-button"
+                        disabled={isRecordingOrder}
+                        type="button"
+                        onClick={onClearCart}
+                      >
+                        Temizle
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="cart public-order-cart-items">
+                    {cart.length === 0 ? (
+                      <p className="empty-cart">Sepetiniz boş.</p>
+                    ) : (
+                      cart.map((item) => (
+                        <div className="cart-item public-order-cart-item" key={item.id}>
+                          {item.imageUrl ? (
+                            <img
+                              alt=""
+                              className="public-order-cart-item-image"
+                              src={item.imageUrl}
+                            />
+                          ) : (
+                            <div
+                              aria-hidden="true"
+                              className="public-order-cart-item-image public-order-cart-item-fallback"
+                            >
+                              {item.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
+                            </div>
+                          )}
+                          <div className="public-order-cart-item-main">
+                            <strong>{item.name}</strong>
+                            <span>{formatPrice(item.price * item.quantity)}</span>
+                          </div>
+                          <div className="cart-actions public-order-cart-actions">
+                            <div
+                              aria-label={`${item.name} adet kontrolü`}
+                              className="quantity public-order-quantity"
+                            >
+                              <button
+                                aria-label={`${item.name} adedini azalt`}
+                                className="quantity-button public-order-quantity-button"
+                                disabled={!isOrderingOpen || isRecordingOrder}
+                                type="button"
+                                onClick={() => onDecreaseItem(item.id)}
+                              >
+                                −
+                              </button>
+                              <strong aria-label={`${item.quantity} adet`}>{item.quantity}</strong>
+                              <button
+                                aria-label={`${item.name} adedini artır`}
+                                className="quantity-button public-order-quantity-button"
+                                disabled={!isOrderingOpen || isRecordingOrder}
+                                type="button"
+                                onClick={() => onIncreaseItem(item.id)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="public-order-totals">
+                    <div className="public-order-total-row">
+                      <span>Ara toplam</span>
+                      <strong>{formatPrice(total)}</strong>
+                    </div>
+                    <div className="cart-total public-order-cart-total">
+                      <span>Toplam</span>
+                      <strong>{formatPrice(total)}</strong>
+                    </div>
+                  </div>
+                </section>
+              </aside>
+            </div>
           </form>
         </div>
       </section>
