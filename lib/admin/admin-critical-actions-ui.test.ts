@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import ts from "typescript";
 
@@ -82,6 +82,9 @@ function loadCriticalClient(
           return respond(call);
         },
       };
+    }
+    if (specifier === "./admin/business-audit-history-contract") {
+      return { parseAdminBusinessAuditHistoryResponse: () => null };
     }
     throw new Error(`Unexpected client test import: ${specifier}`);
   };
@@ -339,8 +342,10 @@ test("hard delete and safe legacy business update remain while subscription muta
   }
 });
 
-test("P5.1E-C adds no audit-history UI", () => {
-  assert.doesNotMatch(detailSource, /admin_audit_logs|audit history|audit timeline/i);
-  const adminEntries = readdirSync(new URL("app/admin", root), { recursive: true });
-  assert.equal(adminEntries.some((entry) => /audit/i.test(String(entry))), false);
+test("P5.1E-C critical UI remains intact alongside the later audit-history section", () => {
+  assert.match(detailSource, /İşlem Geçmişi/);
+  assert.doesNotMatch(detailSource, /admin_audit_logs/);
+  for (const label of ["Pasife Al", "Aktife Al", "Engelle", "Aboneliği Sıfırla", "Kalıcı Sil"]) {
+    assert.match(detailSource, new RegExp(label));
+  }
 });
