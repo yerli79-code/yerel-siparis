@@ -4,6 +4,10 @@ import type {
   AdminBusinessListQuery,
   AdminBusinessListResponse,
 } from "./admin/business-list-contract";
+import {
+  parseAdminBusinessAuditHistoryResponse,
+  type AdminBusinessAuditHistoryResponse,
+} from "./admin/business-audit-history-contract";
 import type {
   AdminBusinessDetail,
   AdminBusinessSafePatch,
@@ -325,6 +329,30 @@ export async function fetchAdminBusinessDetail(
     );
   }
   return body as AdminBusinessDetail;
+}
+
+export async function fetchAdminBusinessAuditHistory(
+  businessId: string,
+  signal?: AbortSignal,
+): Promise<AdminBusinessAuditHistoryResponse> {
+  const response = await requestAdminApi(
+    `/api/admin/businesses/${encodeURIComponent(businessId)}/audit-history`,
+    { method: "GET", signal },
+  );
+  const text = await response.text();
+  const body = parseSupabaseBody(text);
+  if (!response.ok) {
+    throw businessRequestError(response, body, "İşlem geçmişi yüklenemedi.");
+  }
+  const history = parseAdminBusinessAuditHistoryResponse(body);
+  if (!history) {
+    throw new AdminBusinessRequestError(
+      "İşlem geçmişi yüklenemedi.",
+      503,
+      "ADMIN_UNAVAILABLE",
+    );
+  }
+  return history;
 }
 
 export async function updateAdminBusinessSafely(

@@ -17,11 +17,16 @@ import type {
   AdminBusinessSafePatchResult,
 } from "../../../../lib/admin/business-detail-contract";
 import {
+  getAdminAuditActionLabel,
+  type AdminBusinessAuditItem,
+} from "../../../../lib/admin/business-audit-history-contract";
+import {
   AdminBusinessRequestError,
   blockAdminBusiness,
   deactivateAdminBusiness,
   deleteBusinessInSupabase,
   extendAdminBusinessSubscription,
+  fetchAdminBusinessAuditHistory,
   fetchAdminBusinessDetail,
   mergeAdminBusinessCriticalState,
   reactivateAdminBusiness,
@@ -148,6 +153,39 @@ function orderTypeLabel(value: string) {
   return value === "delivery" ? "Teslimat" : value === "pickup" ? "Gel-al" : value;
 }
 
+function auditSubscriptionStatusLabel(value: AdminBusinessAuditItem["before"]["subscriptionStatus"]) {
+  return {
+    active: "Aktif",
+    expired: "Süresi dolmuş",
+    blocked: "Engelli",
+  }[value];
+}
+
+function getAuditChangeSummaries(item: AdminBusinessAuditItem) {
+  const changes: string[] = [];
+  if (item.before.isActive !== item.after.isActive) {
+    changes.push(
+      `Aktif: ${item.before.isActive ? "Evet" : "Hayır"} → ${item.after.isActive ? "Evet" : "Hayır"}`,
+    );
+  }
+  if (item.before.subscriptionStatus !== item.after.subscriptionStatus) {
+    changes.push(
+      `Abonelik: ${auditSubscriptionStatusLabel(item.before.subscriptionStatus)} → ${auditSubscriptionStatusLabel(item.after.subscriptionStatus)}`,
+    );
+  }
+  if (item.before.subscriptionStartedAt !== item.after.subscriptionStartedAt) {
+    changes.push(
+      `Başlangıç: ${formatDate(item.before.subscriptionStartedAt)} → ${formatDate(item.after.subscriptionStartedAt)}`,
+    );
+  }
+  if (item.before.subscriptionExpiresAt !== item.after.subscriptionExpiresAt) {
+    changes.push(
+      `Bitiş: ${formatDate(item.before.subscriptionExpiresAt)} → ${formatDate(item.after.subscriptionExpiresAt)}`,
+    );
+  }
+  return changes;
+}
+
 function asLegacyBusiness(detail: AdminBusinessDetail): Business {
   const business = detail.business;
   return {
@@ -187,6 +225,9 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
   const [loginError, setLoginError] = useState("");
   const [signingIn, setSigningIn] = useState(false);
   const [detail, setDetail] = useState<AdminBusinessDetail | null>(null);
+  const [auditItems, setAuditItems] = useState<AdminBusinessAuditItem[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [notFound, setNotFound] = useState(false);
@@ -201,6 +242,38 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
   const [manualDate, setManualDate] = useState("");
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
+  const loadAuditHistory = useCallback(async () => {
+    setAuditLoading(true);
+    setAuditError("");
+    try {
+      const history = await fetchAdminBusinessAuditHistory(businessId);
+      setAuditItems(history.items);
+      return history.items;
+    } catch (error) {
+      if (
+        error instanceof AdminBusinessRequestError &&
+        (error.status === 401 ||
+          error.code === "UNAUTHORIZED" ||
+          error.code === "SESSION_EXPIRED")
+      ) {
+        setAuthorized(false);
+        setDetail(null);
+      } else if (
+        error instanceof AdminBusinessRequestError &&
+        error.code === "NOT_FOUND"
+      ) {
+        setNotFound(true);
+        setDetail(null);
+      } else {
+        setAuditItems([]);
+        setAuditError("İşlem geçmişi yüklenemedi.");
+      }
+      return null;
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [businessId]);
+
   const loadDetail = useCallback(async () => {
     setLoading(true);
     setLoadError("");
@@ -209,6 +282,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
       const next = await fetchAdminBusinessDetail(businessId);
       setDetail(next);
       setManualDate(dateInputValue(next.business.subscriptionExpiresAt));
+      await loadAuditHistory();
       return next;
     } catch (error) {
       if (error instanceof AdminBusinessRequestError && error.code === "NOT_FOUND") {
@@ -223,10 +297,13 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
     } finally {
       setLoading(false);
     }
-  }, [businessId]);
+  }, [businessId, loadAuditHistory]);
 
   useEffect(() => {
     let cancelled = false;
+    setDetail(null);
+    setAuditItems([]);
+    setAuditError("");
     clearLegacyAdminBrowserSession();
     clearLegacyAdminBusinessCache();
     readAdminSession()
@@ -282,6 +359,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
     await logoutAdmin();
     setAuthorized(false);
     setDetail(null);
+    setAuditItems([]);
   }
 
   function beginEdit() {
@@ -365,6 +443,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
       );
       setManualDate(dateInputValue(result.business.subscriptionExpiresAt));
       setMessage(success);
+      await loadAuditHistory();
     } catch (error) {
       if (error instanceof AdminBusinessRequestError) {
         if (error.code === "NOT_FOUND") {
@@ -713,6 +792,51 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
                   ))}
                 </div>
               ) : <p className={styles.help}>Henüz sipariş bulunmuyor.</p>}
+            </section>
+
+            <section className={styles.card}>
+              <span className={styles.eyebrow}>Denetim kaydı</span>
+              <h3>İşlem Geçmişi</h3>
+              <p className={styles.help}>En yeni 20 kritik erişim ve abonelik işlemi gösterilir.</p>
+              {auditLoading && !auditItems.length ? (
+                <p className={styles.auditState} aria-live="polite">İşlem geçmişi yükleniyor...</p>
+              ) : null}
+              {auditError ? (
+                <div className={styles.auditError} role="alert">
+                  <p>{auditError}</p>
+                  <button disabled={auditLoading} type="button" onClick={loadAuditHistory}>
+                    Tekrar Dene
+                  </button>
+                </div>
+              ) : null}
+              {!auditLoading && !auditError && !auditItems.length ? (
+                <p className={styles.auditState}>Henüz kayıtlı kritik işlem bulunmuyor.</p>
+              ) : null}
+              {auditItems.length ? (
+                <div className={styles.auditList}>
+                  {auditItems.map((item) => {
+                    const changes = getAuditChangeSummaries(item);
+                    return (
+                      <article key={item.id}>
+                        <div className={styles.auditHeading}>
+                          <div>
+                            <strong>{getAdminAuditActionLabel(item.action)}</strong>
+                            <span>{item.actorEmail}</span>
+                          </div>
+                          <time dateTime={item.createdAt}>{formatDateTime(item.createdAt)}</time>
+                        </div>
+                        {changes.length ? (
+                          <ul>
+                            {changes.map((change) => <li key={change}>{change}</li>)}
+                          </ul>
+                        ) : (
+                          <p>Kritik erişim veya abonelik durumu kaydedildi.</p>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : null}
             </section>
 
             <section className={`${styles.card} ${styles.criticalCard}`}>
