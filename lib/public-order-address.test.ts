@@ -62,9 +62,9 @@ test("composed delivery addresses round-trip without duplicating labels", () => 
     district: "Beşiktaş",
     neighborhood: "Abbasağa",
     streetAddress: "Yıldız Caddesi 12",
-    building: "",
-    floorUnit: "2",
-    directions: "",
+    building: "Yıldız Apartmanı",
+    floorUnit: "2 / 5",
+    directions: "Bahçe kapısını kullanın",
   };
   const composed = composePublicOrderDeliveryAddress(address);
 
@@ -73,6 +73,69 @@ test("composed delivery addresses round-trip without duplicating labels", () => 
     composePublicOrderDeliveryAddress(parsePublicOrderDeliveryAddress(composed)),
     composed,
   );
+});
+
+test("multiline freeform legacy addresses remain intact after parse and compose", () => {
+  const legacyAddress = [
+    "Gül Sokak No: 15",
+    "Zil 7",
+    "Arka girişten gelin",
+  ].join("\n");
+  const parsedAddress = parsePublicOrderDeliveryAddress(legacyAddress);
+
+  assert.deepEqual(parsedAddress, {
+    ...emptyPublicOrderDeliveryAddress,
+    streetAddress: legacyAddress,
+  });
+  assert.equal(
+    composePublicOrderDeliveryAddress(parsedAddress),
+    `Adres: ${legacyAddress}`,
+  );
+});
+
+test("mixed recognized and unrecognized lines preserve every legacy line", () => {
+  const mixedAddress = [
+    "İlçe: Kadıköy",
+    "Moda Caddesi No: 10",
+    "Mavi kapının yanı",
+  ].join("\n");
+  const parsedAddress = parsePublicOrderDeliveryAddress(mixedAddress);
+  const recomposedAddress = composePublicOrderDeliveryAddress(parsedAddress);
+
+  assert.equal(parsedAddress.district, "Kadıköy");
+  assert.equal(
+    parsedAddress.streetAddress,
+    ["Moda Caddesi No: 10", "Mavi kapının yanı"].join("\n"),
+  );
+  assert.equal(
+    recomposedAddress,
+    [
+      "İlçe: Kadıköy",
+      "Adres: Moda Caddesi No: 10",
+      "Mavi kapının yanı",
+    ].join("\n"),
+  );
+  assert.equal(
+    composePublicOrderDeliveryAddress(
+      parsePublicOrderDeliveryAddress(recomposedAddress),
+    ),
+    recomposedAddress,
+  );
+});
+
+test("recognized address plus delivery instructions stays lossless", () => {
+  const mixedAddress = [
+    "Adres: Gül Sokak No: 15",
+    "Zil 7",
+    "Arka girişten gelin",
+  ].join("\n");
+  const parsedAddress = parsePublicOrderDeliveryAddress(mixedAddress);
+
+  assert.equal(
+    parsedAddress.streetAddress,
+    ["Gül Sokak No: 15", "Zil 7", "Arka girişten gelin"].join("\n"),
+  );
+  assert.equal(composePublicOrderDeliveryAddress(parsedAddress), mixedAddress);
 });
 
 test("legacy saved single-string addresses remain backward compatible", () => {

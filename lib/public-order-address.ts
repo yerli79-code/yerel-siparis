@@ -46,19 +46,35 @@ export function parsePublicOrderDeliveryAddress(
 
   const parsedAddress = { ...emptyPublicOrderDeliveryAddress };
   let recognizedLineCount = 0;
+  const unrecognizedLines: string[] = [];
 
   normalizedValue.split(/\r?\n/).forEach((line) => {
     const matchingLabel = addressLabels.find(([, label]) =>
       line.startsWith(`${label}:`),
     );
-    if (!matchingLabel) return;
+    if (!matchingLabel) {
+      unrecognizedLines.push(line);
+      return;
+    }
 
     const [field, label] = matchingLabel;
-    parsedAddress[field] = line.slice(label.length + 1).trim();
+    const fieldValue = line.slice(label.length + 1).trim();
+    parsedAddress[field] = [parsedAddress[field], fieldValue]
+      .filter(Boolean)
+      .join("\n");
     recognizedLineCount += 1;
   });
 
-  if (recognizedLineCount > 0) return parsedAddress;
+  if (recognizedLineCount > 0) {
+    const legacyText = unrecognizedLines.join("\n").trim();
+    if (legacyText) {
+      parsedAddress.streetAddress = [parsedAddress.streetAddress, legacyText]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    return parsedAddress;
+  }
 
   return {
     ...emptyPublicOrderDeliveryAddress,
