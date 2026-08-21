@@ -1,9 +1,11 @@
+import { useEffect, useRef } from "react";
 import type {
   BusinessOrder,
   BusinessOrderPagination,
   OrderStatus,
 } from "../../lib/supabase-orders";
 import styles from "./panel.module.css";
+import PanelIcon from "./PanelIcon";
 import {
   getOrderTypeLabel,
   type OrderPrintPaperWidth,
@@ -102,6 +104,32 @@ export default function PanelOrders({
     pagination.total > 0 && orders.length > 0
       ? `${firstRecord}–${lastRecord} / ${pagination.total} kayıt`
       : `${pagination.total} kayıt`;
+  const selectedOrder = orders.find((order) => order.id === expandedOrderId);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedOrder) return;
+
+    previouslyFocusedRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onToggleOrderDetails(selectedOrder.id);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    closeButtonRef.current?.focus();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [selectedOrder?.id]);
 
   return (
     <section
@@ -241,8 +269,11 @@ export default function PanelOrders({
       ) : (
         <div className="panel-order-list">
           {orders.map((order) => {
-            const isExpanded = expandedOrderId === order.id;
             const orderTypeLabel = getOrderTypeLabel(order.orderType);
+            const itemCount = order.items.reduce(
+              (total, item) => total + item.quantity,
+              0,
+            );
 
             return (
               <article
@@ -252,136 +283,200 @@ export default function PanelOrders({
                 key={order.id}
               >
                 <button
-                  aria-expanded={isExpanded}
+                  aria-haspopup="dialog"
                   className="panel-order-row"
                   type="button"
                   onClick={() => onToggleOrderDetails(order.id)}
                 >
-                  <span className="panel-order-main">
+                  <span className="panel-order-number">
                     <strong>#{order.orderNumber}</strong>
-                    <span>
-                      {orderTypeLabel} · {order.customerName}
-                    </span>
+                    <small>{formatDateTime(order.createdAt)}</small>
+                  </span>
+                  <span className="panel-order-main">
+                    <strong>{order.customerName}</strong>
+                    <small>{itemCount} ürün</small>
+                  </span>
+                  <span className="panel-order-type">
+                    <small>Teslimat</small>
+                    <strong>{orderTypeLabel}</strong>
+                  </span>
+                  <span className="panel-order-payment">
+                    <small>Ödeme</small>
+                    <strong>{getPaymentMethodLabel(order.paymentMethod)}</strong>
                   </span>
                   <span className="panel-order-meta">
                     <strong>{formatPrice(order.totalAmount)}</strong>
-                    <span>{formatDateTime(order.createdAt)}</span>
+                    <span>
+                      {new Date(order.createdAt).toLocaleTimeString("tr-TR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </span>
                   <span
                     className={`order-status-badge order-status-${order.status}`}
                   >
                     {orderStatusLabels[order.status]}
                   </span>
-                  <span className="panel-order-toggle">
-                    {isExpanded ? "Kapat" : "Detay"}
+                  <span className="panel-order-toggle" aria-hidden="true">
+                    <PanelIcon name="arrow" size={17} />
                   </span>
                 </button>
-
-                {isExpanded ? (
-                  <div className="panel-order-detail">
-                    <div className="panel-order-detail-grid">
-                      <p>
-                        <strong>Telefon</strong>
-                        <span>{order.customerPhone}</span>
-                      </p>
-                      <p>
-                        <strong>Sipariş türü</strong>
-                        <span>{orderTypeLabel}</span>
-                      </p>
-                      <p>
-                        <strong>Ödeme yöntemi</strong>
-                        <span>{getPaymentMethodLabel(order.paymentMethod)}</span>
-                      </p>
-                      <p>
-                        <strong>Durum</strong>
-                        <select
-                          disabled={updatingOrderId === order.id}
-                          value={order.status}
-                          onChange={(event) =>
-                            onUpdateOrderStatus(
-                              order.id,
-                              event.target.value as OrderStatus,
-                            )
-                          }
-                        >
-                          {orderStatusOptions.map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </p>
-                    </div>
-
-                    <div className="panel-order-address">
-                      <strong>
-                        {order.orderType === "delivery"
-                          ? "Teslimat adresi"
-                          : "Gel-al siparişi"}
-                      </strong>
-                      <span>
-                        {order.orderType === "delivery"
-                          ? order.customerAddress || "Adres belirtilmedi."
-                          : "Müşteri siparişi işletmeden teslim alacak."}
-                      </span>
-                    </div>
-
-                    {order.customerNote ? (
-                      <div className="panel-order-note">
-                        <strong>Müşteri notu</strong>
-                        <span>{order.customerNote}</span>
-                      </div>
-                    ) : null}
-
-                    <div className="panel-order-items">
-                      {order.items.map((item) => (
-                        <div className="panel-order-item" key={item.id}>
-                          <span>
-                            <strong>{item.productName}</strong>
-                            <small>
-                              {item.quantity} x {formatPrice(item.unitPrice)}
-                            </small>
-                          </span>
-                          <b>{formatPrice(item.lineTotal)}</b>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className={styles.orderPrintControls}>
-                      <label className={styles.orderPrintWidthField}>
-                        <span>Fiş genişliği</span>
-                        <select
-                          value={orderPrintPaperWidth}
-                          onChange={(event) => {
-                            const { value } = event.target;
-                            if (value !== "58mm" && value !== "80mm") return;
-                            onOrderPrintPaperWidthChange(value);
-                          }}
-                        >
-                          <option value="58mm">58 mm</option>
-                          <option value="80mm">80 mm</option>
-                        </select>
-                      </label>
-                      <button
-                        aria-label={`#${order.orderNumber} numaralı siparişi yazdır`}
-                        className={`submit-button panel-primary-action ${styles.orderPrintButton}`}
-                        disabled={updatingOrderId === order.id}
-                        type="button"
-                        onClick={() => onPrintOrder(order.id)}
-                      >
-                        Yazdır
-                      </button>
-                      <p className={styles.orderPrintHint}>
-                        Yazdırma penceresinde yazıcınıza uygun kâğıt boyutunu seçin.
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
               </article>
             );
           })}
         </div>
       )}
+
+      {selectedOrder ? (
+        <div
+          className="panel-order-detail-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              onToggleOrderDetails(selectedOrder.id);
+            }
+          }}
+        >
+          <aside
+            aria-labelledby="panel-order-detail-title"
+            aria-modal="true"
+            className="panel-order-detail"
+            role="dialog"
+          >
+            <header className="panel-order-detail-header">
+              <div>
+                <span>Sipariş detayı</span>
+                <h3 id="panel-order-detail-title">
+                  Sipariş #{selectedOrder.orderNumber}
+                </h3>
+              </div>
+              <button
+                aria-label="Sipariş detayını kapat"
+                ref={closeButtonRef}
+                type="button"
+                onClick={() => onToggleOrderDetails(selectedOrder.id)}
+              >
+                <PanelIcon name="close" size={21} />
+              </button>
+            </header>
+
+            <div className="panel-order-detail-scroll">
+              <span
+                className={`order-status-badge order-status-${selectedOrder.status}`}
+              >
+                {orderStatusLabels[selectedOrder.status]}
+              </span>
+
+              <section className="panel-order-detail-block">
+                <span>Müşteri</span>
+                <strong>{selectedOrder.customerName}</strong>
+                <a href={`tel:${selectedOrder.customerPhone}`}>
+                  {selectedOrder.customerPhone}
+                </a>
+              </section>
+
+              <section className="panel-order-detail-block">
+                <span>Teslimat Şekli</span>
+                <strong>{getOrderTypeLabel(selectedOrder.orderType)}</strong>
+                {selectedOrder.orderType === "delivery" ? (
+                  <p className="panel-order-address">
+                    {selectedOrder.customerAddress || "Adres belirtilmedi."}
+                  </p>
+                ) : null}
+              </section>
+
+              <section className="panel-order-detail-block">
+                <span>Ödeme</span>
+                <strong>{getPaymentMethodLabel(selectedOrder.paymentMethod)}</strong>
+                <p>
+                  {selectedOrder.orderType === "delivery"
+                    ? "Ödeme teslimat sırasında işletmeye yapılır."
+                    : "Ödeme sipariş teslim alınırken işletmeye yapılır."}
+                </p>
+              </section>
+
+              <section className="panel-order-detail-block">
+                <span>Ürünler</span>
+                <div className="panel-order-items">
+                  {selectedOrder.items.map((item) => (
+                    <div className="panel-order-item" key={item.id}>
+                      <span>
+                        <strong>{item.productName}</strong>
+                        <small>
+                          {item.quantity} x {formatPrice(item.unitPrice)}
+                        </small>
+                      </span>
+                      <b>{formatPrice(item.lineTotal)}</b>
+                    </div>
+                  ))}
+                  <div className="panel-order-detail-total">
+                    <span>Toplam</span>
+                    <strong>{formatPrice(selectedOrder.totalAmount)}</strong>
+                  </div>
+                </div>
+              </section>
+
+              {selectedOrder.customerNote ? (
+                <section className="panel-order-detail-block panel-order-note">
+                  <span>Sipariş Notu</span>
+                  <p>{selectedOrder.customerNote}</p>
+                </section>
+              ) : null}
+
+              <label className="panel-order-detail-status">
+                <span>Durum</span>
+                <select
+                  disabled={updatingOrderId === selectedOrder.id}
+                  value={selectedOrder.status}
+                  onChange={(event) =>
+                    onUpdateOrderStatus(
+                      selectedOrder.id,
+                      event.target.value as OrderStatus,
+                    )
+                  }
+                >
+                  {orderStatusOptions.map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <footer className="panel-order-detail-actions">
+              <div className={styles.orderPrintControls}>
+                <label className={styles.orderPrintWidthField}>
+                  <span>Fiş genişliği</span>
+                  <select
+                    value={orderPrintPaperWidth}
+                    onChange={(event) => {
+                      const { value } = event.target;
+                      if (value !== "58mm" && value !== "80mm") return;
+                      onOrderPrintPaperWidthChange(value);
+                    }}
+                  >
+                    <option value="58mm">58 mm</option>
+                    <option value="80mm">80 mm</option>
+                  </select>
+                </label>
+                <button
+                  aria-label={`#${selectedOrder.orderNumber} numaralı siparişi yazdır`}
+                  className={`submit-button panel-primary-action ${styles.orderPrintButton}`}
+                  disabled={updatingOrderId === selectedOrder.id}
+                  type="button"
+                  onClick={() => onPrintOrder(selectedOrder.id)}
+                >
+                  <PanelIcon name="printer" size={17} />
+                  Yazdır
+                </button>
+                <p className={styles.orderPrintHint}>
+                  Yazıcınıza uygun kâğıt boyutunu seçin.
+                </p>
+              </div>
+            </footer>
+          </aside>
+        </div>
+      ) : null}
 
       <div className="panel-order-pagination-footer">
         <label className="panel-order-page-size">
