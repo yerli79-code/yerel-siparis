@@ -8,6 +8,7 @@ const source = (path: string) => readFileSync(new URL(path, root), "utf8");
 const panel = source("app/panel/page.tsx");
 const orders = source("app/panel/PanelOrders.tsx");
 const alert = source("app/panel/NewOrderAlert.tsx");
+const focusTrap = source("app/panel/useModalFocusTrap.ts");
 const css = source("app/panel/panel.module.css");
 const orderContract = source("lib/supabase-orders.ts");
 const businessContract = source("lib/supabase-business.ts");
@@ -71,8 +72,12 @@ test("order drawer is accessible, responsive and pickup-safe", () => {
   assert.match(orders, /className="panel-order-detail-overlay"/);
   assert.match(orders, /aria-modal="true"/);
   assert.match(orders, /role="dialog"/);
-  assert.match(orders, /event\.key === "Escape"/);
-  assert.match(orders, /closeButtonRef\.current\?\.focus\(\)/);
+  assert.match(orders, /useModalFocusTrap\(\{/);
+  assert.match(orders, /initialFocusRef: closeButtonRef/);
+  assert.match(orders, /returnFocusRef:[\s\S]*orderTriggerRef/);
+  assert.match(orders, /orderTriggerRef\.current = event\.currentTarget/);
+  assert.match(orders, /ref=\{dialogRef\}/);
+  assert.match(focusTrap, /event\.key === "Escape"/);
   assert.match(
     orders,
     /selectedOrder\.orderType === "delivery" \? \([\s\S]*panel-order-address[\s\S]*\) : null/,
@@ -80,6 +85,35 @@ test("order drawer is accessible, responsive and pickup-safe", () => {
   assert.doesNotMatch(orders, /Gel-al[\s\S]{0,80}customerAddress/);
   assert.match(css, /panel-order-detail\) \{[\s\S]*width: 100%[\s\S]*height: 100dvh/);
   assert.match(css, /@media screen and \(min-width: 700px\)[\s\S]*panel-order-detail\) \{[\s\S]*width: 430px/);
+});
+
+test("modal focus trap contains Tab in both directions and cleans up safely", () => {
+  assert.match(focusTrap, /event\.key !== "Tab"/);
+  assert.match(focusTrap, /event\.shiftKey/);
+  assert.match(focusTrap, /lastFocusable\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(focusTrap, /firstFocusable\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(focusTrap, /document\.addEventListener\("keydown", handleKeyDown\)/);
+  assert.match(focusTrap, /document\.removeEventListener\("keydown", handleKeyDown\)/);
+  assert.match(focusTrap, /document\.body\.style\.overflow = "hidden"/);
+  assert.match(
+    focusTrap,
+    /document\.body\.style\.overflow = previousBodyOverflow/,
+  );
+  assert.match(focusTrap, /returnTarget\?\.isConnected/);
+  assert.match(focusTrap, /returnTarget\.focus\(\{ preventScroll: true \}\)/);
+});
+
+test("mobile menu is a contained modal and restores its exact opening trigger", () => {
+  assert.match(panel, /useModalFocusTrap\(\{[\s\S]*isOpen: isMobileMenuOpen/);
+  assert.match(panel, /dialogRef: mobileMenuDialogRef/);
+  assert.match(panel, /initialFocusRef: mobileMenuCloseRef/);
+  assert.match(panel, /returnFocusRef: mobileMenuTriggerRef/);
+  assert.match(panel, /mobileMenuTriggerRef\.current = event\.currentTarget/);
+  assert.match(panel, /ref=\{mobileMenuDialogRef\}/);
+  assert.match(panel, /ref=\{mobileMenuCloseRef\}/);
+  assert.match(panel, /onClick=\{openMobileMenu\}/);
+  assert.match(panel, /setExpandedOrderId\(""\)[\s\S]*setIsMobileMenuOpen\(true\)/);
+  assert.match(panel, /setIsMobileMenuOpen\(false\)[\s\S]*setExpandedOrderId/);
 });
 
 test("existing receipt and isolated print flow remain the only print path", () => {
@@ -105,6 +139,14 @@ test("new-order watcher, visual alert, audio and queue behavior remain connected
   assert.match(panel, /if \(completed\.newOrders\.length > 0\) playNewOrderSound\(\)/);
   assert.match(panel, /<NewOrderAlert/);
   assert.match(alert, /role="alert"/);
+});
+
+test("header has no fake notification control while real order alerts remain", () => {
+  assert.doesNotMatch(panel, /aria-label="Bildirimler"/);
+  assert.doesNotMatch(panel, /className="business-panel-header-icon"/);
+  assert.match(panel, /<NewOrderAlert/);
+  assert.match(panel, /pendingNewOrders\.length/);
+  assert.match(panel, /playNewOrderSound/);
 });
 
 test("overview metrics and recent orders come only from production data", () => {

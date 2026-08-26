@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type {
   BusinessOrder,
   BusinessOrderPagination,
@@ -6,6 +6,7 @@ import type {
 } from "../../lib/supabase-orders";
 import styles from "./panel.module.css";
 import PanelIcon from "./PanelIcon";
+import { useModalFocusTrap } from "./useModalFocusTrap";
 import {
   getOrderTypeLabel,
   type OrderPrintPaperWidth,
@@ -105,31 +106,23 @@ export default function PanelOrders({
       ? `${firstRecord}–${lastRecord} / ${pagination.total} kayıt`
       : `${pagination.total} kayıt`;
   const selectedOrder = orders.find((order) => order.id === expandedOrderId);
+  const dialogRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const orderTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const orderTriggerIdRef = useRef("");
 
-  useEffect(() => {
-    if (!selectedOrder) return;
-
-    previouslyFocusedRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onToggleOrderDetails(selectedOrder.id);
-    };
-
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", closeOnEscape);
-    closeButtonRef.current?.focus();
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
-      previouslyFocusedRef.current?.focus();
-    };
-  }, [selectedOrder?.id]);
+  useModalFocusTrap({
+    isOpen: Boolean(selectedOrder),
+    dialogRef,
+    initialFocusRef: closeButtonRef,
+    returnFocusRef:
+      selectedOrder?.id === orderTriggerIdRef.current
+        ? orderTriggerRef
+        : undefined,
+    onClose: () => {
+      if (selectedOrder) onToggleOrderDetails(selectedOrder.id);
+    },
+  });
 
   return (
     <section
@@ -286,7 +279,11 @@ export default function PanelOrders({
                   aria-haspopup="dialog"
                   className="panel-order-row"
                   type="button"
-                  onClick={() => onToggleOrderDetails(order.id)}
+                  onClick={(event) => {
+                    orderTriggerRef.current = event.currentTarget;
+                    orderTriggerIdRef.current = order.id;
+                    onToggleOrderDetails(order.id);
+                  }}
                 >
                   <span className="panel-order-number">
                     <strong>#{order.orderNumber}</strong>
@@ -342,7 +339,9 @@ export default function PanelOrders({
             aria-labelledby="panel-order-detail-title"
             aria-modal="true"
             className="panel-order-detail"
+            ref={dialogRef}
             role="dialog"
+            tabIndex={-1}
           >
             <header className="panel-order-detail-header">
               <div>

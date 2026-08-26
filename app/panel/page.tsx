@@ -8,6 +8,7 @@ import PlatformBrand from "../../components/PlatformBrand";
 import NewOrderAlert from "./NewOrderAlert";
 import PanelOrders from "./PanelOrders";
 import PanelIcon from "./PanelIcon";
+import { useModalFocusTrap } from "./useModalFocusTrap";
 import styles from "./panel.module.css";
 import {
   createOrderPrintReceiptModel,
@@ -424,6 +425,9 @@ export default function PanelPage() {
   const [activePanelSection, setActivePanelSection] =
     useState<PanelSection>("overview");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuDialogRef = useRef<HTMLElement | null>(null);
+  const mobileMenuCloseRef = useRef<HTMLButtonElement | null>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -770,21 +774,13 @@ export default function PanelPage() {
     };
   }, [activePanelSection, business?.slug, isLoading]);
 
-  useEffect(() => {
-    if (!isMobileMenuOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsMobileMenuOpen(false);
-    };
-
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isMobileMenuOpen]);
+  useModalFocusTrap({
+    isOpen: isMobileMenuOpen,
+    dialogRef: mobileMenuDialogRef,
+    initialFocusRef: mobileMenuCloseRef,
+    returnFocusRef: mobileMenuTriggerRef,
+    onClose: () => setIsMobileMenuOpen(false),
+  });
 
   useEffect(() => {
     if (isLoading || !business) return;
@@ -1022,9 +1018,16 @@ export default function PanelPage() {
   }
 
   function toggleOrderDetails(orderId: string) {
+    setIsMobileMenuOpen(false);
     setExpandedOrderId((currentOrderId) =>
       currentOrderId === orderId ? "" : orderId,
     );
+  }
+
+  function openMobileMenu(event: React.MouseEvent<HTMLButtonElement>) {
+    mobileMenuTriggerRef.current = event.currentTarget;
+    setExpandedOrderId("");
+    setIsMobileMenuOpen(true);
   }
 
   function updateForm(field: keyof ProductForm, value: string | boolean) {
@@ -1602,7 +1605,7 @@ export default function PanelPage() {
             aria-label="Panel menüsünü aç"
             className="business-panel-menu-trigger"
             type="button"
-            onClick={() => setIsMobileMenuOpen(true)}
+            onClick={openMobileMenu}
           >
             <PanelIcon name="menu" size={21} />
           </button>
@@ -1628,13 +1631,6 @@ export default function PanelPage() {
               </span>
             </div>
           ) : null}
-          <button
-            aria-label="Bildirimler"
-            className="business-panel-header-icon"
-            type="button"
-          >
-            <PanelIcon name="bell" size={19} />
-          </button>
         </header>
 
         {activePendingNewOrder ? (
@@ -3009,7 +3005,7 @@ export default function PanelPage() {
               : ""
           }
           type="button"
-          onClick={() => setIsMobileMenuOpen(true)}
+          onClick={openMobileMenu}
         >
           <PanelIcon name="menu" size={20} />
           <span>Menü</span>
@@ -3028,7 +3024,9 @@ export default function PanelPage() {
             aria-label="Panel menüsü"
             aria-modal="true"
             className="business-panel-mobile-menu"
+            ref={mobileMenuDialogRef}
             role="dialog"
+            tabIndex={-1}
           >
             <div className="business-panel-mobile-menu-head">
               <div>
@@ -3036,8 +3034,8 @@ export default function PanelPage() {
                 <strong>{business?.name}</strong>
               </div>
               <button
-                autoFocus
                 aria-label="Menüyü kapat"
+                ref={mobileMenuCloseRef}
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
