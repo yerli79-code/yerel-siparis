@@ -89,7 +89,7 @@ export class OrderRpcError extends Error {
 }
 
 export const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const orderStatuses: OrderStatus[] = [
   "new",
@@ -503,28 +503,65 @@ export async function updateOrderStatusById(
   orderId: string,
   businessId: string,
   status: OrderStatus,
+  expectedUpdatedAt: string,
 ) {
-  const response = await fetch(
-    `${url}/rest/v1/orders?id=eq.${encodeURIComponent(
-      orderId,
-    )}&business_id=eq.${encodeURIComponent(businessId)}`,
-    {
-      method: "PATCH",
-      headers: {
-        ...serviceHeaders(serviceRoleKey, true),
-      },
-      body: JSON.stringify({ status }),
+  const params = new URLSearchParams();
+  params.set("id", `eq.${orderId}`);
+  params.set("business_id", `eq.${businessId}`);
+  params.set("updated_at", `eq.${expectedUpdatedAt}`);
+  params.set("select", orderSelect);
+
+  const response = await fetch(`${url}/rest/v1/orders?${params.toString()}`, {
+    method: "PATCH",
+    headers: {
+      ...serviceHeaders(serviceRoleKey, true),
+      Prefer: "return=representation",
     },
-  );
+    body: JSON.stringify({ status }),
+  });
 
   if (!response.ok) {
     throw new Error("Siparis durumu guncellenemedi.");
   }
 
-  const order = await fetchOrderById(url, serviceRoleKey, orderId);
-  if (!order?.id || order.business_id !== businessId) {
-    throw new Error("Siparis durumu guncellendi ancak bilgi donmedi.");
+  const body = await readJson(response);
+  if (!Array.isArray(body)) {
+    throw new Error("Siparis guncelleme sonucu dogrulanamadi.");
+  }
+  if (body.length === 0) return null;
+
+  const order = body[0] as Partial<OrderRow> | undefined;
+  if (
+    body.length !== 1 ||
+    !order ||
+    order.id !== orderId ||
+    order.business_id !== businessId ||
+    order.status !== status ||
+    !UUID_PATTERN.test(order.id) ||
+    !UUID_PATTERN.test(order.business_id) ||
+    !isOrderStatus(order.status) ||
+    !isOrderType(order.order_type) ||
+    !Number.isFinite(Number(order.order_number)) ||
+    (order.business_order_number !== null &&
+      order.business_order_number !== undefined &&
+      !Number.isFinite(Number(order.business_order_number))) ||
+    !Number.isFinite(Number(order.total_amount)) ||
+    (order.payment_method !== null &&
+      order.payment_method !== undefined &&
+      typeof order.payment_method !== "string") ||
+    typeof order.customer_name !== "string" ||
+    typeof order.customer_phone !== "string" ||
+    (order.customer_address !== null &&
+      typeof order.customer_address !== "string") ||
+    (order.customer_note !== null && typeof order.customer_note !== "string") ||
+    typeof order.currency !== "string" ||
+    typeof order.created_at !== "string" ||
+    !Number.isFinite(new Date(order.created_at).getTime()) ||
+    typeof order.updated_at !== "string" ||
+    !Number.isFinite(new Date(order.updated_at).getTime())
+  ) {
+    throw new Error("Siparis guncelleme sonucu dogrulanamadi.");
   }
 
-  return order;
+  return order as OrderRow;
 }

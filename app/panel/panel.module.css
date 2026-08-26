@@ -2524,6 +2524,31 @@
     padding-top: 18px;
   }
 
+  .panelScope :global(.panel-order-detail-status small) {
+    color: #526157;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .panelScope :global(.panel-order-mutation-message) {
+    display: grid;
+    min-width: 0;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .panelScope :global(.panel-order-mutation-message p) {
+    margin: 0;
+  }
+
+  .panelScope :global(.panel-order-mutation-message button) {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
   .panelScope :global(.panel-order-detail-actions) {
     border-top: 1px solid #e1e7df;
     background: #fff;

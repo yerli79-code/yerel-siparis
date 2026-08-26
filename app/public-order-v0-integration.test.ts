@@ -132,6 +132,7 @@ test("P6.0A changes stay out of APIs, migrations, RLS, packages and admin securi
       "diff",
       "--name-only",
       "972a1317c9ca0d79cf12b8efe99f26489b262600",
+      "2f988d0ab82f7fe56d7653dfe0208bdd42475a98",
       "--",
     ],
     { cwd: root, encoding: "utf8" },

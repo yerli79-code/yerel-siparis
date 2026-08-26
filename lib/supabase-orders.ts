@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "./payment-methods";
+import { isPaymentMethod, type PaymentMethod } from "./payment-methods";
 
 export type OrderStatus =
   | "new"
@@ -123,6 +123,38 @@ export class BusinessOrdersRequestError extends Error {
 }
 
 const publicOrderTimeoutMs = 20000;
+export const businessOrderMutationTimeoutMs = 20000;
+
+export type BusinessOrderMutationErrorCode =
+  | "ORDER_CONFLICT"
+  | "ORDER_NOT_FOUND"
+  | "ORDER_FORBIDDEN"
+  | "ORDER_UNAUTHORIZED"
+  | "ORDER_UNAVAILABLE"
+  | "INVALID_ORDER_MUTATION";
+
+export class BusinessOrderMutationError extends Error {
+  readonly status: number | null;
+  readonly code: BusinessOrderMutationErrorCode;
+
+  constructor(code: BusinessOrderMutationErrorCode, status: number | null) {
+    super("Sipariş durumu güncellenemedi.");
+    this.name = "BusinessOrderMutationError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function isAbortError(error: unknown) {
+  return (
+    error instanceof DOMException && error.name === "AbortError"
+  ) || (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
+}
 
 async function parsePublicOrderResponse(response: Response) {
   let body: unknown = null;
@@ -275,6 +307,84 @@ function isBusinessOrderPageResult(
   );
 }
 
+function isBusinessOrder(value: unknown): value is BusinessOrder {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+
+  const order = value as Partial<BusinessOrder>;
+  return (
+    typeof order.id === "string" &&
+    Number.isFinite(order.orderNumber) &&
+    ["new", "preparing", "ready", "delivered", "cancelled"].includes(
+      String(order.status),
+    ) &&
+    ["delivery", "pickup"].includes(String(order.orderType)) &&
+    (order.paymentMethod === null || isPaymentMethod(order.paymentMethod)) &&
+    typeof order.customerName === "string" &&
+    typeof order.customerPhone === "string" &&
+    (order.customerAddress === null ||
+      typeof order.customerAddress === "string") &&
+    (order.customerNote === null || typeof order.customerNote === "string") &&
+    Number.isFinite(order.totalAmount) &&
+    typeof order.currency === "string" &&
+    typeof order.createdAt === "string" &&
+    typeof order.updatedAt === "string" &&
+    Array.isArray(order.items) &&
+    order.items.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof item.id === "string" &&
+        (item.productId === null || typeof item.productId === "string") &&
+        typeof item.productName === "string" &&
+        Number.isFinite(item.unitPrice) &&
+        Number.isFinite(item.quantity) &&
+        Number.isFinite(item.lineTotal),
+    )
+  );
+}
+
+function mutationCodeForStatus(status: number): BusinessOrderMutationErrorCode {
+  if (status === 409) return "ORDER_CONFLICT";
+  if (status === 404) return "ORDER_NOT_FOUND";
+  if (status === 403) return "ORDER_FORBIDDEN";
+  if (status === 401) return "ORDER_UNAUTHORIZED";
+  if (status === 400) return "INVALID_ORDER_MUTATION";
+  return "ORDER_UNAVAILABLE";
+}
+
+async function parseBusinessOrderMutationResponse(response: Response) {
+  let body: unknown = null;
+  try {
+    const text = await response.text();
+    body = text ? (JSON.parse(text) as unknown) : null;
+  } catch {
+    throw new BusinessOrderMutationError(
+      mutationCodeForStatus(response.status),
+      response.status,
+    );
+  }
+
+  if (!response.ok) {
+    throw new BusinessOrderMutationError(
+      mutationCodeForStatus(response.status),
+      response.status,
+    );
+  }
+
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).length !== 1 ||
+    !("order" in body) ||
+    !isBusinessOrder(body.order)
+  ) {
+    throw new BusinessOrderMutationError("ORDER_UNAVAILABLE", response.status);
+  }
+
+  return body.order;
+}
+
 export async function fetchBusinessOrdersPage(
   accessToken: string,
   query: BusinessOrderPageQuery,
@@ -313,6 +423,7 @@ export async function fetchBusinessOrdersPage(
 
     return body;
   } catch (error) {
+    if (isAbortError(error)) throw error;
     if (error instanceof BusinessOrdersRequestError) throw error;
     throw new BusinessOrdersRequestError(null);
   }
@@ -321,21 +432,30 @@ export async function fetchBusinessOrdersPage(
 export async function updateBusinessOrderStatus(
   orderId: string,
   status: OrderStatus,
+  expectedUpdatedAt: string,
   accessToken: string,
 ) {
-  const response = await fetch(`/api/business/orders/${orderId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ status }),
-  });
-  const body = (await parseApiResponse(response)) as { order?: BusinessOrder };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    businessOrderMutationTimeoutMs,
+  );
 
-  if (!body.order) {
-    throw new Error("Siparis guncellendi ancak kayit bilgisi donmedi.");
+  try {
+    const response = await fetch(`/api/business/orders/${orderId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status, expectedUpdatedAt }),
+      signal: controller.signal,
+    });
+    return await parseBusinessOrderMutationResponse(response);
+  } catch (error) {
+    if (error instanceof BusinessOrderMutationError) throw error;
+    throw new BusinessOrderMutationError("ORDER_UNAVAILABLE", null);
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return body.order;
 }
