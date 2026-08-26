@@ -7,6 +7,8 @@ import LocationSelector from "../../components/LocationSelector";
 import PlatformBrand from "../../components/PlatformBrand";
 import NewOrderAlert from "./NewOrderAlert";
 import PanelOrders from "./PanelOrders";
+import PanelIcon from "./PanelIcon";
+import { useModalFocusTrap } from "./useModalFocusTrap";
 import styles from "./panel.module.css";
 import {
   createOrderPrintReceiptModel,
@@ -133,8 +135,21 @@ type PanelSection =
   | "products"
   | "orders"
   | "create"
+  | "categories"
   | "profile"
+  | "qr"
   | "renewal";
+
+const panelSectionLabels: Record<PanelSection, string> = {
+  overview: "Genel Bakış",
+  orders: "Siparişler",
+  products: "Ürünler",
+  create: "Yeni Ürün",
+  categories: "Kategoriler",
+  profile: "İşletme Bilgileri",
+  qr: "QR Kod",
+  renewal: "Abonelik",
+};
 
 const emptyForm: ProductForm = {
   name: "",
@@ -409,6 +424,10 @@ export default function PanelPage() {
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [activePanelSection, setActivePanelSection] =
     useState<PanelSection>("overview");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuDialogRef = useRef<HTMLElement | null>(null);
+  const mobileMenuCloseRef = useRef<HTMLButtonElement | null>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -717,7 +736,7 @@ export default function PanelPage() {
     )}`;
     setCustomerOrderUrl(nextCustomerOrderUrl);
 
-    if (isLoading || activePanelSection !== "overview") {
+    if (isLoading || activePanelSection !== "qr") {
       setIsQrReady(false);
       return;
     }
@@ -754,6 +773,14 @@ export default function PanelPage() {
       isCancelled = true;
     };
   }, [activePanelSection, business?.slug, isLoading]);
+
+  useModalFocusTrap({
+    isOpen: isMobileMenuOpen,
+    dialogRef: mobileMenuDialogRef,
+    initialFocusRef: mobileMenuCloseRef,
+    returnFocusRef: mobileMenuTriggerRef,
+    onClose: () => setIsMobileMenuOpen(false),
+  });
 
   useEffect(() => {
     if (isLoading || !business) return;
@@ -991,9 +1018,16 @@ export default function PanelPage() {
   }
 
   function toggleOrderDetails(orderId: string) {
+    setIsMobileMenuOpen(false);
     setExpandedOrderId((currentOrderId) =>
       currentOrderId === orderId ? "" : orderId,
     );
+  }
+
+  function openMobileMenu(event: React.MouseEvent<HTMLButtonElement>) {
+    mobileMenuTriggerRef.current = event.currentTarget;
+    setExpandedOrderId("");
+    setIsMobileMenuOpen(true);
   }
 
   function updateForm(field: keyof ProductForm, value: string | boolean) {
@@ -1188,6 +1222,7 @@ export default function PanelPage() {
       clearProductEditingState();
     }
     setActivePanelSection(section);
+    setIsMobileMenuOpen(false);
     setError("");
     setMessage("");
     if (section === "orders") {
@@ -1208,6 +1243,11 @@ export default function PanelPage() {
       status: undefined,
       page: 1,
     });
+  }
+
+  function openCategoryProducts(category: string) {
+    setSelectedCategoryFilter(category);
+    switchPanelSection("products");
   }
 
   function validateForm() {
@@ -1561,14 +1601,24 @@ export default function PanelPage() {
     >
       <div className="shell business-panel-shell">
         <header className="business-panel-header">
+          <button
+            aria-label="Panel menüsünü aç"
+            className="business-panel-menu-trigger"
+            type="button"
+            onClick={openMobileMenu}
+          >
+            <PanelIcon name="menu" size={21} />
+          </button>
           <div className="business-panel-header-copy">
             <PlatformBrand className="panel-platform-brand" publicVariant />
-            <span className="business-panel-eyebrow">İşletme Paneli</span>
+            <span className="business-panel-eyebrow">
+              {business?.name ?? "İşletme Paneli"}
+            </span>
             <div className="business-panel-identity">
               {business ? <BusinessIdentityLogo business={business} /> : null}
-              <h1>{business?.name ?? "İşletme bulunamadı"}</h1>
+              <h1>{panelSectionLabels[activePanelSection]}</h1>
             </div>
-            <p>Günlük siparişlerinizi ve işletmenizi tek ekrandan yönetin.</p>
+            <p>İşletmenizi ve siparişlerinizi tek yerden yönetin.</p>
           </div>
           {business ? (
             <div className="business-panel-header-status">
@@ -1579,18 +1629,8 @@ export default function PanelPage() {
               >
                 {business.isOpen ? "Siparişe açık" : "Siparişe kapalı"}
               </span>
-              <span
-                className={`business-panel-status-chip ${
-                  canManageProducts ? "active" : "inactive"
-                }`}
-              >
-                {subscriptionLabel}
-              </span>
             </div>
           ) : null}
-          <button className="business-panel-logout" type="button" onClick={logout}>
-            Çıkış Yap
-          </button>
         </header>
 
         {activePendingNewOrder ? (
@@ -1617,48 +1657,95 @@ export default function PanelPage() {
         ) : (
           <div className="business-panel-workspace">
             <aside className="business-panel-sidebar">
-            <nav className="business-panel-nav" aria-label="Panel bölümleri">
-              <button
-                className={activePanelSection === "overview" ? "active" : ""}
-                type="button"
-                onClick={() => switchPanelSection("overview")}
+              <div className="business-panel-sidebar-brand">
+                <PlatformBrand className="panel-platform-brand" publicVariant />
+              </div>
+              <div className="business-panel-sidebar-identity">
+                {business ? <BusinessIdentityLogo business={business} /> : null}
+                <span>
+                  <strong>{business.name}</strong>
+                  <small>İşletme hesabı</small>
+                </span>
+              </div>
+              <nav
+                className="business-panel-nav business-panel-desktop-nav"
+                aria-label="Panel bölümleri"
               >
-                <span className="business-panel-nav-short">Genel</span>
-                <span className="business-panel-nav-long">Genel Bakış</span>
-              </button>
-              <button
-                className={activePanelSection === "orders" ? "active" : ""}
-                type="button"
-                onClick={() => switchPanelSection("orders")}
-              >
-                Siparişler
-                {newOrderCount > 0 ? (
-                  <span className="business-panel-nav-badge">{newOrderCount}</span>
-                ) : null}
-              </button>
-              <button
-                className={
-                  activePanelSection === "products" || activePanelSection === "create"
-                    ? "active"
-                    : ""
-                }
-                type="button"
-                onClick={() => switchPanelSection("products")}
-              >
-                Ürünler
-              </button>
-              <button
-                className={
-                  activePanelSection === "profile" || activePanelSection === "renewal"
-                    ? "active"
-                    : ""
-                }
-                type="button"
-                onClick={() => switchPanelSection("profile")}
-              >
-                İşletme
-              </button>
-            </nav>
+                <button
+                  aria-current={activePanelSection === "overview" ? "page" : undefined}
+                  className={activePanelSection === "overview" ? "active" : ""}
+                  type="button"
+                  onClick={() => switchPanelSection("overview")}
+                >
+                  <PanelIcon name="home" />
+                  <span>Genel Bakış</span>
+                </button>
+                <button
+                  aria-current={activePanelSection === "orders" ? "page" : undefined}
+                  className={activePanelSection === "orders" ? "active" : ""}
+                  type="button"
+                  onClick={() => switchPanelSection("orders")}
+                >
+                  <PanelIcon name="orders" />
+                  <span>Siparişler</span>
+                  {newOrderCount > 0 ? (
+                    <span className="business-panel-nav-badge">{newOrderCount}</span>
+                  ) : null}
+                </button>
+                <button
+                  aria-current={
+                    activePanelSection === "products" || activePanelSection === "create"
+                      ? "page"
+                      : undefined
+                  }
+                  className={
+                    activePanelSection === "products" || activePanelSection === "create"
+                      ? "active"
+                      : ""
+                  }
+                  type="button"
+                  onClick={() => switchPanelSection("products")}
+                >
+                  <PanelIcon name="package" />
+                  <span>Ürünler</span>
+                </button>
+                <button
+                  aria-current={activePanelSection === "categories" ? "page" : undefined}
+                  className={activePanelSection === "categories" ? "active" : ""}
+                  type="button"
+                  onClick={() => switchPanelSection("categories")}
+                >
+                  <PanelIcon name="categories" />
+                  <span>Kategoriler</span>
+                </button>
+                <button
+                  aria-current={activePanelSection === "profile" ? "page" : undefined}
+                  className={activePanelSection === "profile" ? "active" : ""}
+                  type="button"
+                  onClick={() => switchPanelSection("profile")}
+                >
+                  <PanelIcon name="store" />
+                  <span>İşletme Bilgileri</span>
+                </button>
+                <button
+                  aria-current={activePanelSection === "qr" ? "page" : undefined}
+                  className={activePanelSection === "qr" ? "active" : ""}
+                  type="button"
+                  onClick={() => switchPanelSection("qr")}
+                >
+                  <PanelIcon name="qr" />
+                  <span>QR Kod</span>
+                </button>
+                <button
+                  aria-current={activePanelSection === "renewal" ? "page" : undefined}
+                  className={activePanelSection === "renewal" ? "active" : ""}
+                  type="button"
+                  onClick={() => switchPanelSection("renewal")}
+                >
+                  <PanelIcon name="subscription" />
+                  <span>Abonelik</span>
+                </button>
+              </nav>
               <div className="business-panel-sidebar-membership">
                 <span>Üyelik durumu</span>
                 <strong>{subscriptionLabel}</strong>
@@ -1666,6 +1753,10 @@ export default function PanelPage() {
                   Üyelik ayrıntıları
                 </button>
               </div>
+              <button className="business-panel-logout" type="button" onClick={logout}>
+                <PanelIcon name="logout" />
+                Çıkış Yap
+              </button>
             </aside>
 
             <div className="business-panel-content">
@@ -1676,6 +1767,7 @@ export default function PanelPage() {
                   <div>
                     <span className="business-panel-section-kicker">Bugünün görünümü</span>
                     <h2>Genel Bakış</h2>
+                    <p>İşletmenizin güncel durumunu hızlıca takip edin.</p>
                   </div>
                   <span
                     className={`business-panel-status-chip ${
@@ -1692,22 +1784,34 @@ export default function PanelPage() {
                 >
                   <div className="business-panel-operations">
                     <div className="business-panel-operation-card priority">
-                      <span>Bugünkü sipariş</span>
+                      <span className="business-panel-operation-label">
+                        Bugünkü sipariş
+                        <i><PanelIcon name="orders" size={17} /></i>
+                      </span>
                       <strong>{dashboardSummary?.orders.total ?? "—"}</strong>
                       <small>İptaller dahil</small>
                     </div>
                     <div className="business-panel-operation-card">
-                      <span>Bekleyen sipariş</span>
+                      <span className="business-panel-operation-label">
+                        Bekleyen sipariş
+                        <i><PanelIcon name="bell" size={17} /></i>
+                      </span>
                       <strong>{dashboardSummary?.orders.pending ?? "—"}</strong>
                       <small>Yeni, hazırlanıyor ve hazır</small>
                     </div>
                     <div className="business-panel-operation-card">
-                      <span>Tamamlanan sipariş</span>
+                      <span className="business-panel-operation-label">
+                        Tamamlanan sipariş
+                        <i><PanelIcon name="package" size={17} /></i>
+                      </span>
                       <strong>{dashboardSummary?.orders.delivered ?? "—"}</strong>
                       <small>Teslim edilen</small>
                     </div>
                     <div className="business-panel-operation-card">
-                      <span>Günlük ciro</span>
+                      <span className="business-panel-operation-label">
+                        Günlük ciro
+                        <i><PanelIcon name="subscription" size={17} /></i>
+                      </span>
                       <strong>
                         {dashboardSummary
                           ? formatPrice(dashboardSummary.revenue.delivered)
@@ -1734,6 +1838,37 @@ export default function PanelPage() {
                       </button>
                     </div>
                   ) : null}
+                </div>
+
+                <div className="business-panel-subsection-heading">
+                  <span className="business-panel-section-kicker">Kısayollar</span>
+                  <h3>Hızlı İşlemler</h3>
+                </div>
+                <div className="business-panel-quick-actions">
+                  <button type="button" onClick={() => switchPanelSection("create")}>
+                    <i><PanelIcon name="plus" size={19} /></i>
+                    <span>
+                      <strong>Yeni Ürün Ekle</strong>
+                      <small>Menünüze yeni bir ürün ekleyin</small>
+                    </span>
+                    <PanelIcon name="arrow" size={17} />
+                  </button>
+                  <button type="button" onClick={() => switchPanelSection("qr")}>
+                    <i><PanelIcon name="qr" size={19} /></i>
+                    <span>
+                      <strong>QR Kodumu Gör</strong>
+                      <small>Sipariş sayfanızı paylaşın</small>
+                    </span>
+                    <PanelIcon name="arrow" size={17} />
+                  </button>
+                  <button type="button" onClick={() => switchPanelSection("profile")}>
+                    <i><PanelIcon name="edit" size={18} /></i>
+                    <span>
+                      <strong>Bilgileri Düzenle</strong>
+                      <small>İşletmenizi güncel tutun</small>
+                    </span>
+                    <PanelIcon name="arrow" size={17} />
+                  </button>
                 </div>
 
                 <section className="business-panel-recent-orders">
@@ -1766,7 +1901,9 @@ export default function PanelPage() {
                         >
                           <span>
                             <strong>#{order.orderNumber}</strong>
+                            <b>{order.customerName}</b>
                             <small>
+                              {order.items.reduce((total, item) => total + item.quantity, 0)} ürün ·{" "}
                               {order.orderType === "delivery" ? "Teslimat" : "Gel-al"} ·{" "}
                               {formatDateTime(order.createdAt)}
                             </small>
@@ -1783,21 +1920,30 @@ export default function PanelPage() {
                   )}
                 </section>
 
-                <div className="business-panel-quick-actions">
-                  <button type="button" onClick={() => switchPanelSection("create")}>
-                    <strong>Yeni Ürün Ekle</strong>
-                    <span>Menüye yeni bir ürün ekleyin</span>
+                <section className="business-panel-membership-card">
+                  <div>
+                    <span>Üyelik durumu</span>
+                    <strong>{subscriptionLabel}</strong>
+                    <p>
+                      Ürün ve profil işlemleriniz mevcut abonelik kurallarıyla korunur.
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => switchPanelSection("renewal")}>
+                    Üyelik ayrıntıları
                   </button>
-                  <button type="button" onClick={() => openOrdersFromOverview()}>
-                    <strong>Siparişlere Git</strong>
-                    <span>Yeni ve devam eden siparişleri yönetin</span>
-                  </button>
-                  <button type="button" onClick={() => switchPanelSection("profile")}>
-                    <strong>İşletme Bilgileri</strong>
-                    <span>Profil ve sipariş ayarlarını düzenleyin</span>
-                  </button>
-                </div>
+                </section>
+              </section>
+            ) : null}
 
+            {activePanelSection === "qr" ? (
+              <section className="section panel-section business-panel-section business-panel-qr-section">
+                <div className="business-panel-section-heading">
+                  <div>
+                    <span className="business-panel-section-kicker">Müşteri bağlantısı</span>
+                    <h2>QR Kod</h2>
+                    <p>Müşterilerinizi gerçek sipariş sayfanıza yönlendirin.</p>
+                  </div>
+                </div>
                 <section
                   className="panel-qr-card panel-qr-print-target business-panel-qr-card"
                   aria-labelledby="panel-qr-title"
@@ -1807,8 +1953,8 @@ export default function PanelPage() {
                       <span className="panel-qr-kicker">Müşteri sipariş sayfası</span>
                       <h3 id="panel-qr-title">Müşteri QR Kodu</h3>
                       <p>
-                        QR kodu masanızda veya paketlerinizde kullanarak müşterileri
-                        doğrudan sipariş sayfanıza yönlendirin.
+                        QR kodu masalarda, paketlerde veya işletme girişinde
+                        kullanabilirsiniz.
                       </p>
                       <strong className="panel-qr-print-business-name">
                         {business.name}
@@ -1837,9 +1983,7 @@ export default function PanelPage() {
                         </div>
 
                         {qrError ? (
-                          <p className="panel-qr-error" role="alert">
-                            {qrError}
-                          </p>
+                          <p className="panel-qr-error" role="alert">{qrError}</p>
                         ) : null}
 
                         {customerOrderUrl ? (
@@ -1852,9 +1996,7 @@ export default function PanelPage() {
                             {customerOrderUrl}
                           </a>
                         ) : (
-                          <p className="panel-qr-status">
-                            Sipariş bağlantısı hazırlanıyor...
-                          </p>
+                          <p className="panel-qr-status">Sipariş bağlantısı hazırlanıyor...</p>
                         )}
 
                         <div className="panel-qr-actions panel-qr-screen-only">
@@ -1887,19 +2029,6 @@ export default function PanelPage() {
                       </p>
                     )}
                   </div>
-                </section>
-
-                <section className="business-panel-membership-card">
-                  <div>
-                    <span>Üyelik durumu</span>
-                    <strong>{subscriptionLabel}</strong>
-                    <p>
-                      Ürün ve profil işlemleriniz mevcut abonelik kurallarıyla korunur.
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => switchPanelSection("renewal")}>
-                    Üyelik ayrıntıları
-                  </button>
                 </section>
               </section>
             ) : null}
@@ -1940,6 +2069,42 @@ export default function PanelPage() {
                 onToggleOrderDetails={toggleOrderDetails}
                 onUpdateOrderStatus={changeOrderStatus}
               />
+            ) : null}
+
+            {activePanelSection === "categories" ? (
+              <section className="section panel-section business-panel-section business-panel-categories-section">
+                <div className="business-panel-section-heading">
+                  <div>
+                    <span className="business-panel-section-kicker">Menü düzeni</span>
+                    <h2>Kategoriler</h2>
+                    <p>Ürünlerinizde kullanılan kategorilerin güncel görünümü.</p>
+                  </div>
+                </div>
+                <p className="business-panel-category-note">
+                  Kategoriler ürün kayıtlarından oluşur. Bir kategoriyi değiştirmek
+                  için ilgili ürünü düzenleyin.
+                </p>
+                {categorySummaries.length === 0 ? (
+                  <p className="empty-cart">Henüz kategori oluşturacak bir ürün yok.</p>
+                ) : (
+                  <div className="business-panel-category-list">
+                    {categorySummaries.map((category) => (
+                      <button
+                        key={category.name}
+                        type="button"
+                        onClick={() => openCategoryProducts(category.name)}
+                      >
+                        <i><PanelIcon name="categories" size={18} /></i>
+                        <span>
+                          <strong>{category.name}</strong>
+                          <small>{category.count} ürün</small>
+                        </span>
+                        <PanelIcon name="arrow" size={17} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
             ) : null}
 
             {activePanelSection === "renewal" ? (
@@ -2411,7 +2576,10 @@ export default function PanelPage() {
                 </p>
               ) : null}
 
-              <form className="customer-form panel-form" onSubmit={handleSubmit}>
+              <form
+                className="customer-form panel-form business-panel-product-form"
+                onSubmit={handleSubmit}
+              >
                 <div className="field">
                   <label htmlFor="name">Ürün adı</label>
                   <input
@@ -2476,7 +2644,7 @@ export default function PanelPage() {
                   ) : null}
                 </div>
 
-                <div className="field">
+                <div className="field business-panel-form-wide">
                   <label htmlFor="description">Açıklama</label>
                   <textarea
                     disabled={!canManageProducts || isSaving || isUploadingImage}
@@ -2510,7 +2678,7 @@ export default function PanelPage() {
                   />
                 </div>
 
-                <div className="field">
+                <div className="field business-panel-form-wide business-panel-image-field">
                   <label htmlFor="imageFile">Ürün görseli yükle</label>
                   <input
                     accept="image/png,image/jpeg,image/webp"
@@ -2545,42 +2713,49 @@ export default function PanelPage() {
                   />
                 </div>
 
-                <label className="field">
-                  <span>Aktif ürün</span>
-                  <input
-                    checked={form.isActive}
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
-                    type="checkbox"
-                    onChange={(event) =>
-                      updateForm("isActive", event.target.checked)
-                    }
-                  />
+                <label className="field business-panel-sale-status">
+                  <span>Satış Durumu</span>
+                  <span className="business-panel-switch-row">
+                    <input
+                      checked={form.isActive}
+                      disabled={!canManageProducts || isSaving || isUploadingImage}
+                      type="checkbox"
+                      onChange={(event) =>
+                        updateForm("isActive", event.target.checked)
+                      }
+                    />
+                    <strong>{form.isActive ? "Satışta" : "Satış Dışı"}</strong>
+                  </span>
                 </label>
 
-                <button
-                  className="submit-button panel-primary-action"
-                  disabled={!canManageProducts || isSaving || isUploadingImage}
-                  type="submit"
-                >
-                  {isUploadingImage
-                    ? "Görsel yükleniyor..."
-                    : isSaving
-                    ? "Kaydediliyor..."
-                    : editingProductId
-                      ? "Ürünü Güncelle"
-                      : "Ürün Ekle"}
-                </button>
-
-                {editingProductId ? (
+                <div className="business-panel-form-actions">
                   <button
                     className="submit-button panel-secondary-action"
                     disabled={isSaving || isUploadingImage}
                     type="button"
-                    onClick={resetForm}
+                    onClick={() => {
+                      resetForm();
+                      if (activePanelSection === "create") {
+                        switchPanelSection("products");
+                      }
+                    }}
                   >
-                    Vazgec
+                    Vazgeç
                   </button>
-                ) : null}
+                  <button
+                    className="submit-button panel-primary-action"
+                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    type="submit"
+                  >
+                    {isUploadingImage
+                      ? "Görsel yükleniyor..."
+                      : isSaving
+                      ? "Kaydediliyor..."
+                      : editingProductId
+                        ? "Ürünü Güncelle"
+                        : "Ürünü Kaydet"}
+                  </button>
+                </div>
               </form>
             </section>
             ) : null}
@@ -2691,7 +2866,7 @@ export default function PanelPage() {
                                 product.isActive ? "active" : "passive"
                               }`}
                             >
-                              {product.isActive ? "Aktif" : "Pasif"}
+                              {product.isActive ? "Satışta" : "Satış Dışı"}
                             </span>
                           </span>
                           <span className="panel-compact-toggle">
@@ -2711,7 +2886,7 @@ export default function PanelPage() {
                               </p>
                               <p>
                                 <strong>Durum</strong>
-                                <span>{product.isActive ? "Aktif" : "Pasif"}</span>
+                                <span>{product.isActive ? "Satışta" : "Satış Dışı"}</span>
                               </p>
                               <p>
                                 <strong>Sıra</strong>
@@ -2781,6 +2956,121 @@ export default function PanelPage() {
           </div>
         )}
       </div>
+
+      <nav className="business-panel-mobile-nav" aria-label="Mobil panel navigasyonu">
+        <button
+          aria-current={activePanelSection === "overview" ? "page" : undefined}
+          className={activePanelSection === "overview" ? "active" : ""}
+          type="button"
+          onClick={() => switchPanelSection("overview")}
+        >
+          <PanelIcon name="home" size={20} />
+          <span>Genel</span>
+        </button>
+        <button
+          aria-current={activePanelSection === "orders" ? "page" : undefined}
+          className={activePanelSection === "orders" ? "active" : ""}
+          type="button"
+          onClick={() => switchPanelSection("orders")}
+        >
+          <PanelIcon name="orders" size={20} />
+          <span>Siparişler</span>
+          {newOrderCount > 0 ? (
+            <small className="business-panel-mobile-badge">{newOrderCount}</small>
+          ) : null}
+        </button>
+        <button
+          aria-current={
+            activePanelSection === "products" || activePanelSection === "create"
+              ? "page"
+              : undefined
+          }
+          className={
+            activePanelSection === "products" || activePanelSection === "create"
+              ? "active"
+              : ""
+          }
+          type="button"
+          onClick={() => switchPanelSection("products")}
+        >
+          <PanelIcon name="package" size={20} />
+          <span>Ürünler</span>
+        </button>
+        <button
+          aria-expanded={isMobileMenuOpen}
+          className={
+            isMobileMenuOpen ||
+            ["categories", "profile", "qr", "renewal"].includes(activePanelSection)
+              ? "active"
+              : ""
+          }
+          type="button"
+          onClick={openMobileMenu}
+        >
+          <PanelIcon name="menu" size={20} />
+          <span>Menü</span>
+        </button>
+      </nav>
+
+      {isMobileMenuOpen ? (
+        <div
+          className="business-panel-mobile-menu-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsMobileMenuOpen(false);
+          }}
+        >
+          <aside
+            aria-label="Panel menüsü"
+            aria-modal="true"
+            className="business-panel-mobile-menu"
+            ref={mobileMenuDialogRef}
+            role="dialog"
+            tabIndex={-1}
+          >
+            <div className="business-panel-mobile-menu-head">
+              <div>
+                <span>İşletme Paneli</span>
+                <strong>{business?.name}</strong>
+              </div>
+              <button
+                aria-label="Menüyü kapat"
+                ref={mobileMenuCloseRef}
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <PanelIcon name="close" size={21} />
+              </button>
+            </div>
+            <nav aria-label="İkincil panel bölümleri">
+              <button type="button" onClick={() => switchPanelSection("categories")}>
+                <PanelIcon name="categories" />
+                <span>Kategoriler</span>
+                <PanelIcon name="arrow" size={17} />
+              </button>
+              <button type="button" onClick={() => switchPanelSection("profile")}>
+                <PanelIcon name="store" />
+                <span>İşletme Bilgileri</span>
+                <PanelIcon name="arrow" size={17} />
+              </button>
+              <button type="button" onClick={() => switchPanelSection("qr")}>
+                <PanelIcon name="qr" />
+                <span>QR Kod</span>
+                <PanelIcon name="arrow" size={17} />
+              </button>
+              <button type="button" onClick={() => switchPanelSection("renewal")}>
+                <PanelIcon name="subscription" />
+                <span>Abonelik</span>
+                <PanelIcon name="arrow" size={17} />
+              </button>
+            </nav>
+            <button className="business-panel-mobile-logout" type="button" onClick={logout}>
+              <PanelIcon name="logout" />
+              Çıkış Yap
+            </button>
+          </aside>
+        </div>
+      ) : null}
     </main>
   );
 }

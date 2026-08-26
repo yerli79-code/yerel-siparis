@@ -54,7 +54,8 @@
     label,
     button
   ) {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .panelScope > :global(.shell.section) {
@@ -1890,5 +1891,1332 @@
     padding-top: 8px;
     color: #000;
     text-align: center;
+  }
+}
+
+/* P6.1A — approved business-panel direction, scoped to screen presentation. */
+@media screen {
+  .panelScope {
+    min-height: 100dvh;
+    max-width: 100%;
+    overflow-x: clip;
+    background: #f4f5f2;
+    padding: 0 0 calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .panelScope :global(.business-panel-shell) {
+    width: 100%;
+    max-width: none;
+  }
+
+  .panelScope :global(.business-panel-header) {
+    position: sticky;
+    z-index: 35;
+    top: 0;
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    border-bottom: 1px solid #e1e7df;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 10px 14px;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .panelScope :global(.business-panel-menu-trigger),
+  .panelScope :global(.business-panel-header-icon) {
+    display: inline-grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #526157;
+  }
+
+  .panelScope :global(.business-panel-header-copy) {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .panelScope :global(.business-panel-header .panel-platform-brand),
+  .panelScope :global(.business-panel-header-copy p),
+  .panelScope :global(.business-panel-header .business-panel-identity-logo) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-header-copy h1) {
+    min-width: 0;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .panelScope :global(.business-panel-eyebrow) {
+    overflow: hidden;
+    color: #7b877e;
+    font-size: 9px;
+    letter-spacing: 0.11em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.business-panel-header-status) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-workspace) {
+    display: block;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .panelScope :global(.business-panel-sidebar) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-content) {
+    display: grid;
+    min-width: 0;
+    width: 100%;
+    gap: 14px;
+    padding: 20px 14px 12px;
+  }
+
+  .panelScope :global(.business-panel-section) {
+    min-width: 0;
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+    background: #fff;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(17, 44, 30, 0.045);
+  }
+
+  .panelScope :global(.panel-overview-section) {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.business-panel-section-heading) {
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+
+  .panelScope :global(.business-panel-section-heading h2) {
+    margin: 2px 0 0;
+    font-size: 22px;
+  }
+
+  .panelScope :global(.business-panel-section-heading p) {
+    margin: 3px 0 0;
+    color: #68756c;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .panelScope :global(.business-panel-section-kicker) {
+    color: #839087;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .panelScope :global(.business-panel-status-chip) {
+    min-height: 30px;
+    border-radius: 999px;
+    padding: 5px 10px;
+  }
+
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .panelScope :global(.business-panel-operation-card),
+  .panelScope :global(.business-panel-operation-card.priority) {
+    min-height: 108px;
+    align-content: start;
+    gap: 4px;
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+    background: #fff;
+    padding: 13px;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.business-panel-operation-label) {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px;
+    font-size: 11px;
+  }
+
+  .panelScope :global(.business-panel-operation-label i) {
+    display: grid;
+    width: 29px;
+    height: 29px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 7px;
+    background: #eef5e9;
+    color: #095d27;
+    font-style: normal;
+  }
+
+  .panelScope :global(.business-panel-operation-card strong) {
+    margin-top: 2px;
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .panelScope :global(.business-panel-operation-card small) {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .panelScope :global(.business-panel-recent-orders),
+  .panelScope :global(.business-panel-membership-card),
+  .panelScope :global(.business-panel-form-group),
+  .panelScope :global(.panel-qr-card),
+  .panelScope :global(.renewal-card) {
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.business-panel-recent-order) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 62px;
+    border: 0;
+    border-bottom: 1px solid #edf0ec;
+    border-radius: 0;
+    background: #fff;
+    padding: 11px 4px;
+  }
+
+  .panelScope :global(.business-panel-recent-order:last-child) {
+    border-bottom: 0;
+  }
+
+  .panelScope :global(.business-panel-recent-order.new),
+  .panelScope :global(.business-panel-order-new) {
+    border-left-color: #23912f;
+    background: #fbfdf9;
+  }
+
+  .panelScope :global(.business-panel-recent-order > span:first-child b) {
+    display: block;
+    margin-top: 2px;
+    color: #112c1e;
+    font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .panelScope :global(.business-panel-quick-actions) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .panelScope :global(.business-panel-subsection-heading) {
+    display: grid;
+    gap: 2px;
+    margin-bottom: -4px;
+  }
+
+  .panelScope :global(.business-panel-subsection-heading h3) {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .panelScope :global(.business-panel-quick-actions button) {
+    display: grid;
+    min-width: 0;
+    min-height: 66px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+    background: #fff;
+    padding: 12px;
+    text-align: left;
+  }
+
+  .panelScope :global(.business-panel-quick-actions button > i) {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 8px;
+    background: #dcebc7;
+    color: #095d27;
+    font-style: normal;
+  }
+
+  .panelScope :global(.business-panel-quick-actions button > span) {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+    color: #112c1e;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .panelScope :global(.business-panel-quick-actions strong),
+  .panelScope :global(.business-panel-quick-actions small) {
+    min-width: 0;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .panelScope :global(.business-panel-quick-actions small) {
+    color: #748078;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .panelScope :global(.business-panel-quick-actions button > svg) {
+    color: #849087;
+  }
+
+  .panelScope :global(.business-panel-category-note) {
+    margin: 0 0 14px;
+    border: 1px solid #dcebc7;
+    border-radius: 9px;
+    background: #f6f9f2;
+    color: #526157;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .panelScope :global(.business-panel-category-list) {
+    display: grid;
+    gap: 8px;
+  }
+
+  .panelScope :global(.business-panel-category-list button) {
+    display: grid;
+    min-width: 0;
+    min-height: 62px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #e1e7df;
+    border-radius: 9px;
+    background: #fff;
+    color: #112c1e;
+    padding: 11px 12px;
+    text-align: left;
+  }
+
+  .panelScope :global(.business-panel-category-list button > i) {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 8px;
+    background: #eef5e9;
+    color: #095d27;
+    font-style: normal;
+  }
+
+  .panelScope :global(.business-panel-category-list button > span) {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .panelScope :global(.business-panel-category-list small) {
+    color: #748078;
+  }
+
+  .panelScope :global(.panel-order-filter-form) {
+    gap: 10px;
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+    background: #f8faf7;
+    padding: 12px;
+  }
+
+  .panelScope :global(.panel-order-filter-field input),
+  .panelScope :global(.panel-order-page-size select),
+  .panelScope :global(.panel-order-detail-status select) {
+    min-height: 44px;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .panelScope :global(.business-panel-order-filters),
+  .panelScope :global(.panel-category-filter) {
+    scrollbar-width: none;
+  }
+
+  .panelScope :global(.business-panel-order-filters::-webkit-scrollbar),
+  .panelScope :global(.panel-category-filter::-webkit-scrollbar) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-order-filters button),
+  .panelScope :global(.panel-category-chip) {
+    min-height: 44px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .panelScope :global(.panel-order-list),
+  .panelScope :global(.panel-product-list) {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .panelScope :global(.panel-order-card),
+  .panelScope :global(.panel-product-card) {
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid #edf0ec;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.panel-order-card:last-child),
+  .panelScope :global(.panel-product-card:last-child) {
+    border-bottom: 0;
+  }
+
+  .panelScope :global(.panel-order-row) {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    grid-template-columns: 64px minmax(0, 1fr) auto 22px;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    background: #fff;
+    color: #112c1e;
+    padding: 11px;
+    text-align: left;
+  }
+
+  .panelScope :global(.panel-order-number),
+  .panelScope :global(.panel-order-main),
+  .panelScope :global(.panel-order-type),
+  .panelScope :global(.panel-order-payment),
+  .panelScope :global(.panel-order-meta) {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .panelScope :global(.panel-order-number strong) {
+    color: #095d27;
+    font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+    font-size: 12px;
+  }
+
+  .panelScope :global(.panel-order-number small),
+  .panelScope :global(.panel-order-main small),
+  .panelScope :global(.panel-order-type small),
+  .panelScope :global(.panel-order-payment small),
+  .panelScope :global(.panel-order-meta span) {
+    color: #748078;
+    font-size: 10px;
+  }
+
+  .panelScope :global(.panel-order-number small) {
+    display: none;
+  }
+
+  .panelScope :global(.panel-order-main strong) {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: normal;
+    word-break: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .panelScope :global(.panel-order-type),
+  .panelScope :global(.panel-order-payment),
+  .panelScope :global(.panel-order-meta) {
+    display: none;
+  }
+
+  .panelScope :global(.panel-order-row > .order-status-badge) {
+    min-width: max-content;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.panel-order-toggle) {
+    display: grid;
+    width: 22px;
+    min-width: 22px;
+    height: 44px;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: #849087;
+    padding: 0;
+  }
+
+  .panelScope :global(.panel-order-detail-overlay) {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(17, 44, 30, 0.38);
+  }
+
+  .panelScope :global(.panel-order-detail) {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+    border: 0;
+    background: #fff;
+    padding: 0;
+    box-shadow: -10px 0 30px rgba(17, 44, 30, 0.12);
+  }
+
+  .panelScope :global(.panel-order-detail-header) {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #e8ece7;
+    padding: 18px 16px 14px;
+  }
+
+  .panelScope :global(.panel-order-detail-header > div) {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+  }
+
+  .panelScope :global(.panel-order-detail-header span),
+  .panelScope :global(.panel-order-detail-block > span),
+  .panelScope :global(.panel-order-detail-status > span) {
+    color: #849087;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .panelScope :global(.panel-order-detail-header h3) {
+    margin: 0;
+    font-size: 19px;
+  }
+
+  .panelScope :global(.panel-order-detail-header button) {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: #f4f5f2;
+    color: #526157;
+  }
+
+  .panelScope :global(.panel-order-detail-scroll) {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px;
+  }
+
+  .panelScope :global(.panel-order-detail-block) {
+    display: grid;
+    min-width: 0;
+    gap: 5px;
+    border-bottom: 1px solid #edf0ec;
+    padding: 17px 0;
+  }
+
+  .panelScope :global(.panel-order-detail-block strong) {
+    color: #112c1e;
+    font-size: 13px;
+  }
+
+  .panelScope :global(.panel-order-detail-block a),
+  .panelScope :global(.panel-order-detail-block p) {
+    margin: 0;
+    color: #657269;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .panelScope :global(.panel-order-detail-block a) {
+    color: #095d27;
+    text-decoration: none;
+  }
+
+  .panelScope :global(.panel-order-detail .panel-order-address) {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .panelScope :global(.panel-order-detail .panel-order-items) {
+    display: grid;
+    gap: 0;
+  }
+
+  .panelScope :global(.panel-order-detail .panel-order-item) {
+    border-bottom: 1px solid #edf0ec;
+    background: #fff;
+    padding: 10px 0;
+  }
+
+  .panelScope :global(.panel-order-detail-total) {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0 2px;
+    font-size: 14px;
+  }
+
+  .panelScope :global(.panel-order-detail-total strong) {
+    color: #095d27;
+  }
+
+  .panelScope :global(.panel-order-detail .panel-order-note) {
+    margin-top: 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #f4f7f2;
+    padding: 12px;
+  }
+
+  .panelScope :global(.panel-order-detail-status) {
+    display: grid;
+    gap: 7px;
+    padding-top: 18px;
+  }
+
+  .panelScope :global(.panel-order-detail-actions) {
+    border-top: 1px solid #e1e7df;
+    background: #fff;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .panelScope :global(.panel-order-detail-actions) .orderPrintControls {
+    border: 0;
+    padding: 0;
+  }
+
+  .panelScope :global(.panel-order-pagination-footer) {
+    margin-top: 14px;
+  }
+
+  .panelScope :global(.panel-compact-row) {
+    min-height: 70px;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 9px;
+    padding: 10px 11px;
+  }
+
+  .panelScope :global(.panel-compact-row .panel-product-thumb) {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+  }
+
+  .panelScope :global(.panel-compact-main strong) {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .panelScope :global(.panel-compact-meta) {
+    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .panelScope :global(.panel-compact-toggle) {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    overflow: hidden;
+    color: transparent;
+    padding: 0;
+  }
+
+  .panelScope :global(.panel-compact-toggle::after) {
+    content: "›";
+    color: #657269;
+    font-size: 24px;
+  }
+
+  .panelScope :global(.panel-product-status) {
+    min-height: 26px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .panelScope :global(.business-panel-product-form) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .panelScope :global(.business-panel-image-field input[type="file"]) {
+    border: 1px dashed #aebdad;
+    background: #f8faf7;
+    padding: 14px;
+  }
+
+  .panelScope :global(.business-panel-sale-status) {
+    align-content: start;
+  }
+
+  .panelScope :global(.business-panel-switch-row) {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 10px;
+    color: #526157;
+  }
+
+  .panelScope :global(.business-panel-switch-row input) {
+    width: 20px;
+    height: 20px;
+    accent-color: #23912f;
+  }
+
+  .panelScope :global(.business-panel-form-actions) {
+    display: flex;
+    min-width: 0;
+    flex-direction: column-reverse;
+    gap: 8px;
+    border-top: 1px solid #edf0ec;
+    padding-top: 16px;
+  }
+
+  .panelScope :global(.business-panel-form-actions button) {
+    min-height: 44px;
+  }
+
+  .panelScope :global(.business-panel-qr-section) {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.business-panel-qr-card) {
+    padding: 20px 14px;
+  }
+
+  .panelScope :global(.business-panel-qr-layout) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panelScope :global(.business-panel-qr-tools) {
+    justify-items: center;
+  }
+
+  .panelScope :global(.panel-qr-link) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .panelScope :global(.panel-qr-actions) {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panelScope :global(.panel-qr-actions button) {
+    min-height: 44px;
+  }
+
+  .panelScope :global(.business-panel-mobile-nav) {
+    position: fixed;
+    z-index: 70;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid #dce3da;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 24px rgba(17, 44, 30, 0.09);
+  }
+
+  .panelScope :global(.business-panel-mobile-nav button) {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 56px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 3px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #77837a;
+    padding: 5px 2px;
+    font-size: 10px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.business-panel-mobile-nav button.active) {
+    background: #eef5e9;
+    color: #095d27;
+  }
+
+  .panelScope :global(.business-panel-mobile-badge) {
+    position: absolute;
+    top: 3px;
+    left: calc(50% + 8px);
+    display: grid;
+    min-width: 18px;
+    height: 18px;
+    place-items: center;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: #c02c22;
+    color: #fff;
+    padding: 0 4px;
+    font-size: 9px;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu-overlay) {
+    position: fixed;
+    z-index: 120;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(17, 44, 30, 0.42);
+  }
+
+  .panelScope :global(.business-panel-mobile-menu) {
+    display: grid;
+    width: 100%;
+    max-height: min(82dvh, 680px);
+    gap: 14px;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    background: #fff;
+    padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 -14px 36px rgba(17, 44, 30, 0.18);
+  }
+
+  .panelScope :global(.business-panel-mobile-menu-head) {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu-head > div) {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu-head span) {
+    color: #7b877e;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu-head strong) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu-head button) {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: #f4f5f2;
+    color: #526157;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu nav) {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid #e1e7df;
+    border-radius: 10px;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu nav button) {
+    display: grid;
+    min-width: 0;
+    min-height: 54px;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    border-bottom: 1px solid #edf0ec;
+    background: #fff;
+    color: #23382a;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .panelScope :global(.business-panel-mobile-menu nav button:last-child) {
+    border-bottom: 0;
+  }
+
+  .panelScope :global(.business-panel-mobile-logout) {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid #e3cbc8;
+    border-radius: 9px;
+    background: #fff8f7;
+    color: #9a2e26;
+    font-weight: 700;
+  }
+
+  .panelScope :global(button:focus-visible),
+  .panelScope :global(a:focus-visible),
+  .panelScope :global(input:focus-visible),
+  .panelScope :global(select:focus-visible),
+  .panelScope :global(textarea:focus-visible) {
+    outline: 3px solid rgba(35, 145, 47, 0.28);
+    outline-offset: 2px;
+  }
+
+  .panelScope > :global(.business-panel-shell > .new-order-alert),
+  .panelScope > :global(.business-panel-shell > .alert) {
+    margin-inline: 14px;
+  }
+
+  .panelScope :global(.new-order-alert) {
+    border-radius: 10px;
+    background: #f6fbef;
+  }
+}
+
+@media screen and (min-width: 700px) {
+  .panelScope :global(.business-panel-content) {
+    padding: 26px 24px 32px;
+  }
+
+  .panelScope :global(.business-panel-operation-card),
+  .panelScope :global(.business-panel-operation-card.priority) {
+    min-height: 116px;
+  }
+
+  .panelScope :global(.business-panel-quick-actions),
+  .panelScope :global(.business-panel-category-list) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .panelScope :global(.business-panel-product-form) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panelScope :global(.business-panel-form-wide),
+  .panelScope :global(.business-panel-form-actions) {
+    grid-column: 1 / -1;
+  }
+
+  .panelScope :global(.business-panel-form-actions) {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .panelScope :global(.business-panel-form-actions button) {
+    width: auto;
+    min-width: 140px;
+  }
+
+  .panelScope :global(.panel-order-detail) {
+    width: 430px;
+  }
+
+  .panelScope :global(.panel-qr-actions) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .panelScope {
+    padding: 0;
+  }
+
+  .panelScope :global(.business-panel-shell) {
+    display: grid;
+    min-height: 100vh;
+    grid-template-columns: 238px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .panelScope :global(.business-panel-header) {
+    position: sticky;
+    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+    min-height: 82px;
+    padding: 12px 34px;
+  }
+
+  .panelScope :global(.business-panel-menu-trigger) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-header-status) {
+    display: flex;
+  }
+
+  .panelScope :global(.business-panel-header-copy h1) {
+    font-size: 20px;
+  }
+
+  .panelScope :global(.business-panel-workspace) {
+    display: contents;
+  }
+
+  .panelScope :global(.business-panel-sidebar) {
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    grid-column: 1;
+    grid-row: 1 / span 50;
+    display: flex;
+    min-width: 0;
+    width: 238px;
+    height: 100vh;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #e1e7df;
+    background: #fff;
+    padding: 23px 14px 16px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-brand) {
+    padding: 0 8px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-brand .panel-platform-brand) {
+    display: flex;
+    margin: 0;
+  }
+
+  .panelScope
+    :global(.business-panel-sidebar-brand .platform-brand-public-mark) {
+    width: 32px;
+  }
+
+  .panelScope
+    :global(.business-panel-sidebar-brand .platform-brand-public-wordmark) {
+    font-size: 19px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-identity) {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    border: 1px solid #e5ebe2;
+    border-radius: 10px;
+    background: #f4f7f2;
+    padding: 9px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-identity .business-panel-identity-logo) {
+    display: block;
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-identity > span) {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-identity strong),
+  .panelScope :global(.business-panel-sidebar-identity small) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .panelScope :global(.business-panel-sidebar-identity strong) {
+    font-size: 12px;
+  }
+
+  .panelScope :global(.business-panel-sidebar-identity small) {
+    color: #748078;
+    font-size: 10px;
+  }
+
+  .panelScope :global(.business-panel-desktop-nav) {
+    position: static;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.business-panel-desktop-nav button) {
+    display: grid;
+    min-width: 0;
+    min-height: 44px;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #657269;
+    padding: 9px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .panelScope :global(.business-panel-desktop-nav button.active) {
+    border-color: rgba(9, 93, 39, 0.08);
+    background: #dcebc7;
+    color: #095d27;
+    box-shadow: none;
+  }
+
+  .panelScope :global(.business-panel-nav-badge) {
+    position: static;
+    min-width: 20px;
+    min-height: 20px;
+    border-width: 0;
+  }
+
+  .panelScope :global(.business-panel-sidebar-membership) {
+    display: grid;
+    margin-top: auto;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .panelScope :global(.business-panel-logout) {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #657269;
+    padding: 9px 10px;
+    font-size: 12px;
+    text-align: left;
+  }
+
+  .panelScope :global(.business-panel-content) {
+    grid-column: 2;
+    width: min(100%, 1180px);
+    margin-inline: auto;
+    padding: 30px 36px 60px;
+  }
+
+  .panelScope > :global(.business-panel-shell > .new-order-alert),
+  .panelScope > :global(.business-panel-shell > .alert),
+  .panelScope > :global(.business-panel-shell > .section) {
+    grid-column: 2;
+    margin-inline: 36px;
+  }
+
+  .panelScope :global(.business-panel-mobile-nav),
+  .panelScope :global(.business-panel-mobile-menu-overlay) {
+    display: none;
+  }
+
+  .panelScope :global(.business-panel-section) {
+    padding: 22px;
+  }
+
+  .panelScope :global(.panel-overview-section),
+  .panelScope :global(.business-panel-qr-section) {
+    padding: 0;
+  }
+
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .panelScope :global(.business-panel-operation-card),
+  .panelScope :global(.business-panel-operation-card.priority) {
+    min-height: 120px;
+    padding: 15px;
+  }
+
+  .panelScope :global(.business-panel-quick-actions) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .panelScope :global(.business-panel-recent-order) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding-inline: 8px;
+  }
+
+  .panelScope :global(.panel-order-filter-form) {
+    grid-template-columns: minmax(240px, 1.4fr) minmax(300px, 1fr) auto;
+    align-items: end;
+  }
+
+  .panelScope :global(.panel-order-filter-actions) {
+    grid-column: auto;
+    grid-template-columns: repeat(2, max-content);
+  }
+
+  .panelScope :global(.panel-order-filter-actions button) {
+    width: auto;
+  }
+
+  .panelScope :global(.panel-order-row) {
+    min-height: 68px;
+    grid-template-columns:
+      82px
+      minmax(150px, 1.4fr)
+      100px
+      minmax(120px, 1fr)
+      90px
+      110px
+      22px;
+    gap: 10px;
+    padding: 11px 14px;
+  }
+
+  .panelScope :global(.panel-order-number small),
+  .panelScope :global(.panel-order-type),
+  .panelScope :global(.panel-order-payment),
+  .panelScope :global(.panel-order-meta) {
+    display: grid;
+  }
+
+  .panelScope :global(.panel-order-row > .order-status-badge) {
+    grid-column: auto;
+  }
+
+  .panelScope :global(.panel-order-toggle) {
+    grid-column: auto;
+  }
+
+  .panelScope :global(.panel-compact-row) {
+    grid-template-columns: 54px minmax(180px, 1.7fr) 125px 105px 44px;
+    min-height: 72px;
+    padding: 10px 14px;
+  }
+
+  .panelScope :global(.panel-compact-row .panel-product-thumb) {
+    grid-column: 1;
+    grid-row: 1;
+    width: 46px;
+    height: 46px;
+  }
+
+  .panelScope :global(.panel-compact-main) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .panelScope :global(.panel-compact-meta) {
+    grid-column: 3 / span 2;
+    grid-row: 1;
+    grid-template-columns: 120px 100px;
+  }
+
+  .panelScope :global(.panel-compact-toggle) {
+    grid-column: 5;
+    grid-row: 1;
+  }
+
+  .panelScope :global(.business-panel-qr-card) {
+    padding: 26px;
+  }
+
+  .panelScope :global(.business-panel-qr-layout) {
+    grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .panelScope :global(.business-panel-qr-tools) {
+    grid-template-columns: 230px minmax(0, 1fr);
+    justify-items: stretch;
+  }
+}
+
+@media screen and (max-width: 370px) {
+  .panelScope :global(.business-panel-operations) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panelScope :global(.business-panel-operation-card),
+  .panelScope :global(.business-panel-operation-card.priority) {
+    min-height: 112px;
+    padding: 11px;
+  }
+
+  .panelScope :global(.business-panel-operation-label) {
+    font-size: 10px;
+  }
+
+  .panelScope :global(.business-panel-operation-card strong) {
+    font-size: 22px;
+  }
+
+  .panelScope :global(.panel-order-row) {
+    grid-template-columns: 58px minmax(0, 1fr) auto 18px;
+    gap: 6px;
+    padding-inline: 9px;
+  }
+
+  .panelScope :global(.order-status-badge) {
+    padding-inline: 7px;
+    font-size: 9px;
   }
 }
