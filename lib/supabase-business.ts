@@ -44,6 +44,36 @@ export type ProductInput = {
   sortOrder?: number;
 };
 
+export type BusinessProductMutationErrorCode =
+  | "PRODUCT_CONFLICT"
+  | "PRODUCT_NOT_FOUND"
+  | "PRODUCT_FORBIDDEN"
+  | "PRODUCT_UNAUTHORIZED"
+  | "PRODUCT_UNAVAILABLE"
+  | "INVALID_PRODUCT_MUTATION";
+
+export class BusinessProductMutationError extends Error {
+  readonly code: BusinessProductMutationErrorCode;
+  readonly status: number | null;
+
+  constructor(code: BusinessProductMutationErrorCode, status: number | null) {
+    super("Ürün işlemi tamamlanamadı.");
+    this.name = "BusinessProductMutationError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+export class BusinessProductsRequestError extends Error {
+  readonly status: number | null;
+
+  constructor(status: number | null) {
+    super("Ürünler yüklenemedi.");
+    this.name = "BusinessProductsRequestError";
+    this.status = status;
+  }
+}
+
 export type BusinessProfileInput = {
   name: string;
   description?: string | null;
@@ -129,6 +159,7 @@ type SupabaseUser = {
 
 const dayMs = 24 * 60 * 60 * 1000;
 const publicFetchTimeoutMs = 9000;
+export const businessProductMutationTimeoutMs = 20000;
 const maxProductImageSize = 5 * 1024 * 1024;
 const supportedProductImageTypes = new Set([
   "image/jpeg",
@@ -307,6 +338,139 @@ function mapProduct(row: SupabaseProductRow): BusinessProduct {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function isProductAbortError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
+}
+
+function isSupabaseProductRow(value: unknown): value is SupabaseProductRow {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Partial<SupabaseProductRow>;
+  return (
+    typeof row.id === "string" &&
+    typeof row.business_id === "string" &&
+    (row.client_product_id === null || typeof row.client_product_id === "string") &&
+    typeof row.name === "string" &&
+    row.name.length > 0 &&
+    Number.isFinite(Number(row.price)) &&
+    Number(row.price) >= 0 &&
+    (row.description === null || typeof row.description === "string") &&
+    (row.category === null || typeof row.category === "string") &&
+    (row.image_label === null || typeof row.image_label === "string") &&
+    (row.image_url === null || typeof row.image_url === "string") &&
+    (row.is_active === null || typeof row.is_active === "boolean") &&
+    (row.sort_order === null ||
+      (Number.isInteger(row.sort_order) && Number(row.sort_order) >= 0)) &&
+    typeof row.created_at === "string" &&
+    typeof row.updated_at === "string" &&
+    Number.isFinite(new Date(row.updated_at).getTime())
+  );
+}
+
+function productMutationCodeForStatus(
+  status: number,
+): BusinessProductMutationErrorCode {
+  if (status === 409) return "PRODUCT_CONFLICT";
+  if (status === 404) return "PRODUCT_NOT_FOUND";
+  if (status === 403) return "PRODUCT_FORBIDDEN";
+  if (status === 401) return "PRODUCT_UNAUTHORIZED";
+  if (status === 400) return "INVALID_PRODUCT_MUTATION";
+  return "PRODUCT_UNAVAILABLE";
+}
+
+async function parseProductMutationResponse(response: Response) {
+  let body: unknown;
+  try {
+    const text = await response.text();
+    body = text ? (JSON.parse(text) as unknown) : null;
+  } catch {
+    throw new BusinessProductMutationError(
+      productMutationCodeForStatus(response.status),
+      response.status,
+    );
+  }
+
+  if (!response.ok) {
+    throw new BusinessProductMutationError(
+      productMutationCodeForStatus(response.status),
+      response.status,
+    );
+  }
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).length !== 1 ||
+    !("product" in body) ||
+    !isSupabaseProductRow(body.product)
+  ) {
+    throw new BusinessProductMutationError(
+      "PRODUCT_UNAVAILABLE",
+      response.status,
+    );
+  }
+  return mapProduct(body.product);
+}
+
+async function parseProductReorderResponse(response: Response) {
+  let body: unknown;
+  try {
+    const text = await response.text();
+    body = text ? (JSON.parse(text) as unknown) : null;
+  } catch {
+    throw new BusinessProductMutationError(
+      productMutationCodeForStatus(response.status),
+      response.status,
+    );
+  }
+
+  if (!response.ok) {
+    throw new BusinessProductMutationError(
+      productMutationCodeForStatus(response.status),
+      response.status,
+    );
+  }
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).length !== 1 ||
+    !("products" in body) ||
+    !Array.isArray(body.products) ||
+    !body.products.every(isSupabaseProductRow)
+  ) {
+    throw new BusinessProductMutationError(
+      "PRODUCT_UNAVAILABLE",
+      response.status,
+    );
+  }
+  return body.products.map(mapProduct);
+}
+
+async function runProductMutation<T>(
+  request: (signal: AbortSignal) => Promise<Response>,
+  parse: (response: Response) => Promise<T>,
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    businessProductMutationTimeoutMs,
+  );
+
+  try {
+    return await parse(await request(controller.signal));
+  } catch (error) {
+    if (error instanceof BusinessProductMutationError) throw error;
+    throw new BusinessProductMutationError("PRODUCT_UNAVAILABLE", null);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function mapPublicProduct(row: SupabasePublicProductRow): BusinessProduct {
@@ -598,16 +762,38 @@ export function isBusinessSubscriptionActive(
 export async function fetchProductsByBusinessId(
   _businessId: string,
   accessToken?: string,
+  options: { signal?: AbortSignal } = {},
 ) {
-  const response = await fetch("/api/business/products", {
-    headers: {
-      Authorization: `Bearer ${accessToken || ""}`,
-    },
-  });
-  const body = (await parseApiResponse(response)) as {
-    products?: SupabaseProductRow[];
-  };
-  return (body.products ?? []).map(mapProduct);
+  try {
+    const response = await fetch("/api/business/products", {
+      headers: { Authorization: `Bearer ${accessToken || ""}` },
+      signal: options.signal,
+    });
+    const text = await response.text();
+    let body: unknown;
+    try {
+      body = text ? (JSON.parse(text) as unknown) : null;
+    } catch {
+      throw new BusinessProductsRequestError(response.status);
+    }
+    if (!response.ok) throw new BusinessProductsRequestError(response.status);
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body) ||
+      Object.keys(body).length !== 1 ||
+      !("products" in body) ||
+      !Array.isArray(body.products) ||
+      !body.products.every(isSupabaseProductRow)
+    ) {
+      throw new BusinessProductsRequestError(response.status);
+    }
+    return body.products.map(mapProduct);
+  } catch (error) {
+    if (isProductAbortError(error)) throw error;
+    if (error instanceof BusinessProductsRequestError) throw error;
+    throw new BusinessProductsRequestError(null);
+  }
 }
 
 export async function fetchPublicProductsByBusinessId(businessId: string) {
@@ -653,33 +839,32 @@ function productApiInput(input: ProductInput) {
     imageLabel: input.imageLabel?.trim() || "",
     imageUrl: input.imageUrl?.trim() || null,
     isActive: typeof input.isActive === "boolean" ? input.isActive : true,
-    sortOrder: Number(input.sortOrder ?? 0),
+    ...(input.sortOrder === undefined
+      ? {}
+      : { sortOrder: Number(input.sortOrder) }),
   };
 }
 
 export async function createProduct(input: ProductInput, accessToken: string) {
-  const response = await fetch("/api/business/products", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      input: productApiInput(input),
-    }),
-  });
-  const body = (await parseApiResponse(response)) as {
-    product?: SupabaseProductRow;
-  };
-  if (!body.product) {
-    throw new Error("Urun olusturuldu ancak kayit bilgisi donmedi.");
-  }
-  return mapProduct(body.product);
+  return runProductMutation(
+    (signal) =>
+      fetch("/api/business/products", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ input: productApiInput(input) }),
+        signal,
+      }),
+    parseProductMutationResponse,
+  );
 }
 
 export async function updateProduct(
   productId: string,
   input: Partial<ProductInput>,
+  expectedUpdatedAt: string,
   accessToken: string,
 ) {
   const payload: Record<string, string | number | boolean | null> = {};
@@ -689,7 +874,7 @@ export async function updateProduct(
     payload.price = Number(input.price);
   }
   if ("description" in input) payload.description = input.description?.trim() || "";
-  if ("category" in input) payload.category = input.category?.trim() || "Genel";
+  if ("category" in input) payload.category = input.category?.trim() || null;
   if ("imageLabel" in input) payload.imageLabel = input.imageLabel?.trim() ?? "";
   if ("imageUrl" in input) payload.imageUrl = input.imageUrl?.trim() || null;
   if ("isActive" in input && input.isActive !== undefined) {
@@ -699,52 +884,69 @@ export async function updateProduct(
     payload.sortOrder = Number(input.sortOrder || 0);
   }
 
-  const response = await fetch(`/api/business/products/${encodeURIComponent(productId)}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ input: payload }),
-  });
-  const body = (await parseApiResponse(response)) as {
-    product?: SupabaseProductRow;
-  };
-  return body.product ? mapProduct(body.product) : null;
+  return runProductMutation(
+    (signal) =>
+      fetch(`/api/business/products/${encodeURIComponent(productId)}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ input: payload, expectedUpdatedAt }),
+        signal,
+      }),
+    parseProductMutationResponse,
+  );
 }
 
-export async function deleteProduct(productId: string, accessToken: string) {
-  const response = await fetch(`/api/business/products/${encodeURIComponent(productId)}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  await parseApiResponse(response);
+export async function deleteProduct(
+  productId: string,
+  expectedUpdatedAt: string,
+  accessToken: string,
+) {
+  return runProductMutation(
+    (signal) =>
+      fetch(`/api/business/products/${encodeURIComponent(productId)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ expectedUpdatedAt }),
+        signal,
+      }),
+    parseProductMutationResponse,
+  );
 }
 
 export async function setProductActiveStatus(
   productId: string,
   isActive: boolean,
+  expectedUpdatedAt: string,
   accessToken: string,
 ) {
-  return updateProduct(productId, { isActive }, accessToken);
+  return updateProduct(productId, { isActive }, expectedUpdatedAt, accessToken);
 }
 
 export async function reorderProducts(
-  items: Array<{ productId: string; sortOrder: number }>,
+  items: Array<{
+    productId: string;
+    sortOrder: number;
+    expectedUpdatedAt: string;
+  }>,
   accessToken: string,
 ) {
-  const response = await fetch("/api/business/products/reorder", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ items }),
-  });
-  const body = (await parseApiResponse(response)) as {
-    products?: SupabaseProductRow[];
-  };
-  return (body.products ?? []).map(mapProduct);
+  return runProductMutation(
+    (signal) =>
+      fetch("/api/business/products/reorder", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ items }),
+        signal,
+      }),
+    parseProductReorderResponse,
+  );
 }

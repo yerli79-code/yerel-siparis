@@ -2549,6 +2549,26 @@
     white-space: normal;
   }
 
+  .panelScope :global(.panel-product-mutation-message) {
+    display: grid;
+    min-width: 0;
+    grid-column: 1 / -1;
+    gap: 10px;
+    margin: 0;
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .panelScope :global(.panel-product-mutation-message p) {
+    margin: 0;
+  }
+
+  .panelScope :global(.panel-product-mutation-message button) {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
   .panelScope :global(.panel-order-detail-actions) {
     border-top: 1px solid #e1e7df;
     background: #fff;
