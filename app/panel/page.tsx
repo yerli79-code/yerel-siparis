@@ -69,12 +69,14 @@ import {
   type ProductInput,
 } from "../../lib/supabase-business";
 import {
+  BusinessOrderMutationError,
   BusinessOrdersRequestError,
   businessOrdersLoadErrorMessage,
   fetchBusinessOrders,
   fetchBusinessOrdersPage,
   updateBusinessOrderStatus,
   type BusinessOrder,
+  type BusinessOrderMutationErrorCode,
   type BusinessOrderPageQuery,
   type BusinessOrderPagination,
   type OrderStatus,
@@ -99,6 +101,32 @@ const initialOrderPagination: BusinessOrderPagination = {
   hasPreviousPage: false,
   hasNextPage: false,
 };
+
+function isAbortError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
+}
+
+function getOrderMutationErrorMessage(code: BusinessOrderMutationErrorCode) {
+  switch (code) {
+    case "ORDER_CONFLICT":
+      return "Sipariş başka bir oturumda güncellendi. Güncel bilgileri yükleyin.";
+    case "ORDER_NOT_FOUND":
+      return "Sipariş artık bulunamıyor. Güncel bilgileri yükleyin.";
+    case "ORDER_FORBIDDEN":
+      return "İşletmeniz şu anda operasyonel olmadığı için sipariş durumu güncellenemiyor.";
+    case "ORDER_UNAUTHORIZED":
+      return "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.";
+    case "INVALID_ORDER_MUTATION":
+      return "Sipariş durumu güncellenemedi. Güncel bilgileri yükleyip tekrar deneyin.";
+    case "ORDER_UNAVAILABLE":
+      return "Sipariş durumu geçici bir sorun nedeniyle güncellenemedi. Tekrar deneyin veya güncel bilgileri yükleyin.";
+  }
+}
 
 type ProductForm = {
   name: string;
@@ -415,6 +443,12 @@ export default function PanelPage() {
   const [dashboardSummaryLoading, setDashboardSummaryLoading] = useState(true);
   const [dashboardSummaryError, setDashboardSummaryError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState("");
+  const [orderMutationMessages, setOrderMutationMessages] = useState<
+    Record<string, string>
+  >({});
+  const [conflictedOrderIds, setConflictedOrderIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [showRenewalInfo, setShowRenewalInfo] = useState(false);
   const [customerOrderUrl, setCustomerOrderUrl] = useState("");
   const [qrError, setQrError] = useState("");
@@ -435,6 +469,11 @@ export default function PanelPage() {
   const watcherStateRef = useRef(createInitialNewOrderWatcherState());
   const audioContextRef = useRef<AudioContext | null>(null);
   const isAudioUnlockedRef = useRef(false);
+  const ordersRef = useRef<BusinessOrder[]>([]);
+  const inFlightOrderMutationsRef = useRef(new Set<string>());
+  const conflictedOrderIdsRef = useRef(new Set<string>());
+  const orderListAbortControllerRef = useRef<AbortController | null>(null);
+  const orderListRequestGenerationRef = useRef(0);
 
   function endBusinessSession() {
     clearBrowserAuthSession(sessionKey);
@@ -451,6 +490,16 @@ export default function PanelPage() {
     setAccessToken(token);
     return token;
   }
+
+  useEffect(() => {
+    return () => {
+      orderListRequestGenerationRef.current += 1;
+      orderListAbortControllerRef.current?.abort();
+      orderListAbortControllerRef.current = null;
+      inFlightOrderMutationsRef.current.clear();
+      conflictedOrderIdsRef.current.clear();
+    };
+  }, []);
 
   const canManageProducts = useMemo(
     () => (business ? isBusinessSubscriptionActive(business) : false),
@@ -855,29 +904,95 @@ export default function PanelPage() {
     setProducts(freshProducts);
   }
 
+  function cancelActiveOrderListRequest() {
+    orderListRequestGenerationRef.current += 1;
+    orderListAbortControllerRef.current?.abort();
+    orderListAbortControllerRef.current = null;
+    setIsLoadingOrders(false);
+  }
+
+  function mergeAuthoritativeOrder(updatedOrder: BusinessOrder) {
+    const nextOrders = ordersRef.current.map((order) =>
+      order.id === updatedOrder.id ? updatedOrder : order,
+    );
+    ordersRef.current = nextOrders;
+    setOrders(nextOrders);
+    setOverviewOrders((current) =>
+      current.map((order) =>
+        order.id === updatedOrder.id ? updatedOrder : order,
+      ),
+    );
+    watcherStateRef.current = {
+      ...watcherStateRef.current,
+      pendingNewOrders: watcherStateRef.current.pendingNewOrders.map((order) =>
+        order.id === updatedOrder.id ? updatedOrder : order,
+      ),
+    };
+    setPendingNewOrders(watcherStateRef.current.pendingNewOrders);
+    setOrderMutationMessages((current) => {
+      if (!(updatedOrder.id in current)) return current;
+      const next = { ...current };
+      delete next[updatedOrder.id];
+      return next;
+    });
+    setConflictedOrderIds((current) => {
+      if (!current.has(updatedOrder.id)) return current;
+      const next = new Set(current);
+      next.delete(updatedOrder.id);
+      conflictedOrderIdsRef.current = next;
+      return next;
+    });
+  }
+
   async function refreshOrders(
     query: BusinessOrderPageQuery,
     targetOrderId = "",
   ) {
-    const token = await getFreshAccessToken();
-    if (!token) return null;
+    const requestGeneration = orderListRequestGenerationRef.current + 1;
+    orderListRequestGenerationRef.current = requestGeneration;
+    orderListAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    orderListAbortControllerRef.current = abortController;
 
     setIsLoadingOrders(true);
     setOrdersError("");
     try {
-      let result = await fetchBusinessOrdersPage(token, query);
+      const token = await getFreshAccessToken();
+      if (
+        !token ||
+        abortController.signal.aborted ||
+        requestGeneration !== orderListRequestGenerationRef.current
+      ) {
+        return null;
+      }
+
+      let result = await fetchBusinessOrdersPage(token, query, {
+        signal: abortController.signal,
+      });
 
       if (
         result.orders.length === 0 &&
         result.pagination.total > 0 &&
         query.page > result.pagination.totalPages
       ) {
-        result = await fetchBusinessOrdersPage(token, {
-          ...query,
-          page: result.pagination.totalPages,
-        });
+        result = await fetchBusinessOrdersPage(
+          token,
+          {
+            ...query,
+            page: result.pagination.totalPages,
+          },
+          { signal: abortController.signal },
+        );
       }
 
+      if (
+        abortController.signal.aborted ||
+        requestGeneration !== orderListRequestGenerationRef.current
+      ) {
+        return null;
+      }
+
+      ordersRef.current = result.orders;
       setOrders(result.orders);
       setOrderPage(result.pagination.page);
       setOrderPagination(result.pagination);
@@ -890,44 +1005,107 @@ export default function PanelPage() {
             ? currentOrderId
             : "",
       );
+      conflictedOrderIdsRef.current = new Set();
+      setConflictedOrderIds(conflictedOrderIdsRef.current);
+      setOrderMutationMessages({});
       setOrdersError("");
       return result;
-    } catch {
+    } catch (caughtError) {
+      if (
+        isAbortError(caughtError) ||
+        abortController.signal.aborted ||
+        requestGeneration !== orderListRequestGenerationRef.current
+      ) {
+        return null;
+      }
       setOrdersError(businessOrdersLoadErrorMessage);
       return null;
     } finally {
-      setIsLoadingOrders(false);
+      if (requestGeneration === orderListRequestGenerationRef.current) {
+        if (orderListAbortControllerRef.current === abortController) {
+          orderListAbortControllerRef.current = null;
+        }
+        setIsLoadingOrders(false);
+      }
     }
   }
 
   async function changeOrderStatus(orderId: string, status: OrderStatus) {
-    const token = await getFreshAccessToken();
-    if (!token) return;
+    const authoritativeOrder = ordersRef.current.find(
+      (order) => order.id === orderId,
+    );
+    if (
+      !authoritativeOrder ||
+      authoritativeOrder.status === status ||
+      conflictedOrderIdsRef.current.has(orderId) ||
+      inFlightOrderMutationsRef.current.has(orderId)
+    ) {
+      return;
+    }
+
+    inFlightOrderMutationsRef.current.add(orderId);
+    cancelActiveOrderListRequest();
 
     setUpdatingOrderId(orderId);
     setError("");
     setMessage("");
+    setOrderMutationMessages((current) => {
+      if (!(orderId in current)) return current;
+      const next = { ...current };
+      delete next[orderId];
+      return next;
+    });
     try {
-      const updatedOrder = await updateBusinessOrderStatus(orderId, status, token);
-      setOverviewOrders((current) =>
-        current.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
+      const token = await getFreshAccessToken();
+      if (!token) return;
+
+      const updatedOrder = await updateBusinessOrderStatus(
+        orderId,
+        status,
+        authoritativeOrder.updatedAt,
+        token,
       );
+      cancelActiveOrderListRequest();
+      mergeAuthoritativeOrder(updatedOrder);
       setMessage("Sipariş durumu güncellendi.");
       void refreshDashboardSummary();
-      await refreshOrders(activeOrderQuery);
+      if (
+        activeOrderQuery.status &&
+        activeOrderQuery.status !== updatedOrder.status
+      ) {
+        await refreshOrders(activeOrderQuery);
+      }
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Sipariş durumu güncellenirken bir hata oluştu.",
-      );
+      cancelActiveOrderListRequest();
+      const mutationError =
+        caughtError instanceof BusinessOrderMutationError
+          ? caughtError
+          : new BusinessOrderMutationError("ORDER_UNAVAILABLE", null);
+
+      if (mutationError.code === "ORDER_UNAUTHORIZED") {
+        endBusinessSession();
+        return;
+      }
+
+      setOrderMutationMessages((current) => ({
+        ...current,
+        [orderId]: getOrderMutationErrorMessage(mutationError.code),
+      }));
+      if (mutationError.code === "ORDER_CONFLICT") {
+        setConflictedOrderIds((current) => {
+          const next = new Set(current).add(orderId);
+          conflictedOrderIdsRef.current = next;
+          return next;
+        });
+      }
     } finally {
-      setUpdatingOrderId("");
+      inFlightOrderMutationsRef.current.delete(orderId);
+      setUpdatingOrderId((current) => (current === orderId ? "" : current));
     }
   }
 
   function changeOrderStatusFilter(statusFilter: OrderStatus | "all") {
-    if (isLoadingOrders) return;
+    if (isLoadingOrders || inFlightOrderMutationsRef.current.size > 0) return;
 
     setSelectedOrderStatusFilter(statusFilter);
     setOrderPage(1);
@@ -942,7 +1120,7 @@ export default function PanelPage() {
   }
 
   function applyOrderFilters() {
-    if (isLoadingOrders) return;
+    if (isLoadingOrders || inFlightOrderMutationsRef.current.size > 0) return;
 
     const nextSearch = orderSearchDraft.trim();
     const nextDateFrom = orderDateFromDraft;
@@ -963,7 +1141,7 @@ export default function PanelPage() {
   }
 
   function clearOrderFilters() {
-    if (isLoadingOrders) return;
+    if (isLoadingOrders || inFlightOrderMutationsRef.current.size > 0) return;
 
     setOrderSearchDraft("");
     setOrderDateFromDraft("");
@@ -981,7 +1159,11 @@ export default function PanelPage() {
   }
 
   function changeOrderPageSize(pageSize: number) {
-    if (isLoadingOrders || ![10, 20, 50].includes(pageSize)) return;
+    if (
+      isLoadingOrders ||
+      inFlightOrderMutationsRef.current.size > 0 ||
+      ![10, 20, 50].includes(pageSize)
+    ) return;
 
     setOrderPageSize(pageSize);
     setOrderPage(1);
@@ -996,6 +1178,7 @@ export default function PanelPage() {
   function changeOrderPage(page: number) {
     if (
       isLoadingOrders ||
+      inFlightOrderMutationsRef.current.size > 0 ||
       !Number.isSafeInteger(page) ||
       page < 1 ||
       page > orderPagination.totalPages ||
@@ -1013,7 +1196,7 @@ export default function PanelPage() {
   }
 
   function refreshActiveOrders() {
-    if (isLoadingOrders) return;
+    if (isLoadingOrders || inFlightOrderMutationsRef.current.size > 0) return;
     void refreshOrders(activeOrderQuery);
   }
 
@@ -2038,6 +2221,7 @@ export default function PanelPage() {
                 appliedDateFrom={appliedOrderDateFrom}
                 appliedDateTo={appliedOrderDateTo}
                 appliedSearch={appliedOrderSearch}
+                conflictedOrderIds={conflictedOrderIds}
                 dateFromDraft={orderDateFromDraft}
                 dateToDraft={orderDateToDraft}
                 expandedOrderId={expandedOrderId}
@@ -2047,6 +2231,7 @@ export default function PanelPage() {
                 isLoadingOrders={isLoadingOrders}
                 orders={orders}
                 ordersError={ordersError}
+                orderMutationMessages={orderMutationMessages}
                 pagination={orderPagination}
                 pageSize={orderPageSize}
                 orderPrintPaperWidth={orderPrintPaperWidth}

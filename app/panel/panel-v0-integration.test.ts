@@ -210,7 +210,13 @@ test("QR, subscription and category views reuse current production contracts", (
 test("P6.1A introduces no backend, schema, admin or dependency changes", () => {
   const changedFiles = execFileSync(
     "git",
-    ["diff", "--name-only", "2f988d0ab82f7fe56d7653dfe0208bdd42475a98", "--"],
+    [
+      "diff",
+      "--name-only",
+      "2f988d0ab82f7fe56d7653dfe0208bdd42475a98",
+      "a7ec6788d855f0a9d9213dbee24453d42af75c86",
+      "--",
+    ],
     { cwd: root, encoding: "utf8" },
   )
     .trim()

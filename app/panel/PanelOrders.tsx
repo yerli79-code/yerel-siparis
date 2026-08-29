@@ -18,6 +18,8 @@ type PanelOrdersProps = {
   orders: BusinessOrder[];
   isLoadingOrders: boolean;
   ordersError: string;
+  orderMutationMessages: Record<string, string>;
+  conflictedOrderIds: ReadonlySet<string>;
   pagination: BusinessOrderPagination;
   pageSize: number;
   selectedOrderStatusFilter: OrderStatus | "all";
@@ -59,6 +61,8 @@ export default function PanelOrders({
   orders,
   isLoadingOrders,
   ordersError,
+  orderMutationMessages,
+  conflictedOrderIds,
   pagination,
   pageSize,
   selectedOrderStatusFilter,
@@ -106,6 +110,13 @@ export default function PanelOrders({
       ? `${firstRecord}–${lastRecord} / ${pagination.total} kayıt`
       : `${pagination.total} kayıt`;
   const selectedOrder = orders.find((order) => order.id === expandedOrderId);
+  const selectedOrderMutationMessage = selectedOrder
+    ? orderMutationMessages[selectedOrder.id]
+    : undefined;
+  const selectedOrderHasConflict = selectedOrder
+    ? conflictedOrderIds.has(selectedOrder.id)
+    : false;
+  const orderControlsDisabled = isLoadingOrders || Boolean(updatingOrderId);
   const dialogRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const orderTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -147,7 +158,7 @@ export default function PanelOrders({
         <label className="panel-order-filter-field panel-order-search-field">
           <span>Sipariş ara</span>
           <input
-            disabled={isLoadingOrders}
+            disabled={orderControlsDisabled}
             maxLength={80}
             placeholder="Sipariş no, müşteri adı veya telefon"
             type="search"
@@ -159,7 +170,7 @@ export default function PanelOrders({
           <label className="panel-order-filter-field">
             <span>Başlangıç</span>
             <input
-              disabled={isLoadingOrders}
+              disabled={orderControlsDisabled}
               max={dateToDraft || undefined}
               type="date"
               value={dateFromDraft}
@@ -169,7 +180,7 @@ export default function PanelOrders({
           <label className="panel-order-filter-field">
             <span>Bitiş</span>
             <input
-              disabled={isLoadingOrders}
+              disabled={orderControlsDisabled}
               min={dateFromDraft || undefined}
               type="date"
               value={dateToDraft}
@@ -180,14 +191,14 @@ export default function PanelOrders({
         <div className="panel-order-filter-actions">
           <button
             className="submit-button panel-primary-action"
-            disabled={isLoadingOrders}
+            disabled={orderControlsDisabled}
             type="submit"
           >
             Filtreleri Uygula
           </button>
           <button
             className="submit-button panel-secondary-action"
-            disabled={isLoadingOrders}
+            disabled={orderControlsDisabled}
             type="button"
             onClick={() => onClearFilters()}
           >
@@ -204,7 +215,7 @@ export default function PanelOrders({
           <button
             aria-pressed={selectedOrderStatusFilter === "all"}
             className={selectedOrderStatusFilter === "all" ? "active" : ""}
-            disabled={isLoadingOrders}
+            disabled={orderControlsDisabled}
             type="button"
             onClick={() => onStatusFilterChange("all")}
           >
@@ -214,7 +225,7 @@ export default function PanelOrders({
             <button
               aria-pressed={selectedOrderStatusFilter === value}
               className={selectedOrderStatusFilter === value ? "active" : ""}
-              disabled={isLoadingOrders}
+              disabled={orderControlsDisabled}
               key={value}
               type="button"
               onClick={() => onStatusFilterChange(value)}
@@ -225,7 +236,7 @@ export default function PanelOrders({
         </div>
         <button
           className="submit-button panel-secondary-action panel-order-refresh"
-          disabled={isLoadingOrders}
+          disabled={orderControlsDisabled}
           type="button"
           onClick={() => onRefreshOrders()}
         >
@@ -426,20 +437,50 @@ export default function PanelOrders({
               <label className="panel-order-detail-status">
                 <span>Durum</span>
                 <select
-                  disabled={updatingOrderId === selectedOrder.id}
-                  value={selectedOrder.status}
-                  onChange={(event) =>
-                    onUpdateOrderStatus(
-                      selectedOrder.id,
-                      event.target.value as OrderStatus,
-                    )
+                  aria-describedby={
+                    selectedOrderMutationMessage
+                      ? "panel-order-mutation-message"
+                      : undefined
                   }
+                  disabled={
+                    updatingOrderId === selectedOrder.id ||
+                    selectedOrderHasConflict
+                  }
+                  value={selectedOrder.status}
+                  onChange={(event) => {
+                    const nextStatus = event.target.value as OrderStatus;
+                    if (nextStatus === selectedOrder.status) return;
+                    onUpdateOrderStatus(selectedOrder.id, nextStatus);
+                  }}
                 >
                   {orderStatusOptions.map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
+                {updatingOrderId === selectedOrder.id ? (
+                  <small role="status">Durum güncelleniyor...</small>
+                ) : null}
               </label>
+
+              {selectedOrderMutationMessage ? (
+                <div
+                  className="business-panel-inline-state error panel-order-mutation-message"
+                  id="panel-order-mutation-message"
+                  role="alert"
+                >
+                  <p>{selectedOrderMutationMessage}</p>
+                  <button
+                    className="submit-button panel-secondary-action"
+                    disabled={orderControlsDisabled}
+                    type="button"
+                    onClick={() => onRefreshOrders()}
+                  >
+                    {isLoadingOrders
+                      ? "Güncel bilgiler yükleniyor..."
+                      : "Güncel Bilgileri Yükle"}
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <footer className="panel-order-detail-actions">
@@ -481,7 +522,7 @@ export default function PanelOrders({
         <label className="panel-order-page-size">
           <span>Sayfa başına</span>
           <select
-            disabled={isLoadingOrders}
+            disabled={orderControlsDisabled}
             value={pageSize}
             onChange={(event) => onPageSizeChange(Number(event.target.value))}
           >
@@ -493,7 +534,7 @@ export default function PanelOrders({
         <div className="panel-order-pagination" aria-label="Sipariş sayfalama">
           <button
             className="submit-button panel-secondary-action"
-            disabled={isLoadingOrders || !pagination.hasPreviousPage}
+            disabled={orderControlsDisabled || !pagination.hasPreviousPage}
             type="button"
             onClick={() => onPageChange(pagination.page - 1)}
           >
@@ -504,7 +545,7 @@ export default function PanelOrders({
           </span>
           <button
             className="submit-button panel-secondary-action"
-            disabled={isLoadingOrders || !pagination.hasNextPage}
+            disabled={orderControlsDisabled || !pagination.hasNextPage}
             type="button"
             onClick={() => onPageChange(pagination.page + 1)}
           >
