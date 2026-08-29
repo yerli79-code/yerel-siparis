@@ -1,19 +1,21 @@
-import { NextResponse } from "next/server";
 import {
   UUID_PATTERN,
   buildProductPayload,
-  deleteProductById,
+  deleteProductConditionally,
   ensureProductWriteAllowed,
   fetchBusinessById,
   fetchProductById,
   getBearerToken,
-  getProductInput,
+  getProductDeleteRequest,
+  getProductMutationRequest,
   getSupabaseServerConfig,
   getUserFromToken,
   isPlainObject,
-  jsonError,
+  isProductPayloadNoop,
+  productError,
+  productJson,
   resolveProductRouteError,
-  updateProductById,
+  updateProductConditionally,
 } from "../_utils";
 
 type RouteContext = {
@@ -27,9 +29,7 @@ async function getProductAccess(
   userId: string,
 ) {
   const product = await fetchProductById(url, serviceRoleKey, productId);
-  if (!product) {
-    return { product: null, business: null };
-  }
+  if (!product) return { product: null, business: null };
 
   const business = await fetchBusinessById(
     url,
@@ -39,7 +39,6 @@ async function getProductAccess(
   if (!business || business.owner_id !== userId) {
     return { product: null, business: null };
   }
-
   return { product, business };
 }
 
@@ -47,32 +46,26 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { productId } = await context.params;
     if (!UUID_PATTERN.test(productId)) {
-      return jsonError("Gecersiz productId.", 400);
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
     const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
-
-    if (!accessToken) {
-      return jsonError("Oturum bulunamadi.", 401);
-    }
+    if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return jsonError("Gecersiz istek govdesi.", 400);
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
-
     if (!isPlainObject(body)) {
-      return jsonError("Gecersiz istek govdesi.", 400);
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
+    const { input, expectedUpdatedAt } = getProductMutationRequest(body);
 
-    const input = getProductInput(body);
     const user = await getUserFromToken(url, anonKey, accessToken);
-    if (!user) {
-      return jsonError("Gecersiz veya suresi dolmus oturum.", 401);
-    }
+    if (!user) return productError("PRODUCT_UNAUTHORIZED", 401);
 
     const { product, business } = await getProductAccess(
       url,
@@ -80,26 +73,32 @@ export async function PATCH(request: Request, context: RouteContext) {
       productId,
       user.id,
     );
-    if (!product || !business) {
-      return jsonError("Urun bulunamadi.", 404);
-    }
+    if (!product || !business) return productError("PRODUCT_NOT_FOUND", 404);
 
     ensureProductWriteAllowed(business);
+    if (product.updated_at !== expectedUpdatedAt) {
+      return productError("PRODUCT_CONFLICT", 409);
+    }
+
     const payload = buildProductPayload(input);
-    const updatedProduct = await updateProductById(
+    if (isProductPayloadNoop(product, payload)) {
+      return productJson({ product });
+    }
+
+    const updatedProduct = await updateProductConditionally(
       url,
       serviceRoleKey,
       product.id,
+      business.id,
+      expectedUpdatedAt,
       payload,
     );
+    if (!updatedProduct) return productError("PRODUCT_CONFLICT", 409);
 
-    return NextResponse.json({ product: updatedProduct });
+    return productJson({ product: updatedProduct });
   } catch (error) {
-    const safeError = resolveProductRouteError(
-      error,
-      "Ürün güncellenemedi. Lütfen tekrar deneyin.",
-    );
-    return jsonError(safeError.message, safeError.status);
+    const safeError = resolveProductRouteError(error);
+    return productError(safeError.code, safeError.status);
   }
 }
 
@@ -107,20 +106,26 @@ export async function DELETE(request: Request, context: RouteContext) {
   try {
     const { productId } = await context.params;
     if (!UUID_PATTERN.test(productId)) {
-      return jsonError("Gecersiz productId.", 400);
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
     const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
+    if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
-    if (!accessToken) {
-      return jsonError("Oturum bulunamadi.", 401);
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
+    if (!isPlainObject(body)) {
+      return productError("INVALID_PRODUCT_MUTATION", 400);
+    }
+    const { expectedUpdatedAt } = getProductDeleteRequest(body);
 
     const user = await getUserFromToken(url, anonKey, accessToken);
-    if (!user) {
-      return jsonError("Gecersiz veya suresi dolmus oturum.", 401);
-    }
+    if (!user) return productError("PRODUCT_UNAUTHORIZED", 401);
 
     const { product, business } = await getProductAccess(
       url,
@@ -128,19 +133,25 @@ export async function DELETE(request: Request, context: RouteContext) {
       productId,
       user.id,
     );
-    if (!product || !business) {
-      return jsonError("Urun bulunamadi.", 404);
-    }
+    if (!product || !business) return productError("PRODUCT_NOT_FOUND", 404);
 
     ensureProductWriteAllowed(business);
-    await deleteProductById(url, serviceRoleKey, product.id);
+    if (product.updated_at !== expectedUpdatedAt) {
+      return productError("PRODUCT_CONFLICT", 409);
+    }
 
-    return NextResponse.json({ deleted: true, productId: product.id });
-  } catch (error) {
-    const safeError = resolveProductRouteError(
-      error,
-      "Ürün silinemedi. Lütfen tekrar deneyin.",
+    const deletedProduct = await deleteProductConditionally(
+      url,
+      serviceRoleKey,
+      product.id,
+      business.id,
+      expectedUpdatedAt,
     );
-    return jsonError(safeError.message, safeError.status);
+    if (!deletedProduct) return productError("PRODUCT_CONFLICT", 409);
+
+    return productJson({ product: deletedProduct });
+  } catch (error) {
+    const safeError = resolveProductRouteError(error);
+    return productError(safeError.code, safeError.status);
   }
 }

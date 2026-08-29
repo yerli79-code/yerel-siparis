@@ -52,6 +52,8 @@ import {
   type BusinessDashboardSummary,
 } from "../../lib/business-dashboard-summary";
 import {
+  BusinessProductMutationError,
+  BusinessProductsRequestError,
   createProduct,
   deleteProduct,
   fetchProductsByBusinessId,
@@ -65,6 +67,7 @@ import {
   uploadProductImage,
   type BusinessPanelBusiness,
   type BusinessProduct,
+  type BusinessProductMutationErrorCode,
   type BusinessProfileInput,
   type ProductInput,
 } from "../../lib/supabase-business";
@@ -125,6 +128,25 @@ function getOrderMutationErrorMessage(code: BusinessOrderMutationErrorCode) {
       return "Sipariş durumu güncellenemedi. Güncel bilgileri yükleyip tekrar deneyin.";
     case "ORDER_UNAVAILABLE":
       return "Sipariş durumu geçici bir sorun nedeniyle güncellenemedi. Tekrar deneyin veya güncel bilgileri yükleyin.";
+  }
+}
+
+function getProductMutationErrorMessage(
+  code: BusinessProductMutationErrorCode,
+) {
+  switch (code) {
+    case "PRODUCT_CONFLICT":
+      return "Ürün başka bir oturumda güncellendi. Güncel bilgileri yükleyin.";
+    case "PRODUCT_NOT_FOUND":
+      return "Ürün artık bulunamıyor. Ürün listesini yenileyin.";
+    case "PRODUCT_FORBIDDEN":
+      return "Abonelik veya işletme durumu nedeniyle bu işlem yapılamıyor.";
+    case "PRODUCT_UNAUTHORIZED":
+      return "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.";
+    case "INVALID_PRODUCT_MUTATION":
+      return "Ürün bilgileri geçersiz. Alanları kontrol edin.";
+    case "PRODUCT_UNAVAILABLE":
+      return "Ürün işleminin sonucu doğrulanamadı. Güncel bilgileri yükleyin.";
   }
 }
 
@@ -408,6 +430,10 @@ export default function PanelPage() {
   const [isProductCategoryChanged, setIsProductCategoryChanged] =
     useState(false);
   const [expandedProductId, setExpandedProductId] = useState("");
+  const [productOperationError, setProductOperationError] = useState("");
+  const [conflictedProductIds, setConflictedProductIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -470,6 +496,13 @@ export default function PanelPage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const isAudioUnlockedRef = useRef(false);
   const ordersRef = useRef<BusinessOrder[]>([]);
+  const productsRef = useRef<BusinessProduct[]>([]);
+  const inFlightProductMutationsRef = useRef(new Set<string>());
+  const conflictedProductIdsRef = useRef(new Set<string>());
+  const createProductInFlightRef = useRef(false);
+  const productMutationCountRef = useRef(0);
+  const productListAbortControllerRef = useRef<AbortController | null>(null);
+  const productListRequestGenerationRef = useRef(0);
   const inFlightOrderMutationsRef = useRef(new Set<string>());
   const conflictedOrderIdsRef = useRef(new Set<string>());
   const orderListAbortControllerRef = useRef<AbortController | null>(null);
@@ -496,6 +529,14 @@ export default function PanelPage() {
       orderListRequestGenerationRef.current += 1;
       orderListAbortControllerRef.current?.abort();
       orderListAbortControllerRef.current = null;
+      productListRequestGenerationRef.current += 1;
+      productListAbortControllerRef.current?.abort();
+      productListAbortControllerRef.current = null;
+      productsRef.current = [];
+      inFlightProductMutationsRef.current.clear();
+      conflictedProductIdsRef.current.clear();
+      createProductInFlightRef.current = false;
+      productMutationCountRef.current = 0;
       inFlightOrderMutationsRef.current.clear();
       conflictedOrderIdsRef.current.clear();
     };
@@ -504,6 +545,9 @@ export default function PanelPage() {
   const canManageProducts = useMemo(
     () => (business ? isBusinessSubscriptionActive(business) : false),
     [business],
+  );
+  const isEditingProductConflicted = Boolean(
+    editingProductId && conflictedProductIds.has(editingProductId),
   );
   const subscriptionLabel = canManageProducts
     ? "Abonelik aktif"
@@ -542,6 +586,7 @@ export default function PanelPage() {
   }, [productSearch, sortedProducts, selectedCategoryFilter]);
   const activeProductCount = products.filter((product) => product.isActive).length;
   const passiveProductCount = products.length - activeProductCount;
+  const hasAnyProductConflict = conflictedProductIds.size > 0;
   const isProductOrderingFiltered =
     Boolean(productSearch.trim()) || selectedCategoryFilter !== "Tüm ürünler";
   const newOrderCount = overviewOrders.filter(
@@ -599,18 +644,17 @@ export default function PanelPage() {
         const foundBusiness = await getCurrentUserBusiness(token);
         if (!foundBusiness) {
           setBusiness(null);
-          setProducts([]);
+          commitAuthoritativeProducts([]);
           setError("Giriş yapan kullanıcıya ait işletme bulunamadı.");
           return;
         }
 
         setBusiness(foundBusiness);
         setProfileForm(toProfileForm(foundBusiness));
-        const foundProducts = await fetchProductsByBusinessId(
-          foundBusiness.id,
-          token,
-        );
-        setProducts(foundProducts);
+        await refreshProducts({
+          targetBusiness: foundBusiness,
+          accessToken: token,
+        });
       } catch {
         setError("Panel verileri yüklenirken bir hata oluştu.");
       } finally {
@@ -896,12 +940,197 @@ export default function PanelPage() {
     }
   }
 
-  async function refreshProducts() {
-    if (!business) return;
-    const token = await getFreshAccessToken();
-    if (!token) return;
-    const freshProducts = await fetchProductsByBusinessId(business.id, token);
-    setProducts(freshProducts);
+  function reconcileProductCategoryFilter(nextProducts: BusinessProduct[]) {
+    setSelectedCategoryFilter((current) => {
+      if (current === "Tüm ürünler") return current;
+      return nextProducts.some(
+        (product) => getProductCategory(product) === current,
+      )
+        ? current
+        : "Tüm ürünler";
+    });
+  }
+
+  function commitAuthoritativeProducts(nextProducts: BusinessProduct[]) {
+    productsRef.current = nextProducts;
+    setProducts(nextProducts);
+    reconcileProductCategoryFilter(nextProducts);
+  }
+
+  function mergeAuthoritativeProduct(authoritativeProduct: BusinessProduct) {
+    const exists = productsRef.current.some(
+      (product) => product.id === authoritativeProduct.id,
+    );
+    const nextProducts = exists
+      ? productsRef.current.map((product) =>
+          product.id === authoritativeProduct.id
+            ? authoritativeProduct
+            : product,
+        )
+      : [...productsRef.current, authoritativeProduct];
+    commitAuthoritativeProducts(nextProducts);
+    setConflictedProductIds((current) => {
+      if (!current.has(authoritativeProduct.id)) return current;
+      const next = new Set(current);
+      next.delete(authoritativeProduct.id);
+      conflictedProductIdsRef.current = next;
+      return next;
+    });
+  }
+
+  function mergeAuthoritativeProducts(
+    authoritativeProducts: BusinessProduct[],
+  ) {
+    const authoritativeById = new Map(
+      authoritativeProducts.map((product) => [product.id, product]),
+    );
+    commitAuthoritativeProducts(
+      productsRef.current.map(
+        (product) => authoritativeById.get(product.id) ?? product,
+      ),
+    );
+  }
+
+  function removeAuthoritativeProduct(productId: string) {
+    commitAuthoritativeProducts(
+      productsRef.current.filter((product) => product.id !== productId),
+    );
+  }
+
+  function cancelActiveProductListRequest() {
+    productListRequestGenerationRef.current += 1;
+    productListAbortControllerRef.current?.abort();
+    productListAbortControllerRef.current = null;
+  }
+
+  function beginProductMutation(productIds: string[], isCreate = false) {
+    if (
+      (isCreate && createProductInFlightRef.current) ||
+      productIds.some((productId) =>
+        inFlightProductMutationsRef.current.has(productId),
+      )
+    ) {
+      return false;
+    }
+
+    if (isCreate) createProductInFlightRef.current = true;
+    productIds.forEach((productId) =>
+      inFlightProductMutationsRef.current.add(productId),
+    );
+    productMutationCountRef.current += 1;
+    setIsSaving(true);
+    cancelActiveProductListRequest();
+    return true;
+  }
+
+  function endProductMutation(productIds: string[], isCreate = false) {
+    if (isCreate) createProductInFlightRef.current = false;
+    productIds.forEach((productId) =>
+      inFlightProductMutationsRef.current.delete(productId),
+    );
+    productMutationCountRef.current = Math.max(
+      0,
+      productMutationCountRef.current - 1,
+    );
+    setIsSaving(productMutationCountRef.current > 0);
+  }
+
+  function handleProductMutationFailure(
+    caughtError: unknown,
+    affectedProductIds: string[],
+  ) {
+    const mutationError =
+      caughtError instanceof BusinessProductMutationError
+        ? caughtError
+        : new BusinessProductMutationError("PRODUCT_UNAVAILABLE", null);
+
+    if (mutationError.code === "PRODUCT_UNAUTHORIZED") {
+      endBusinessSession();
+      return;
+    }
+    if (mutationError.code === "PRODUCT_CONFLICT") {
+      setConflictedProductIds((current) => {
+        const next = new Set(current);
+        affectedProductIds.forEach((productId) => next.add(productId));
+        conflictedProductIdsRef.current = next;
+        return next;
+      });
+    }
+    setProductOperationError(getProductMutationErrorMessage(mutationError.code));
+  }
+
+  async function refreshProducts(
+    options: {
+      targetBusiness?: BusinessPanelBusiness;
+      accessToken?: string;
+      replaceEditingForm?: boolean;
+    } = {},
+  ) {
+    const targetBusiness = options.targetBusiness ?? business;
+    if (!targetBusiness) return null;
+
+    const requestGeneration = productListRequestGenerationRef.current + 1;
+    productListRequestGenerationRef.current = requestGeneration;
+    productListAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    productListAbortControllerRef.current = abortController;
+
+    try {
+      const token = options.accessToken ?? (await getFreshAccessToken());
+      if (!token || requestGeneration !== productListRequestGenerationRef.current) {
+        return null;
+      }
+      const freshProducts = await fetchProductsByBusinessId(
+        targetBusiness.id,
+        token,
+        { signal: abortController.signal },
+      );
+      if (requestGeneration !== productListRequestGenerationRef.current) {
+        return null;
+      }
+
+      commitAuthoritativeProducts(freshProducts);
+      conflictedProductIdsRef.current = new Set();
+      setConflictedProductIds(conflictedProductIdsRef.current);
+      setProductOperationError("");
+      if (options.replaceEditingForm && editingProductId) {
+        const refreshedProduct = freshProducts.find(
+          (product) => product.id === editingProductId,
+        );
+        if (refreshedProduct) {
+          setForm(toForm(refreshedProduct));
+          setOriginalProductCategory(refreshedProduct.category?.trim() || "");
+          setIsProductCategoryChanged(false);
+          setSelectedImageFile(null);
+          if (imageInputRef.current) imageInputRef.current.value = "";
+        } else {
+          resetForm();
+        }
+      }
+      return freshProducts;
+    } catch (caughtError) {
+      if (
+        isAbortError(caughtError) ||
+        requestGeneration !== productListRequestGenerationRef.current
+      ) {
+        return null;
+      }
+      if (
+        caughtError instanceof BusinessProductsRequestError &&
+        caughtError.status === 401
+      ) {
+        endBusinessSession();
+        return null;
+      }
+      setProductOperationError(
+        "Ürünler yüklenemedi. Lütfen tekrar deneyin.",
+      );
+      return null;
+    } finally {
+      if (productListAbortControllerRef.current === abortController) {
+        productListAbortControllerRef.current = null;
+      }
+    }
   }
 
   function cancelActiveOrderListRequest() {
@@ -1577,17 +1806,24 @@ export default function PanelPage() {
     event.preventDefault();
     setError("");
     setMessage("");
+    setProductOperationError("");
 
     if (!business) {
       setError("İşletme oturumu bulunamadı.");
       return;
     }
 
-    const token = await getFreshAccessToken();
-    if (!token) return;
-
     if (!canManageProducts) {
       setError("Aboneliğiniz aktif olmadığı için ürün işlemi yapamazsınız.");
+      return;
+    }
+    if (
+      isEditingProductConflicted ||
+      (editingProductId && conflictedProductIdsRef.current.has(editingProductId))
+    ) {
+      setProductOperationError(
+        "Ürün başka bir oturumda güncellendi. Güncel bilgileri yükleyin.",
+      );
       return;
     }
 
@@ -1597,17 +1833,21 @@ export default function PanelPage() {
       return;
     }
 
-    setIsSaving(true);
-    let productFailureMessage =
-      "Ürün kaydedilemedi. Lütfen tekrar deneyin.";
+    const targetProductId = editingProductId;
+    const mutationProductIds = targetProductId ? [targetProductId] : [];
+    const isCreateMutation = !targetProductId;
+    if (!beginProductMutation(mutationProductIds, isCreateMutation)) return;
 
     try {
+      const token = await getFreshAccessToken();
+      if (!token) return;
+
       const payload = toProductInput(
         form,
-        editingProductId ? 0 : getNextSortOrder(products),
+        targetProductId ? 0 : getNextSortOrder(productsRef.current),
       );
       const hasUntouchedLegacyCategory =
-        Boolean(editingProductId) &&
+        Boolean(targetProductId) &&
         Boolean(originalProductCategory.trim()) &&
         !isStandardProductCategory(originalProductCategory) &&
         !isProductCategoryChanged;
@@ -1615,7 +1855,6 @@ export default function PanelPage() {
         delete payload.category;
       }
       if (selectedImageFile) {
-        productFailureMessage = "Görsel yüklenemedi. Lütfen tekrar deneyin.";
         setIsUploadingImage(true);
         const uploadedImageUrl = await uploadProductImage(
           business.id,
@@ -1624,23 +1863,34 @@ export default function PanelPage() {
         );
         payload.imageUrl = uploadedImageUrl;
         setForm((current) => ({ ...current, imageUrl: uploadedImageUrl }));
-        productFailureMessage = "Ürün kaydedilemedi. Lütfen tekrar deneyin.";
       }
-      if (editingProductId) {
-        await updateProduct(editingProductId, payload, token);
+      if (targetProductId) {
+        const authoritativeProduct = productsRef.current.find(
+          (product) => product.id === targetProductId,
+        );
+        if (!authoritativeProduct) {
+          throw new BusinessProductMutationError("PRODUCT_NOT_FOUND", 404);
+        }
+        const updatedProduct = await updateProduct(
+          targetProductId,
+          payload,
+          authoritativeProduct.updatedAt,
+          token,
+        );
+        mergeAuthoritativeProduct(updatedProduct);
         setMessage("Ürün güncellendi.");
       } else {
         const createdProduct = await createProduct(payload, token);
+        mergeAuthoritativeProduct(createdProduct);
         setSelectedCategoryFilter(getProductCategory(createdProduct));
         setMessage("Ürün eklendi.");
       }
       resetForm();
-      await refreshProducts();
-    } catch {
-      setError(productFailureMessage);
+    } catch (caughtError) {
+      handleProductMutationFailure(caughtError, mutationProductIds);
     } finally {
       setIsUploadingImage(false);
-      setIsSaving(false);
+      endProductMutation(mutationProductIds, isCreateMutation);
     }
   }
 
@@ -1660,93 +1910,125 @@ export default function PanelPage() {
 
   async function removeProduct(product: BusinessProduct) {
     if (!canManageProducts) return;
-    if (!window.confirm(`${product.name} silinsin mi?`)) return;
+    const authoritativeProduct = productsRef.current.find(
+      (candidate) => candidate.id === product.id,
+    );
+    if (!authoritativeProduct || conflictedProductIdsRef.current.has(product.id)) return;
+    if (!window.confirm(`${authoritativeProduct.name} silinsin mi?`)) return;
+    if (!beginProductMutation([product.id])) return;
 
-    setIsSaving(true);
     setError("");
     setMessage("");
+    setProductOperationError("");
 
     try {
       const token = await getFreshAccessToken();
       if (!token) return;
 
-      await deleteProduct(product.id, token);
+      const deletedProduct = await deleteProduct(
+        authoritativeProduct.id,
+        authoritativeProduct.updatedAt,
+        token,
+      );
+      removeAuthoritativeProduct(deletedProduct.id);
       setMessage("Ürün silindi.");
       if (editingProductId === product.id) resetForm();
       if (expandedProductId === product.id) setExpandedProductId("");
-      await refreshProducts();
-    } catch {
-      setError("Ürün silinirken bir hata oluştu.");
+    } catch (caughtError) {
+      handleProductMutationFailure(caughtError, [product.id]);
     } finally {
-      setIsSaving(false);
+      endProductMutation([product.id]);
     }
   }
 
   async function toggleProduct(product: BusinessProduct) {
     if (!canManageProducts) return;
+    const authoritativeProduct = productsRef.current.find(
+      (candidate) => candidate.id === product.id,
+    );
+    if (!authoritativeProduct || conflictedProductIdsRef.current.has(product.id)) return;
+    if (!beginProductMutation([product.id])) return;
 
-    setIsSaving(true);
     setError("");
     setMessage("");
+    setProductOperationError("");
 
     try {
       const token = await getFreshAccessToken();
       if (!token) return;
 
-      await setProductActiveStatus(product.id, !product.isActive, token);
-      setMessage(product.isActive ? "Ürün pasife alındı." : "Ürün aktif edildi.");
-      await refreshProducts();
-    } catch {
-      setError("Ürün durumu güncellenirken bir hata oluştu.");
+      const updatedProduct = await setProductActiveStatus(
+        authoritativeProduct.id,
+        !authoritativeProduct.isActive,
+        authoritativeProduct.updatedAt,
+        token,
+      );
+      mergeAuthoritativeProduct(updatedProduct);
+      setMessage(
+        authoritativeProduct.isActive
+          ? "Ürün pasife alındı."
+          : "Ürün aktif edildi.",
+      );
+    } catch (caughtError) {
+      handleProductMutationFailure(caughtError, [product.id]);
     } finally {
-      setIsSaving(false);
+      endProductMutation([product.id]);
     }
   }
 
   async function moveProduct(product: BusinessProduct, direction: "up" | "down") {
-    if (!canManageProducts) return;
+    if (!canManageProducts || isProductOrderingFiltered) return;
 
-    const currentIndex = filteredProducts.findIndex((item) => item.id === product.id);
+    const currentProducts = sortProducts(productsRef.current);
+    const currentIndex = currentProducts.findIndex((item) => item.id === product.id);
     const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
 
-    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= filteredProducts.length) {
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= currentProducts.length) {
       return;
     }
 
-    const orderSlots = filteredProducts.map((item) => {
-      const globalIndex = sortedProducts.findIndex(
+    const orderSlots = currentProducts.map((item) => {
+      const globalIndex = currentProducts.findIndex(
         (sortedProduct) => sortedProduct.id === item.id,
       );
       return globalIndex >= 0 ? globalIndex + 1 : item.sortOrder;
     });
-    const reorderedProducts = [...filteredProducts];
+    const reorderedProducts = [...currentProducts];
     const movedProduct = reorderedProducts[currentIndex];
     reorderedProducts[currentIndex] = reorderedProducts[targetIndex];
     reorderedProducts[targetIndex] = movedProduct;
+    const affectedProductIds = reorderedProducts.map((item) => item.id);
+    if (
+      affectedProductIds.some((productId) => conflictedProductIdsRef.current.has(productId)) ||
+      !beginProductMutation(affectedProductIds)
+    ) {
+      return;
+    }
 
-    setIsSaving(true);
     setError("");
     setMessage("");
+    setProductOperationError("");
 
     try {
       const token = await getFreshAccessToken();
       if (!token) return;
 
-      await reorderProducts(
+      const authoritativeProducts = await reorderProducts(
         reorderedProducts.map((item, index) => ({
           productId: item.id,
           sortOrder: orderSlots[index],
+          expectedUpdatedAt: item.updatedAt,
         })),
         token,
       );
+      mergeAuthoritativeProducts(authoritativeProducts);
       setMessage(
         direction === "up" ? "Ürün yukarı taşındı." : "Ürün aşağı taşındı.",
       );
-      await refreshProducts();
-    } catch {
-      setError("Ürün sırası güncellenirken bir hata oluştu.");
+    } catch (caughtError) {
+      handleProductMutationFailure(caughtError, affectedProductIds);
     } finally {
-      setIsSaving(false);
+      endProductMutation(affectedProductIds);
     }
   }
 
@@ -2734,6 +3016,23 @@ export default function PanelPage() {
                 activePanelSection === "create" ? "business-panel-create-layout" : ""
               }`}
             >
+            {productOperationError ? (
+              <div
+                className="alert panel-product-mutation-message"
+                role="alert"
+              >
+                <p>{productOperationError}</p>
+                <button
+                  disabled={isSaving || isUploadingImage}
+                  type="button"
+                  onClick={() => {
+                    void refreshProducts({ replaceEditingForm: true });
+                  }}
+                >
+                  Güncel Bilgileri Yükle
+                </button>
+              </div>
+            ) : null}
             {(activePanelSection === "create" || editingProductId) ? (
             <section className="section panel-section business-panel-section">
               <div className="business-panel-section-heading">
@@ -2762,13 +3061,14 @@ export default function PanelPage() {
               ) : null}
 
               <form
+                aria-busy={isSaving || isUploadingImage}
                 className="customer-form panel-form business-panel-product-form"
                 onSubmit={handleSubmit}
               >
                 <div className="field">
                   <label htmlFor="name">Ürün adı</label>
                   <input
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="name"
                     value={form.name}
                     onChange={(event) => updateForm("name", event.target.value)}
@@ -2778,7 +3078,7 @@ export default function PanelPage() {
                 <div className="field">
                   <label htmlFor="price">Fiyat</label>
                   <input
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="price"
                     inputMode="decimal"
                     type="number"
@@ -2792,7 +3092,7 @@ export default function PanelPage() {
                 <div className="field">
                   <label htmlFor="category">Kategori</label>
                   <select
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="category"
                     value={form.category}
                     onChange={(event) =>
@@ -2818,7 +3118,7 @@ export default function PanelPage() {
                       {isProductCategoryChanged ? (
                         <button
                           className="panel-category-chip"
-                          disabled={isSaving || isUploadingImage}
+                          disabled={isSaving || isUploadingImage || isEditingProductConflicted}
                           type="button"
                           onClick={keepOriginalProductCategory}
                         >
@@ -2832,7 +3132,7 @@ export default function PanelPage() {
                 <div className="field business-panel-form-wide">
                   <label htmlFor="description">Açıklama</label>
                   <textarea
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="description"
                     value={form.description}
                     onChange={(event) =>
@@ -2844,7 +3144,7 @@ export default function PanelPage() {
                 <div className="field">
                   <label htmlFor="imageLabel">Görsel etiketi</label>
                   <input
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="imageLabel"
                     value={form.imageLabel}
                     onChange={(event) =>
@@ -2856,7 +3156,7 @@ export default function PanelPage() {
                 <div className="field">
                   <label htmlFor="imageUrl">Görsel URL</label>
                   <input
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="imageUrl"
                     value={form.imageUrl}
                     onChange={(event) => updateForm("imageUrl", event.target.value)}
@@ -2867,7 +3167,7 @@ export default function PanelPage() {
                   <label htmlFor="imageFile">Ürün görseli yükle</label>
                   <input
                     accept="image/png,image/jpeg,image/webp"
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="imageFile"
                     ref={imageInputRef}
                     type="file"
@@ -2887,9 +3187,10 @@ export default function PanelPage() {
                 <div className="field">
                   <label htmlFor="sortOrder">Sıralama</label>
                   <input
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     id="sortOrder"
                     inputMode="numeric"
+                    min="0"
                     type="number"
                     value={form.sortOrder}
                     onChange={(event) =>
@@ -2903,7 +3204,7 @@ export default function PanelPage() {
                   <span className="business-panel-switch-row">
                     <input
                       checked={form.isActive}
-                      disabled={!canManageProducts || isSaving || isUploadingImage}
+                      disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                       type="checkbox"
                       onChange={(event) =>
                         updateForm("isActive", event.target.checked)
@@ -2929,7 +3230,7 @@ export default function PanelPage() {
                   </button>
                   <button
                     className="submit-button panel-primary-action"
-                    disabled={!canManageProducts || isSaving || isUploadingImage}
+                    disabled={!canManageProducts || isSaving || isUploadingImage || isEditingProductConflicted}
                     type="submit"
                   >
                     {isUploadingImage
@@ -3015,6 +3316,7 @@ export default function PanelPage() {
                 ) : (
                   filteredProducts.map((product, index) => {
                     const isExpanded = expandedProductId === product.id;
+                    const hasProductConflict = conflictedProductIds.has(product.id);
 
                     return (
                       <article
@@ -3083,9 +3385,11 @@ export default function PanelPage() {
                                 disabled={
                                   !canManageProducts ||
                                   isSaving ||
+                                  hasAnyProductConflict ||
                                   isProductOrderingFiltered ||
                                   index === 0
                                 }
+                                aria-label={`${product.name} ürününü yukarı taşı`}
                                 type="button"
                                 onClick={() => moveProduct(product, "up")}
                               >
@@ -3095,23 +3399,27 @@ export default function PanelPage() {
                                 disabled={
                                   !canManageProducts ||
                                   isSaving ||
+                                  hasAnyProductConflict ||
                                   isProductOrderingFiltered ||
                                   index === filteredProducts.length - 1
                                 }
+                                aria-label={`${product.name} ürününü aşağı taşı`}
                                 type="button"
                                 onClick={() => moveProduct(product, "down")}
                               >
                                 Aşağı Taşı
                               </button>
                               <button
-                                disabled={!canManageProducts || isSaving}
+                                aria-label={`${product.name} ürününü düzenle`}
+                                disabled={!canManageProducts || isSaving || hasProductConflict}
                                 type="button"
                                 onClick={() => startEdit(product)}
                               >
                                 Düzenle
                               </button>
                               <button
-                                disabled={!canManageProducts || isSaving}
+                                aria-label={`${product.name} ürününü ${product.isActive ? "pasife al" : "aktif et"}`}
+                                disabled={!canManageProducts || isSaving || hasProductConflict}
                                 type="button"
                                 onClick={() => toggleProduct(product)}
                               >
@@ -3119,7 +3427,8 @@ export default function PanelPage() {
                               </button>
                               <button
                                 className="danger-button"
-                                disabled={!canManageProducts || isSaving}
+                                aria-label={`${product.name} ürününü sil`}
+                                disabled={!canManageProducts || isSaving || hasProductConflict}
                                 type="button"
                                 onClick={() => removeProduct(product)}
                               >

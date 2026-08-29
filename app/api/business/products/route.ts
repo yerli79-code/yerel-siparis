@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import {
   buildProductPayload,
   createClientProductId,
@@ -6,14 +5,15 @@ import {
   fetchBusinessesForUser,
   fetchProductsForBusiness,
   getBearerToken,
+  getCreateProductInput,
   getNextSortOrder,
-  getProductInput,
   getSingleUserBusiness,
   getSupabaseServerConfig,
   getUserFromToken,
   insertProduct,
   isPlainObject,
-  jsonError,
+  productError,
+  productJson,
   resolveProductRouteError,
 } from "./_utils";
 
@@ -23,12 +23,12 @@ export async function GET(request: Request) {
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
-      return jsonError("Oturum bulunamadi.", 401);
+      return productError("PRODUCT_UNAUTHORIZED", 401);
     }
 
     const user = await getUserFromToken(url, anonKey, accessToken);
     if (!user) {
-      return jsonError("Gecersiz veya suresi dolmus oturum.", 401);
+      return productError("PRODUCT_UNAUTHORIZED", 401);
     }
 
     const business = getSingleUserBusiness(
@@ -40,13 +40,10 @@ export async function GET(request: Request) {
       business.id,
     );
 
-    return NextResponse.json({ products });
+    return productJson({ products });
   } catch (error) {
-    const safeError = resolveProductRouteError(
-      error,
-      "Ürünler alınamadı. Lütfen tekrar deneyin.",
-    );
-    return jsonError(safeError.message, safeError.status);
+    const safeError = resolveProductRouteError(error);
+    return productError(safeError.code, safeError.status);
   }
 }
 
@@ -56,24 +53,24 @@ export async function POST(request: Request) {
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
-      return jsonError("Oturum bulunamadi.", 401);
+      return productError("PRODUCT_UNAUTHORIZED", 401);
     }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return jsonError("Gecersiz istek govdesi.", 400);
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
     if (!isPlainObject(body)) {
-      return jsonError("Gecersiz istek govdesi.", 400);
+      return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
-    const input = getProductInput(body);
+    const input = getCreateProductInput(body);
     const user = await getUserFromToken(url, anonKey, accessToken);
     if (!user) {
-      return jsonError("Gecersiz veya suresi dolmus oturum.", 401);
+      return productError("PRODUCT_UNAUTHORIZED", 401);
     }
 
     const business = getSingleUserBusiness(
@@ -102,12 +99,9 @@ export async function POST(request: Request) {
       client_product_id: createClientProductId(),
     });
 
-    return NextResponse.json({ product });
+    return productJson({ product });
   } catch (error) {
-    const safeError = resolveProductRouteError(
-      error,
-      "Ürün eklenemedi. Lütfen tekrar deneyin.",
-    );
-    return jsonError(safeError.message, safeError.status);
+    const safeError = resolveProductRouteError(error);
+    return productError(safeError.code, safeError.status);
   }
 }
