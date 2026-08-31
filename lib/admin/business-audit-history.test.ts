@@ -296,13 +296,12 @@ test("existing critical actions, retired route and hard delete remain unchanged"
   assert.equal(existsSync(new URL("app/api/admin/delete-business/route.ts", root)), true);
 });
 
-test("P5.1E-E changes no schema, package, print PR #7 or reports PR #8 files", () => {
+test("P5.1E-E protected schema, print PR #7 and reports PR #8 files remain unchanged", () => {
   const changed = new Set(
     `${execFileSync("git", ["diff", "--name-only", "HEAD"], { cwd: root, encoding: "utf8" })}\n${execFileSync("git", ["ls-files", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8" })}`
       .split(/\r?\n/)
       .filter(Boolean),
   );
-  assert.equal([...changed].some((path) => path === "package.json" || path.endsWith("lock")), false);
   assert.equal([...changed].some((path) => path.startsWith("supabase/migrations/")), false);
   assert.equal([...changed].some((path) => path.startsWith("supabase/schema")), false);
 

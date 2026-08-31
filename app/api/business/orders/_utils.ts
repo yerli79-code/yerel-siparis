@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { isPaymentMethod } from "../../../../lib/payment-methods";
+import { privateBusinessJson } from "../_response";
 import {
   buildOrderSearchFilter,
   type BusinessOrderSearch,
@@ -109,9 +109,9 @@ const orderItemSelect =
   "id,order_id,product_id,product_name,unit_price,quantity,line_total,created_at";
 
 export function jsonError(message: string, status = 400, code?: string) {
-  return NextResponse.json(
+  return privateBusinessJson(
     { error: message, ...(code ? { code } : {}) },
-    { status },
+    status,
   );
 }
 

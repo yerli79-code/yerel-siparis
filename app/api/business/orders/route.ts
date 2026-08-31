@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { privateBusinessJson } from "../_response";
 import {
   fetchBusinessOrdersForUser,
 } from "./route-support";
@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const result = await fetchBusinessOrdersForUser(request);
   if ("response" in result) return result.response;
 
-  return NextResponse.json({
+  return privateBusinessJson({
     orders: result.orders,
     pagination: result.pagination,
   });
