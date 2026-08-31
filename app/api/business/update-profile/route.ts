@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { privateBusinessJson } from "../_response";
 import {
   hasBusinessLocationChanged,
   isValidStandardBusinessLocation,
@@ -85,7 +85,7 @@ class PublicRouteError extends Error {
 class ServerConfigError extends Error {}
 
 function jsonError(message: string, status = 400, detail?: unknown) {
-  return NextResponse.json({ error: message, detail }, { status });
+  return privateBusinessJson({ error: message, detail }, status);
 }
 
 function getSupabaseServerConfig() {
@@ -476,7 +476,7 @@ export async function POST(request: Request) {
       payload,
     );
 
-    return NextResponse.json({ business: updatedBusiness });
+    return privateBusinessJson({ business: updatedBusiness });
   } catch (error) {
     if (error instanceof PublicRouteError) {
       return jsonError(error.publicMessage, error.status);

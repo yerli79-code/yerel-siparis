@@ -128,6 +128,8 @@ test("product GET missing or invalid auth is controlled", async () => {
     const response = await GET(getRequest(""));
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), { code: "PRODUCT_UNAUTHORIZED" });
+    assert.equal(response.headers.get("cache-control"), "private, no-store, max-age=0");
+    assert.equal(response.headers.get("vary"), "Authorization");
   });
   await withScenario({ authValid: false }, async () => {
     const response = await GET(getRequest());

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { privateBusinessJson } from "../_response";
 import {
   fetchBusinessesForUser,
   getBearerToken,
@@ -64,7 +64,7 @@ function summaryError(
   status: number,
 ) {
   const body: BusinessDashboardSummaryErrorResponse = { error, code };
-  return NextResponse.json(body, { status });
+  return privateBusinessJson(body, status);
 }
 
 function getUtcCalendarDaySerial(value: string) {
@@ -322,7 +322,7 @@ export async function GET(request: Request) {
       },
     };
 
-    return NextResponse.json(responseBody);
+    return privateBusinessJson(responseBody);
   } catch (error) {
     console.error("business_dashboard_summary_failed", {
       stage,
