@@ -9,6 +9,16 @@ import {
   isPlainObject,
   jsonError,
 } from "../../business/orders/_utils";
+import {
+  PublicOrderPayloadTooLargeError,
+  RATE_LIMIT_UNAVAILABLE_RETRY_SECONDS,
+  checkPublicOrderRateLimit,
+  createPublicOrderIpFingerprint,
+  getTrustedVercelClientIp,
+  logPublicOrderSecurityEvent,
+  normalizeRateLimitBusinessSlug,
+  readPublicOrderBody,
+} from "./security";
 
 type NormalizedItem = {
   productId: string;
@@ -17,8 +27,13 @@ type NormalizedItem = {
 
 class PublicOrderValidationError extends Error {}
 
-function publicOrderError(message: string, code: string, status: number) {
-  return NextResponse.json({ error: message, code }, { status });
+function publicOrderError(
+  message: string,
+  code: string,
+  status: number,
+  headers?: HeadersInit,
+) {
+  return NextResponse.json({ error: message, code }, { status, headers });
 }
 
 function assertOnlyKeys(
@@ -101,11 +116,21 @@ function parseItems(value: unknown) {
 
 export async function POST(request: Request) {
   try {
-    const { url, serviceRoleKey } = getSupabaseServerConfig();
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
+      body = JSON.parse(await readPublicOrderBody(request));
+    } catch (error) {
+      if (error instanceof PublicOrderPayloadTooLargeError) {
+        logPublicOrderSecurityEvent({
+          event: "public_order_payload_too_large",
+          route: "/api/public/orders",
+        });
+        return publicOrderError(
+          "Sipariş isteği çok büyük.",
+          "ORDER_PAYLOAD_TOO_LARGE",
+          413,
+        );
+      }
       return jsonError("Gecersiz istek govdesi.", 400);
     }
     if (!isPlainObject(body)) {
@@ -170,6 +195,49 @@ export async function POST(request: Request) {
     }
     const idempotencyKey = body.idempotencyKey.trim();
     const items = parseItems(body.items);
+
+    const { url, serviceRoleKey } = getSupabaseServerConfig();
+    const rateLimitBusinessSlug = normalizeRateLimitBusinessSlug(businessSlug);
+    const ipFingerprint = createPublicOrderIpFingerprint(
+      getTrustedVercelClientIp(request),
+      serviceRoleKey,
+    );
+    let rateLimit;
+    try {
+      rateLimit = await checkPublicOrderRateLimit(url, serviceRoleKey, {
+        ipFingerprint,
+        businessSlug: rateLimitBusinessSlug,
+      });
+    } catch {
+      logPublicOrderSecurityEvent({
+        event: "public_order_rate_limit_unavailable",
+        route: "/api/public/orders",
+        retryAfterSeconds: RATE_LIMIT_UNAVAILABLE_RETRY_SECONDS,
+      });
+      return publicOrderError(
+        "Sipariş güvenlik kontrolü şu anda kullanılamıyor. Lütfen kısa süre sonra tekrar deneyin.",
+        "ORDER_RATE_LIMIT_UNAVAILABLE",
+        503,
+        { "Retry-After": String(RATE_LIMIT_UNAVAILABLE_RETRY_SECONDS) },
+      );
+    }
+
+    if (!rateLimit.allowed && rateLimit.blockedDimension) {
+      logPublicOrderSecurityEvent({
+        event: "public_order_rate_limit_blocked",
+        limiterDimension: rateLimit.blockedDimension,
+        route: "/api/public/orders",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+        ipFingerprint: ipFingerprint.slice(0, 12),
+        businessSlug: rateLimitBusinessSlug,
+      });
+      return publicOrderError(
+        "Çok fazla sipariş denemesi yapıldı. Lütfen kısa süre sonra tekrar deneyin.",
+        "ORDER_RATE_LIMITED",
+        429,
+        { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      );
+    }
 
     const order = await createOrderWithItemsRpc(url, serviceRoleKey, {
       p_business_slug: businessSlug,
