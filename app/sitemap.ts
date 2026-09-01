@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: `${siteUrl}/` },
+    { url: `${siteUrl}/gizlilik` },
     ...publicBusinessSlugs.map((slug) => ({
       url: `${siteUrl}/isletme/${encodeURIComponent(slug)}`,
     })),
