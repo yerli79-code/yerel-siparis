@@ -360,6 +360,12 @@ export default function Home() {
             })}
           </section>
         ) : null}
+
+        <footer className="discovery-footer">
+          <Link className="discovery-footer-link" href="/gizlilik">
+            Gizlilik Politikası
+          </Link>
+        </footer>
       </div>
     </main>
   );
