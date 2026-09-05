@@ -196,15 +196,15 @@ export async function POST(request: Request) {
     const idempotencyKey = body.idempotencyKey.trim();
     const items = parseItems(body.items);
 
-    const { url, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, serverSecretKey } = getSupabaseServerConfig();
     const rateLimitBusinessSlug = normalizeRateLimitBusinessSlug(businessSlug);
     const ipFingerprint = createPublicOrderIpFingerprint(
       getTrustedVercelClientIp(request),
-      serviceRoleKey,
+      serverSecretKey,
     );
     let rateLimit;
     try {
-      rateLimit = await checkPublicOrderRateLimit(url, serviceRoleKey, {
+      rateLimit = await checkPublicOrderRateLimit(url, serverSecretKey, {
         ipFingerprint,
         businessSlug: rateLimitBusinessSlug,
       });
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const order = await createOrderWithItemsRpc(url, serviceRoleKey, {
+    const order = await createOrderWithItemsRpc(url, serverSecretKey, {
       p_business_slug: businessSlug,
       p_order_type: orderType,
       p_customer_name: customerName,

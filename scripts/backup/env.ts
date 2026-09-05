@@ -3,7 +3,7 @@ import type { BackupEnv, BackupEnvStatus } from "./types.ts";
 export const REQUIRED_BACKUP_ENV_VARS: Array<keyof BackupEnv> = [
   "SUPABASE_DB_URL",
   "SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_BACKUP_SECRET_KEY",
   "GOOGLE_DRIVE_CLIENT_ID",
   "GOOGLE_DRIVE_CLIENT_SECRET",
   "GOOGLE_DRIVE_REFRESH_TOKEN",
@@ -40,7 +40,7 @@ export function validateBackupEnv(
   return {
     SUPABASE_DB_URL: envSource.SUPABASE_DB_URL!.trim(),
     SUPABASE_URL: envSource.SUPABASE_URL!.trim(),
-    SUPABASE_SERVICE_ROLE_KEY: envSource.SUPABASE_SERVICE_ROLE_KEY!.trim(),
+    SUPABASE_BACKUP_SECRET_KEY: envSource.SUPABASE_BACKUP_SECRET_KEY!.trim(),
     GOOGLE_DRIVE_CLIENT_ID: envSource.GOOGLE_DRIVE_CLIENT_ID!.trim(),
     GOOGLE_DRIVE_CLIENT_SECRET: envSource.GOOGLE_DRIVE_CLIENT_SECRET!.trim(),
     GOOGLE_DRIVE_REFRESH_TOKEN: envSource.GOOGLE_DRIVE_REFRESH_TOKEN!.trim(),

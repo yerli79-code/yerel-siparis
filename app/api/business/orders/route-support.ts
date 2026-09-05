@@ -192,7 +192,7 @@ export async function fetchBusinessOrdersForUser(request: Request) {
     | "order_items" = "config";
 
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
 
     stage = "auth";
     const accessToken = getBearerToken(request);
@@ -226,7 +226,7 @@ export async function fetchBusinessOrdersForUser(request: Request) {
     stage = "business_lookup";
     const businesses = await fetchBusinessesForUser(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       user.id,
     );
 
@@ -236,7 +236,7 @@ export async function fetchBusinessOrdersForUser(request: Request) {
     stage = "orders";
     const orderResult = await fetchOrdersForBusiness(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       business.id,
       query,
     );
@@ -244,7 +244,7 @@ export async function fetchBusinessOrdersForUser(request: Request) {
     stage = "order_items";
     const orderItems = await fetchOrderItemsForOrders(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       orderResult.orders.map((order) => order.id),
     );
     const itemsByOrderId = new Map<string, typeof orderItems>();

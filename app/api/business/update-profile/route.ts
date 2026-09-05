@@ -91,16 +91,16 @@ function jsonError(message: string, status = 400, detail?: unknown) {
 function getSupabaseServerConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
 
   if (!url || !anonKey) {
     throw new ServerConfigError();
   }
-  if (!serviceRoleKey) {
+  if (!serverSecretKey) {
     throw new ServerConfigError();
   }
 
-  return { url, anonKey, serviceRoleKey };
+  return { url, anonKey, serverSecretKey };
 }
 
 async function readJson(response: Response) {
@@ -309,7 +309,7 @@ function buildProfilePayload(input: Record<string, unknown>) {
 
 async function fetchOwnedBusiness(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
 ): Promise<OwnedBusinessRow | null> {
   const response = await fetch(
@@ -318,8 +318,7 @@ async function fetchOwnedBusiness(
     )}&select=id,owner_id,city,district,neighborhood&limit=1`,
     {
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serverSecretKey,
       },
     },
   );
@@ -382,7 +381,7 @@ async function validateLocationUpdate(
 
 async function updateBusinessProfile(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
   payload: ProfileUpdatePayload,
 ) {
@@ -391,8 +390,7 @@ async function updateBusinessProfile(
     {
       method: "PATCH",
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serverSecretKey,
         "Content-Type": "application/json",
         Prefer: "return=representation",
       },
@@ -415,7 +413,7 @@ async function updateBusinessProfile(
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
@@ -453,7 +451,7 @@ export async function POST(request: Request) {
     }
     const business = await fetchOwnedBusiness(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       businessId,
     );
 
@@ -471,7 +469,7 @@ export async function POST(request: Request) {
     }
     const updatedBusiness = await updateBusinessProfile(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       businessId,
       payload,
     );

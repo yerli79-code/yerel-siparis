@@ -10,7 +10,7 @@ const userId = "33333333-3333-4333-8333-333333333333";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 function createSuccessfulFetch() {
   const fetchMock: typeof fetch = async (input) => {

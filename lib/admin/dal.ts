@@ -81,10 +81,9 @@ export async function isActiveAdminEmail(email: string) {
 }
 
 export async function adminServiceFetch(path: string, init: RequestInit = {}) {
-  const { url, serviceRoleKey } = getSupabaseAdminServerConfig();
+  const { url, serverSecretKey } = getSupabaseAdminServerConfig();
   const headers = new Headers(init.headers);
-  headers.set("apikey", serviceRoleKey);
-  headers.set("Authorization", `Bearer ${serviceRoleKey}`);
+  headers.set("apikey", serverSecretKey);
 
   return fetch(`${url}${path}`, {
     ...init,

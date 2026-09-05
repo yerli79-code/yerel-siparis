@@ -15,7 +15,7 @@ const nextUpdatedAt = "2026-08-26T09:00:01.000Z";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 type Scenario = {
   authValid?: boolean;
@@ -234,13 +234,18 @@ for (const [name, body] of [
 }
 
 test("matching version returns the authoritative updated order", async () => {
-  await withScenario({}, async () => {
+  await withScenario({}, async (calls) => {
     const response = await PATCH(mutationRequest(), context());
     const body = await responseCode(response);
     assert.equal(response.status, 200);
     assert.equal((body.order as { status: string }).status, "preparing");
     assert.equal((body.order as { updatedAt: string }).updatedAt, nextUpdatedAt);
     assert.equal(response.headers.get("cache-control"), "private, no-store, max-age=0");
+    const patchCall = calls.find(({ init }) => init.method === "PATCH");
+    assert.ok(patchCall);
+    const patchHeaders = new Headers(patchCall.init.headers);
+    assert.equal(patchHeaders.get("apikey"), "server-secret-key");
+    assert.equal(patchHeaders.has("Authorization"), false);
   });
 });
 

@@ -13,7 +13,7 @@ const updatedAt = "2026-08-29T06:00:00.000Z";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 function productRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -180,6 +180,9 @@ test("create derives ownership, client ID and default order on the server", asyn
     assert.equal(payload.sort_order, 4);
     assert.equal("owner_id" in payload, false);
     assert.equal("updated_at" in payload, false);
+    const insertHeaders = new Headers(insert.init.headers);
+    assert.equal(insertHeaders.get("apikey"), "server-secret-key");
+    assert.equal(insertHeaders.has("Authorization"), false);
   });
 });
 

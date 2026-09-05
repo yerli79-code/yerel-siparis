@@ -71,7 +71,7 @@ export function parseReorderItems(body: Record<string, unknown>) {
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
@@ -90,13 +90,13 @@ export async function POST(request: Request) {
     if (!user) return productError("PRODUCT_UNAUTHORIZED", 401);
 
     const business = getSingleUserBusiness(
-      await fetchBusinessesForUser(url, serviceRoleKey, user.id),
+      await fetchBusinessesForUser(url, serverSecretKey, user.id),
     );
     ensureProductWriteAllowed(business);
 
     const products = await reorderProductsAtomically(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       business.id,
       items,
     );

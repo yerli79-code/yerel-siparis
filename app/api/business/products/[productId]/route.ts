@@ -24,16 +24,16 @@ type RouteContext = {
 
 async function getProductAccess(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   productId: string,
   userId: string,
 ) {
-  const product = await fetchProductById(url, serviceRoleKey, productId);
+  const product = await fetchProductById(url, serverSecretKey, productId);
   if (!product) return { product: null, business: null };
 
   const business = await fetchBusinessById(
     url,
-    serviceRoleKey,
+    serverSecretKey,
     product.business_id,
   );
   if (!business || business.owner_id !== userId) {
@@ -49,7 +49,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
@@ -69,7 +69,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const { product, business } = await getProductAccess(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       productId,
       user.id,
     );
@@ -87,7 +87,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const updatedProduct = await updateProductConditionally(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       product.id,
       business.id,
       expectedUpdatedAt,
@@ -109,7 +109,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
@@ -129,7 +129,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     const { product, business } = await getProductAccess(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       productId,
       user.id,
     );
@@ -142,7 +142,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     const deletedProduct = await deleteProductConditionally(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       product.id,
       business.id,
       expectedUpdatedAt,

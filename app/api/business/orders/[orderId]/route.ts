@@ -91,7 +91,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     stage = "config";
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) {
       return mutationError("ORDER_UNAUTHORIZED", 401);
@@ -127,11 +127,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     stage = "business";
     const business = getSingleUserBusiness(
-      await fetchBusinessesForUser(url, serviceRoleKey, user.id),
+      await fetchBusinessesForUser(url, serverSecretKey, user.id),
     );
 
     stage = "ownership";
-    const existingOrder = await fetchOrderById(url, serviceRoleKey, orderId);
+    const existingOrder = await fetchOrderById(url, serverSecretKey, orderId);
     if (!existingOrder || existingOrder.business_id !== business.id) {
       return mutationError("ORDER_NOT_FOUND", 404);
     }
@@ -144,7 +144,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (existingOrder.status === body.status) {
       stage = "items";
-      const items = await fetchOrderItemsForOrders(url, serviceRoleKey, [
+      const items = await fetchOrderItemsForOrders(url, serverSecretKey, [
         existingOrder.id,
       ]);
       return mutationJson({ order: mapOrder(existingOrder, items) });
@@ -153,7 +153,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     stage = "mutation";
     const updatedOrder = await updateOrderStatusById(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       existingOrder.id,
       business.id,
       body.status,
@@ -164,7 +164,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     stage = "items";
-    const items = await fetchOrderItemsForOrders(url, serviceRoleKey, [
+    const items = await fetchOrderItemsForOrders(url, serverSecretKey, [
       updatedOrder.id,
     ]);
 

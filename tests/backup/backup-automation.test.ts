@@ -124,8 +124,12 @@ test("B) SHA-256 correctness and SHA256SUMS format verification", async () => {
 test("C) Storage nested path handling preserves folder hierarchy accurately", async () => {
   const tempDir = createTempDir("test-storage-nested");
   try {
+    const inspectedHeaders: Headers[] = [];
     const mockFetch: typeof fetch = async (input, init) => {
       const url = String(input);
+      const headers = new Headers(init?.headers);
+      inspectedHeaders.push(headers);
+
       if (url.includes("/storage/v1/bucket")) {
         return new Response(JSON.stringify([{ id: "business-assets", name: "business-assets" }]), {
           status: 200,
@@ -169,7 +173,7 @@ test("C) Storage nested path handling preserves folder hierarchy accurately", as
 
     const result = await runStorageBackup({
       supabaseUrl: "https://test.supabase.co",
-      serviceRoleKey: "mock-key",
+      backupSecretKey: "mock-backup-secret-key",
       stagingDir: tempDir,
       fetchFn: mockFetch,
       execCommand: mockArchive,
@@ -179,6 +183,13 @@ test("C) Storage nested path handling preserves folder hierarchy accurately", as
     assert.equal(result.objectCount, 2);
     assert.ok(result.objects.some((o) => o.path === "restaurants/urfa-kebap.jpg"));
     assert.ok(result.objects.some((o) => o.path === "logo.png"));
+
+    // Verify storage request headers: apikey is set, Authorization Bearer is ABSENT
+    assert.ok(inspectedHeaders.length > 0);
+    for (const h of inspectedHeaders) {
+      assert.equal(h.get("apikey"), "mock-backup-secret-key");
+      assert.equal(h.has("authorization"), false, "Storage request MUST NOT contain Authorization Bearer header");
+    }
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }
@@ -246,7 +257,7 @@ test("E) empty bucket succeeds cleanly without throwing and records 0 objects", 
 
     const result = await runStorageBackup({
       supabaseUrl: "https://test.supabase.co",
-      serviceRoleKey: "mock-key",
+      backupSecretKey: "mock-key",
       stagingDir: tempDir,
       fetchFn: mockFetch,
       execCommand: mockArchive,
@@ -548,6 +559,7 @@ test("L) missing required env variables fails closed", () => {
   const statuses = getBackupEnvStatus(incompleteEnv);
   assert.equal(statuses.find((s) => s.name === "SUPABASE_URL")?.configured, true);
   assert.equal(statuses.find((s) => s.name === "SUPABASE_DB_URL")?.configured, false);
+  assert.equal(statuses.find((s) => s.name === "SUPABASE_BACKUP_SECRET_KEY")?.configured, false);
 });
 
 // M) Failed Object Download Fail-Closed
@@ -573,7 +585,7 @@ test("M) failed storage object download causes fail-closed abortion", async () =
       async () =>
         runStorageBackup({
           supabaseUrl: "https://test.supabase.co",
-          serviceRoleKey: "mock-key",
+          backupSecretKey: "mock-key",
           stagingDir: tempDir,
           fetchFn: mockFetch,
         }),
