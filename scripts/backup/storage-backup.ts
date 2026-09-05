@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, relative, isAbsolute } from "node:path";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { computeBufferSha256, computeFileSha256 } from "./crypto-util.ts";
 import type { StorageBackupResult, StorageObjectMeta } from "./types.ts";
@@ -193,6 +193,32 @@ export async function downloadStorageObject(
   return Buffer.from(arrayBuffer);
 }
 
+export function resolveSafeStoragePath(
+  bucketRootDir: string,
+  objectPath: string,
+): string {
+  if (
+    objectPath.startsWith("/") ||
+    objectPath.startsWith("\\") ||
+    isAbsolute(objectPath)
+  ) {
+    throw new Error(
+      `Storage containment violation: object path "${objectPath}" is an absolute path (fail-closed).`,
+    );
+  }
+
+  const resolved = resolve(bucketRootDir, objectPath);
+  const rel = relative(bucketRootDir, resolved);
+
+  if (rel.startsWith("..") || isAbsolute(rel) || rel === "") {
+    throw new Error(
+      `Storage containment violation: object path "${objectPath}" escapes bucket root "${bucketRootDir}" (fail-closed).`,
+    );
+  }
+
+  return resolved;
+}
+
 export async function runStorageBackup({
   supabaseUrl,
   serviceRoleKey,
@@ -216,6 +242,8 @@ export async function runStorageBackup({
       fetchFn,
     );
 
+    const bucketRootDir = join(storageRootDir, bucket.id);
+
     for (const obj of bucketObjects) {
       const content = await downloadStorageObject(
         supabaseUrl,
@@ -225,7 +253,7 @@ export async function runStorageBackup({
         fetchFn,
       );
 
-      const targetPath = join(storageRootDir, obj.bucket, obj.path);
+      const targetPath = resolveSafeStoragePath(bucketRootDir, obj.path);
       mkdirSync(dirname(targetPath), { recursive: true });
       writeFileSync(targetPath, content);
 

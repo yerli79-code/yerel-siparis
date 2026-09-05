@@ -73,6 +73,52 @@ export async function checkPgDumpVersion(
   }
 }
 
+export interface ParsedDatabaseParams {
+  host: string;
+  port: string;
+  username: string;
+  dbname: string;
+  sslmode: string;
+  password?: string;
+  args: string[];
+  env: Record<string, string | undefined>;
+}
+
+export function parseDatabaseConnectionParams(
+  dbUrl: string,
+  outputPath: string,
+): ParsedDatabaseParams {
+  const parsed = new URL(dbUrl);
+  const host = parsed.hostname;
+  const port = parsed.port || "5432";
+  const username = decodeURIComponent(parsed.username || "");
+  const dbname = decodeURIComponent(parsed.pathname.replace(/^\//, "")) || "postgres";
+  const sslmode = parsed.searchParams.get("sslmode") || "require";
+  const password = parsed.password ? decodeURIComponent(parsed.password) : undefined;
+
+  const args = [
+    `--host=${host}`,
+    `--port=${port}`,
+    ...(username ? [`--username=${username}`] : []),
+    `--dbname=${dbname}`,
+    "--format=custom",
+    "--no-owner",
+    "--no-acl",
+    `--file=${outputPath}`,
+  ];
+
+  const env: Record<string, string | undefined> = {
+    PGCONNECT_TIMEOUT: "30",
+    PGSSLMODE: sslmode,
+  };
+
+  if (password) {
+    env.PGPASSWORD = password;
+  }
+
+  return { host, port, username, dbname, sslmode, password, args, env };
+}
+
 export async function runDatabaseBackup({
   dbUrl,
   outputPath,
@@ -83,23 +129,16 @@ export async function runDatabaseBackup({
   }
 
   const maskedUrl = maskDatabaseUrl(dbUrl);
+  const connParams = parseDatabaseConnectionParams(dbUrl, outputPath);
 
-  const args = [
-    `--dbname=${dbUrl}`,
-    "--format=custom",
-    "--no-owner",
-    "--no-acl",
-    `--file=${outputPath}`,
-  ];
-
-  const result = await execCommand("pg_dump", args, {
-    // Some pg_dump versions read PGCONNECT_TIMEOUT
-    PGCONNECT_TIMEOUT: "30",
-  });
+  const result = await execCommand("pg_dump", connParams.args, connParams.env);
 
   if (result.exitCode !== 0) {
-    // Sanitize any raw DB URL in stderr
+    // Sanitize any raw DB URL or password in stderr
     let sanitizedStderr = result.stderr.split(dbUrl).join(maskedUrl);
+    if (connParams.password) {
+      sanitizedStderr = sanitizedStderr.split(connParams.password).join("***");
+    }
     sanitizedStderr = sanitizedStderr.replace(/:[^@:]+@/g, ":***@");
     throw new Error(
       `pg_dump failed with exit code ${result.exitCode}. Stderr: ${sanitizedStderr.trim() || "none"}`,

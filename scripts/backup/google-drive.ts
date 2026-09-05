@@ -1,4 +1,6 @@
-import { readFileSync, statSync } from "node:fs";
+import { openSync, readSync, closeSync, statSync } from "node:fs";
+// @ts-expect-error The local TypeScript test runner resolves source extensions.
+import { computeFileMd5 } from "./crypto-util.ts";
 import type {
   DriveAppProperties,
   DriveFileRecord,
@@ -23,6 +25,7 @@ export interface UploadFileOptions {
   fileName: string;
   mimeType: string;
   appProperties?: Record<string, string>;
+  chunkSize?: number;
 }
 
 export async function refreshGoogleDriveAccessToken({
@@ -184,6 +187,7 @@ export class GoogleDriveClient {
     fileName,
     mimeType,
     appProperties = {},
+    chunkSize = 8 * 1024 * 1024,
   }: UploadFileOptions): Promise<DriveFileRecord> {
     const stats = statSync(filePath);
     if (stats.size === 0 && !fileName.endsWith("empty")) {
@@ -195,10 +199,11 @@ export class GoogleDriveClient {
       }
     }
 
-    const fileBuffer = readFileSync(filePath);
-    const boundary = "-------YerelSiparisBackupBoundary" + Date.now().toString(16);
+    const localMd5 = await computeFileMd5(filePath);
+    const totalSize = stats.size;
 
-    const metadataPart = JSON.stringify({
+    // 1. Initiate resumable upload session
+    const metadata = {
       name: fileName,
       parents: [parentId],
       appProperties: {
@@ -207,34 +212,162 @@ export class GoogleDriveClient {
         formatVersion: "1",
         ...appProperties,
       },
-    });
+    };
 
-    const header = Buffer.from(
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadataPart}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
-      "utf8",
-    );
-    const footer = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
-    const multipartBody = Buffer.concat([header, fileBuffer, footer]);
+    const initUrl =
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,md5Checksum,appProperties";
 
-    const uploadUrl =
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,md5Checksum,appProperties";
-
-    const res = await this.request(uploadUrl, {
+    const initRes = await this.request(initUrl, {
       method: "POST",
       headers: {
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-        "Content-Length": multipartBody.length.toString(),
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Type": mimeType,
+        "X-Upload-Content-Length": totalSize.toString(),
       },
-      body: multipartBody,
+      body: JSON.stringify(metadata),
     });
 
-    if (!res.ok) {
+    if (!initRes.ok) {
       throw new Error(
-        `Failed to upload "${fileName}" to Google Drive. HTTP ${res.status}: ${res.statusText}`,
+        `Failed to initiate resumable upload for "${fileName}". HTTP ${initRes.status}: ${initRes.statusText}`,
       );
     }
 
-    return (await res.json()) as DriveFileRecord;
+    const sessionUri = initRes.headers.get("location");
+    if (!sessionUri) {
+      throw new Error(
+        `Google Drive resumable upload session initiation did not return a Location header for "${fileName}".`,
+      );
+    }
+
+    // 2. Upload file in chunks from disk (without loading the entire file into RAM)
+    let finalRemoteFile: DriveFileRecord | null = null;
+
+    if (totalSize === 0) {
+      const putRes = await this.request(sessionUri, {
+        method: "PUT",
+        headers: {
+          "Content-Length": "0",
+          "Content-Range": "bytes */0",
+          "Content-Type": mimeType,
+        },
+        body: Buffer.alloc(0),
+      });
+
+      if (!putRes.ok && putRes.status !== 201) {
+        throw new Error(
+          `Failed to upload 0-byte file "${fileName}". HTTP ${putRes.status}: ${putRes.statusText}`,
+        );
+      }
+
+      finalRemoteFile = (await putRes.json()) as DriveFileRecord;
+    } else {
+      let offset = 0;
+      const fd = openSync(filePath, "r");
+
+      try {
+        while (offset < totalSize) {
+          const bytesToRead = Math.min(chunkSize, totalSize - offset);
+          const chunkBuffer = Buffer.alloc(bytesToRead);
+          const bytesRead = readSync(fd, chunkBuffer, 0, bytesToRead, offset);
+          if (bytesRead !== bytesToRead) {
+            throw new Error(
+              `Failed to read expected ${bytesToRead} bytes from ${filePath} (read ${bytesRead} bytes).`,
+            );
+          }
+
+          const chunkEnd = offset + bytesRead - 1;
+          const isFinalChunk = offset + bytesRead === totalSize;
+
+          const putRes = await this.request(sessionUri, {
+            method: "PUT",
+            headers: {
+              "Content-Length": bytesRead.toString(),
+              "Content-Range": `bytes ${offset}-${chunkEnd}/${totalSize}`,
+              "Content-Type": mimeType,
+            },
+            body: chunkBuffer,
+          });
+
+          if (isFinalChunk) {
+            if (putRes.status !== 200 && putRes.status !== 201) {
+              throw new Error(
+                `Failed to finalize resumable upload for "${fileName}". HTTP ${putRes.status}: ${putRes.statusText}`,
+              );
+            }
+            finalRemoteFile = (await putRes.json()) as DriveFileRecord;
+          } else {
+            if (putRes.status !== 308) {
+              throw new Error(
+                `Resumable upload chunk failed for "${fileName}" at bytes ${offset}-${chunkEnd}. HTTP ${putRes.status}: ${putRes.statusText}`,
+              );
+            }
+          }
+
+          offset += bytesRead;
+        }
+      } finally {
+        closeSync(fd);
+      }
+    }
+
+    if (!finalRemoteFile) {
+      throw new Error(
+        `Resumable upload did not produce a remote file record for "${fileName}".`,
+      );
+    }
+
+    // If size or md5Checksum is missing from final response, query file metadata explicitly
+    if (!finalRemoteFile.size || !finalRemoteFile.md5Checksum) {
+      const getUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(finalRemoteFile.id)}?fields=id,name,size,md5Checksum,appProperties`;
+      const getRes = await this.request(getUrl);
+      if (getRes.ok) {
+        finalRemoteFile = (await getRes.json()) as DriveFileRecord;
+      }
+    }
+
+    // 3. Remote upload integrity verification
+    this.verifyRemoteIntegrity(fileName, finalRemoteFile, totalSize, localMd5);
+
+    return finalRemoteFile;
+  }
+
+  verifyRemoteIntegrity(
+    fileName: string,
+    remoteFile: DriveFileRecord,
+    expectedSize: number,
+    expectedMd5: string,
+  ): void {
+    if (!remoteFile || !remoteFile.id) {
+      throw new Error(
+        `Remote integrity verification failed: no valid file record for "${fileName}" (fail-closed).`,
+      );
+    }
+
+    if (remoteFile.size === undefined || remoteFile.size === null) {
+      throw new Error(
+        `Remote integrity verification failed: missing remote size for "${fileName}" (fail-closed).`,
+      );
+    }
+
+    const remoteSizeNum = Number(remoteFile.size);
+    if (remoteSizeNum !== expectedSize) {
+      throw new Error(
+        `Remote size mismatch for "${fileName}": expected ${expectedSize} bytes, got ${remoteSizeNum} bytes (fail-closed).`,
+      );
+    }
+
+    if (!remoteFile.md5Checksum) {
+      throw new Error(
+        `Remote integrity verification failed: missing remote md5Checksum for "${fileName}" (fail-closed).`,
+      );
+    }
+
+    if (remoteFile.md5Checksum.toLowerCase() !== expectedMd5.toLowerCase()) {
+      throw new Error(
+        `Remote checksum mismatch for "${fileName}": expected MD5 ${expectedMd5}, got ${remoteFile.md5Checksum} (fail-closed).`,
+      );
+    }
   }
 
   async markBackupComplete(folderId: string): Promise<void> {

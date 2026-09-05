@@ -5,9 +5,24 @@ export function computeBufferSha256(data: Buffer | Uint8Array | string): string 
   return createHash("sha256").update(data).digest("hex");
 }
 
+export function computeBufferMd5(data: Buffer | Uint8Array | string): string {
+  return createHash("md5").update(data).digest("hex");
+}
+
 export async function computeFileSha256(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const hash = createHash("sha256");
+    const stream = createReadStream(filePath);
+
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", (error) => reject(error));
+  });
+}
+
+export async function computeFileMd5(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("md5");
     const stream = createReadStream(filePath);
 
     stream.on("data", (chunk) => hash.update(chunk));

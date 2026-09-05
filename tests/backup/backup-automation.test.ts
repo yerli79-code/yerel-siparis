@@ -5,13 +5,13 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
-import { computeBufferSha256, computeFileSha256, formatSha256Sums, parseSha256Sums } from "../../scripts/backup/crypto-util.ts";
+import { computeBufferSha256, computeFileSha256, computeFileMd5, formatSha256Sums, parseSha256Sums } from "../../scripts/backup/crypto-util.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { validateBackupEnv, getBackupEnvStatus, formatEnvStatusReport } from "../../scripts/backup/env.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
-import { runDatabaseBackup, maskDatabaseUrl } from "../../scripts/backup/database-backup.ts";
+import { runDatabaseBackup, maskDatabaseUrl, parseDatabaseConnectionParams } from "../../scripts/backup/database-backup.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
-import { runStorageBackup, listBucketObjectsRecursive } from "../../scripts/backup/storage-backup.ts";
+import { runStorageBackup, listBucketObjectsRecursive, resolveSafeStoragePath } from "../../scripts/backup/storage-backup.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { buildManifest, writeManifestAndChecksums } from "../../scripts/backup/manifest.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
@@ -291,14 +291,15 @@ test("F) retention newest-7 keeps the most recent 7 completed backups", () => {
 });
 
 // G) Retention Weekly-4
-test("G) retention weekly-4 retains one newest completed backup per week for 4 prior weeks", () => {
+test("G) retention weekly-4 retains one newest completed backup per week for 4 prior weeks and expires older weeks", () => {
   const rootId = "root-folder-123";
-  // Backups spread across 6 consecutive weeks (1 per week)
-  const folders: DriveFolderRecord[] = Array.from({ length: 6 }, (_, i) => {
-    const date = new Date(Date.UTC(2026, 6, 1 + i * 7, 2, 0, 0));
+
+  // 1. 10 recent daily backups in August 2026 (Aug 20 to Aug 29)
+  const recentDaily: DriveFolderRecord[] = Array.from({ length: 10 }, (_, i) => {
+    const date = new Date(Date.UTC(2026, 7, 20 + i, 2, 0, 0));
     const name = date.toISOString().replace(/[:.]/g, "-").slice(0, 19) + "Z";
     return {
-      id: `weekly-${i}`,
+      id: `recent-${i}`,
       name,
       parents: [rootId],
       appProperties: {
@@ -311,10 +312,91 @@ test("G) retention weekly-4 retains one newest completed backup per week for 4 p
     };
   });
 
-  const plan = selectRetentionPlan(folders, rootId);
-  // Total folders = 6. All 6 kept because 6 <= 7 newest
-  assert.equal(plan.keepSet.length, 6);
-  assert.equal(plan.deleteSet.length, 0);
+  // 2. 6 distinct prior calendar weeks (e.g. June/July 2026), 2 backups per week
+  const olderWeeks: DriveFolderRecord[] = [];
+  for (let w = 1; w <= 6; w++) {
+    // Monday and Friday of each prior week
+    const monDate = new Date(Date.UTC(2026, 6, 27 - w * 7, 2, 0, 0));
+    const friDate = new Date(Date.UTC(2026, 6, 31 - w * 7, 2, 0, 0));
+
+    const monName = monDate.toISOString().replace(/[:.]/g, "-").slice(0, 19) + "Z";
+    const friName = friDate.toISOString().replace(/[:.]/g, "-").slice(0, 19) + "Z";
+
+    olderWeeks.push({
+      id: `week-${w}-mon`,
+      name: monName,
+      parents: [rootId],
+      appProperties: {
+        appName: "yerel-siparis",
+        role: "backup",
+        formatVersion: "1",
+        complete: "true",
+        createdAt: monName,
+      },
+    });
+
+    olderWeeks.push({
+      id: `week-${w}-fri`,
+      name: friName,
+      parents: [rootId],
+      appProperties: {
+        appName: "yerel-siparis",
+        role: "backup",
+        formatVersion: "1",
+        complete: "true",
+        createdAt: friName,
+      },
+    });
+  }
+
+  const allFolders = [...recentDaily, ...olderWeeks];
+  const plan = selectRetentionPlan(allFolders, rootId);
+
+  // Verification 1: Newest 7 daily backups (recent-9 down to recent-3) must be in keepSet
+  for (let i = 3; i <= 9; i++) {
+    assert.ok(
+      plan.keepSet.some((f) => f.id === `recent-${i}`),
+      `Expected recent-${i} to be in keepSet`,
+    );
+  }
+
+  // Verification 2: The 3 older daily backups in the recent cluster (recent-0, 1, 2) must be in deleteSet
+  for (let i = 0; i < 3; i++) {
+    assert.ok(
+      plan.deleteSet.some((f) => f.id === `recent-${i}`),
+      `Expected recent-${i} to be in deleteSet`,
+    );
+  }
+
+  // Verification 3: Weekly retention keeps newest in each of the 4 most recent weeks
+  // Distinct weeks in dataset: W35, W34, W30 (week-1), W29 (week-2), W28 (week-3), W27 (week-4), W26 (week-5), W25 (week-6)
+  // The 4 most recent weeks are W35, W34, W30, W29 -> week-1-fri and week-2-fri are kept
+  assert.ok(plan.keepSet.some((f) => f.id === "week-1-fri"));
+  assert.ok(plan.keepSet.some((f) => f.id === "week-2-fri"));
+
+  // Monday backups in kept weeks are older than Friday backups, so they must be in deleteSet
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-1-mon"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-2-mon"));
+
+  // Verification 4: Older weeks beyond 4 most recent calendar weeks (week-3, week-4, week-5, week-6) are deleted
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-3-mon"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-3-fri"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-4-mon"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-4-fri"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-5-mon"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-5-fri"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-6-mon"));
+  assert.ok(plan.deleteSet.some((f) => f.id === "week-6-fri"));
+
+  // Verification 5: Union produces no duplicates
+  const keepIds = new Set(plan.keepSet.map((f) => f.id));
+  assert.equal(keepIds.size, plan.keepSet.length);
+
+  // Verification 6: KeepSet and deleteSet are mutually exclusive and partition allFolders
+  assert.equal(plan.keepSet.length + plan.deleteSet.length, allFolders.length);
+  for (const del of plan.deleteSet) {
+    assert.ok(!keepIds.has(del.id), `Item ${del.id} should not be in both keepSet and deleteSet`);
+  }
 });
 
 // H) Retention Union Behavior
@@ -503,7 +585,7 @@ test("M) failed storage object download causes fail-closed abortion", async () =
 });
 
 // N) Failed Upload Fail-Closed
-test("N) failed upload to Google Drive causes fail-closed without marking complete=true", async () => {
+test("N) failed upload initiation to Google Drive causes fail-closed without marking complete=true", async () => {
   const tempDir = createTempDir("test-drive-fail");
   try {
     const dumpPath = join(tempDir, "database.dump");
@@ -513,9 +595,9 @@ test("N) failed upload to Google Drive causes fail-closed without marking comple
 
     const mockFetch: typeof fetch = async (input, init) => {
       const url = String(input);
-      if (url.includes("/upload/drive/v3/files")) {
-        // Fail upload
-        return new Response("Upload quota exceeded", { status: 503 });
+      if (url.includes("/upload/drive/v3/files") && url.includes("uploadType=resumable")) {
+        // Fail initiation with HTTP 503
+        return new Response("Upload quota exceeded", { status: 503, statusText: "Service Unavailable" });
       }
       if (url.includes("/drive/v3/files/") && init?.method === "PATCH") {
         markedComplete = true;
@@ -537,7 +619,7 @@ test("N) failed upload to Google Drive causes fail-closed without marking comple
           fileName: "database.dump",
           mimeType: "application/octet-stream",
         }),
-      /Failed to upload "database.dump"/,
+      /Failed to initiate resumable upload for "database.dump"/,
     );
 
     // markBackupComplete must NOT have been called
@@ -545,6 +627,266 @@ test("N) failed upload to Google Drive causes fail-closed without marking comple
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }
+});
+
+// N.1) Successful Verified Resumable Upload Streaming in Chunks
+test("N.1) successful resumable upload streams chunks from disk and verifies remote integrity", async () => {
+  const tempDir = createTempDir("test-drive-resumable-ok");
+  try {
+    const testPayload = Buffer.alloc(64 * 1024, "A"); // 64 KB
+    const filePath = join(tempDir, "database.dump");
+    writeFileSync(filePath, testPayload);
+
+    const localMd5 = await computeFileMd5(filePath);
+    let chunkCount = 0;
+
+    const mockFetch: typeof fetch = async (input, init) => {
+      const url = String(input);
+      // Initiation
+      if (url.includes("uploadType=resumable")) {
+        const headers = new Headers();
+        headers.set("location", "https://upload.test/resumable-session-123");
+        return new Response(null, { status: 200, headers });
+      }
+
+      // Resumable session PUT chunk
+      if (url === "https://upload.test/resumable-session-123") {
+        chunkCount++;
+        const headers = new Headers(init?.headers);
+        const contentRange = headers.get("content-range") || "";
+        const isFinal = contentRange.includes("65535/65536");
+
+        if (isFinal) {
+          return new Response(
+            JSON.stringify({
+              id: "file-success-id",
+              name: "database.dump",
+              size: "65536",
+              md5Checksum: localMd5,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        } else {
+          return new Response(null, { status: 308 });
+        }
+      }
+
+      return new Response("Not Found", { status: 404 });
+    };
+
+    const client = new GoogleDriveClient({
+      accessToken: "mock-token",
+      fetchFn: mockFetch,
+    });
+
+    const record = await client.uploadFile({
+      parentId: "backup-folder-id",
+      filePath,
+      fileName: "database.dump",
+      mimeType: "application/octet-stream",
+      chunkSize: 16 * 1024, // 16 KB chunks -> 4 chunks total
+    });
+
+    assert.equal(record.id, "file-success-id");
+    assert.equal(record.size, "65536");
+    assert.equal(record.md5Checksum, localMd5);
+    assert.equal(chunkCount, 4);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+// N.2) Remote Size Mismatch Fails Closed
+test("N.2) remote size mismatch fails closed and prevents completion", async () => {
+  const tempDir = createTempDir("test-drive-size-mismatch");
+  try {
+    const filePath = join(tempDir, "database.dump");
+    writeFileSync(filePath, "1234567890"); // 10 bytes
+
+    const localMd5 = await computeFileMd5(filePath);
+
+    const mockFetch: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("uploadType=resumable")) {
+        const headers = new Headers();
+        headers.set("location", "https://upload.test/session-mismatch");
+        return new Response(null, { status: 200, headers });
+      }
+
+      if (url === "https://upload.test/session-mismatch") {
+        // Return incorrect remote size (e.g. 5 bytes instead of 10)
+        return new Response(
+          JSON.stringify({
+            id: "file-bad-size",
+            size: "5",
+            md5Checksum: localMd5,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response("Not Found", { status: 404 });
+    };
+
+    const client = new GoogleDriveClient({
+      accessToken: "mock-token",
+      fetchFn: mockFetch,
+    });
+
+    await assert.rejects(
+      async () =>
+        client.uploadFile({
+          parentId: "backup-folder-id",
+          filePath,
+          fileName: "database.dump",
+          mimeType: "application/octet-stream",
+        }),
+      /Remote size mismatch for "database.dump": expected 10 bytes, got 5 bytes/,
+    );
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+// N.3) Remote Checksum Mismatch Fails Closed
+test("N.3) remote MD5 checksum mismatch fails closed and prevents completion", async () => {
+  const tempDir = createTempDir("test-drive-md5-mismatch");
+  try {
+    const filePath = join(tempDir, "database.dump");
+    writeFileSync(filePath, "verified-payload");
+
+    const mockFetch: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("uploadType=resumable")) {
+        const headers = new Headers();
+        headers.set("location", "https://upload.test/session-bad-md5");
+        return new Response(null, { status: 200, headers });
+      }
+
+      if (url === "https://upload.test/session-bad-md5") {
+        // Return corrupted/mismatched remote MD5
+        return new Response(
+          JSON.stringify({
+            id: "file-bad-md5",
+            size: "16",
+            md5Checksum: "00000000000000000000000000000000",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response("Not Found", { status: 404 });
+    };
+
+    const client = new GoogleDriveClient({
+      accessToken: "mock-token",
+      fetchFn: mockFetch,
+    });
+
+    await assert.rejects(
+      async () =>
+        client.uploadFile({
+          parentId: "backup-folder-id",
+          filePath,
+          fileName: "database.dump",
+          mimeType: "application/octet-stream",
+        }),
+      /Remote checksum mismatch for "database.dump"/,
+    );
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+// P1) Database Connection Parameters Security: Password and URL removed from argv
+test("P1) parseDatabaseConnectionParams extracts host, port, username, dbname into args and moves password to env", () => {
+  const testUrl = "postgresql://secuser:topsecretpassword123@db.project.supabase.co:6543/postgres?sslmode=require";
+  const outputPath = "/tmp/database.dump";
+
+  const result = parseDatabaseConnectionParams(testUrl, outputPath);
+
+  assert.equal(result.host, "db.project.supabase.co");
+  assert.equal(result.port, "6543");
+  assert.equal(result.username, "secuser");
+  assert.equal(result.dbname, "postgres");
+  assert.equal(result.sslmode, "require");
+  assert.equal(result.password, "topsecretpassword123");
+
+  // Argv checks
+  assert.ok(result.args.includes("--host=db.project.supabase.co"));
+  assert.ok(result.args.includes("--port=6543"));
+  assert.ok(result.args.includes("--username=secuser"));
+  assert.ok(result.args.includes("--dbname=postgres"));
+  assert.ok(result.args.includes(`--file=${outputPath}`));
+
+  // Ensure password and raw full URL are NEVER in argv
+  for (const arg of result.args) {
+    assert.ok(!arg.includes("topsecretpassword123"), `Password leaked in arg: ${arg}`);
+    assert.ok(!arg.includes("postgresql://"), `Full connection URL in arg: ${arg}`);
+  }
+
+  // Environment checks
+  assert.equal(result.env.PGPASSWORD, "topsecretpassword123");
+  assert.equal(result.env.PGSSLMODE, "require");
+  assert.equal(result.env.PGCONNECT_TIMEOUT, "30");
+});
+
+// P2) Database Backup Command Error Redacts Password
+test("P2) runDatabaseBackup redacts password from child_process stderr and error message", async () => {
+  const secretPassword = "super_classified_pw_xyz";
+  const dbUrl = `postgresql://adminuser:${secretPassword}@db.example.com:5432/yerel`;
+  const outputPath = join(tmpdir(), "db-test-error.dump");
+
+  const mockExec = async () => {
+    return {
+      exitCode: 2,
+      stdout: "",
+      stderr: `connection to server failed: password was ${secretPassword} at db.example.com`,
+    };
+  };
+
+  await assert.rejects(
+    async () =>
+      runDatabaseBackup({
+        dbUrl,
+        outputPath,
+        execCommand: mockExec,
+      }),
+    (err: Error) => {
+      assert.ok(!err.message.includes(secretPassword), "Secret password leaked in error message!");
+      assert.ok(err.message.includes("***"), "Password was not redacted!");
+      return true;
+    },
+  );
+});
+
+// S1) Storage Path Containment Check
+test("S1) resolveSafeStoragePath allows valid nested paths and rejects traversal/absolute attacks", () => {
+  const bucketRoot = join(tmpdir(), "test-bucket-root");
+
+  // Valid nested paths pass
+  const valid1 = resolveSafeStoragePath(bucketRoot, "photos/kebap.jpg");
+  assert.equal(valid1, join(bucketRoot, "photos", "kebap.jpg"));
+
+  const valid2 = resolveSafeStoragePath(bucketRoot, "a/b/c/doc.pdf");
+  assert.equal(valid2, join(bucketRoot, "a", "b", "c", "doc.pdf"));
+
+  // Path traversal attacks are rejected
+  assert.throws(
+    () => resolveSafeStoragePath(bucketRoot, "../outside.txt"),
+    /Storage containment violation.*escapes bucket root/,
+  );
+
+  assert.throws(
+    () => resolveSafeStoragePath(bucketRoot, "photos/../../secret.env"),
+    /Storage containment violation.*escapes bucket root/,
+  );
+
+  // Absolute paths are rejected
+  assert.throws(
+    () => resolveSafeStoragePath(bucketRoot, "/etc/passwd"),
+    /Storage containment violation.*absolute path/,
+  );
 });
 
 // O) Zero-Byte Database Dump Rejected
