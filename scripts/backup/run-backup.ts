@@ -10,7 +10,7 @@ import { runStorageBackup } from "./storage-backup.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { writeManifestAndChecksums } from "./manifest.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
-import { refreshGoogleDriveAccessToken, GoogleDriveClient } from "./google-drive.ts";
+import { refreshGoogleDriveAccessToken, GoogleDriveClient, uploadAndFinalizeBackupArtifacts } from "./google-drive.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { selectRetentionPlan, applyRetentionPlan } from "./retention.ts";
 
@@ -97,43 +97,37 @@ export async function executeBackupPipeline(): Promise<void> {
     const backupFolder = await driveClient.createBackupFolder(rootFolder.id, folderName);
     console.log(`Backup folder created with complete=false (ID: ${backupFolder.id})`);
 
-    // Upload the 4 artifacts
-    console.log("Uploading database.dump...");
-    await driveClient.uploadFile({
-      parentId: backupFolder.id,
-      filePath: dbResult.filePath,
-      fileName: dbResult.filename,
-      mimeType: "application/octet-stream",
-    });
+    // Upload and verify the 4 artifacts, then atomically mark complete=true
+    const artifacts = [
+      {
+        filePath: dbResult.filePath,
+        fileName: dbResult.filename,
+        mimeType: "application/octet-stream",
+      },
+      {
+        filePath: storageResult.archivePath,
+        fileName: storageResult.archiveFilename,
+        mimeType: "application/gzip",
+      },
+      {
+        filePath: manifestResult.manifestPath,
+        fileName: "manifest.json",
+        mimeType: "application/json",
+      },
+      {
+        filePath: manifestResult.sumsPath,
+        fileName: "SHA256SUMS.txt",
+        mimeType: "text/plain",
+      },
+    ];
 
-    console.log("Uploading storage.tar.gz...");
-    await driveClient.uploadFile({
-      parentId: backupFolder.id,
-      filePath: storageResult.archivePath,
-      fileName: storageResult.archiveFilename,
-      mimeType: "application/gzip",
+    console.log("Uploading and verifying 4 backup artifacts via resumable upload...");
+    await uploadAndFinalizeBackupArtifacts({
+      driveClient,
+      backupFolderId: backupFolder.id,
+      artifacts,
     });
-
-    console.log("Uploading manifest.json...");
-    await driveClient.uploadFile({
-      parentId: backupFolder.id,
-      filePath: manifestResult.manifestPath,
-      fileName: "manifest.json",
-      mimeType: "application/json",
-    });
-
-    console.log("Uploading SHA256SUMS.txt...");
-    await driveClient.uploadFile({
-      parentId: backupFolder.id,
-      filePath: manifestResult.sumsPath,
-      fileName: "SHA256SUMS.txt",
-      mimeType: "text/plain",
-    });
-
-    // Atomic completion marker: update complete="true"
-    console.log("Marking backup folder as complete=true...");
-    await driveClient.markBackupComplete(backupFolder.id);
-    console.log(`Backup atomically completed in Google Drive folder "${folderName}"`);
+    console.log(`Backup atomically verified and completed in Google Drive folder "${folderName}" (complete=true)`);
 
     // 7. Retention Management
     console.log("\n[7/7] Evaluating retention policy...");

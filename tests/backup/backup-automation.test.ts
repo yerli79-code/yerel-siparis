@@ -15,7 +15,7 @@ import { runStorageBackup, listBucketObjectsRecursive, resolveSafeStoragePath } 
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { buildManifest, writeManifestAndChecksums } from "../../scripts/backup/manifest.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
-import { GoogleDriveClient, refreshGoogleDriveAccessToken } from "../../scripts/backup/google-drive.ts";
+import { GoogleDriveClient, refreshGoogleDriveAccessToken, validateChunkSize, parseResumeRangeHeader, uploadAndFinalizeBackupArtifacts, MIN_RESUMABLE_CHUNK_SIZE, DEFAULT_RESUMABLE_CHUNK_SIZE } from "../../scripts/backup/google-drive.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { selectRetentionPlan, applyRetentionPlan, getIsoWeekKey } from "../../scripts/backup/retention.ts";
 import type { DriveFolderRecord } from "../../scripts/backup/types.ts";
@@ -633,12 +633,15 @@ test("N) failed upload initiation to Google Drive causes fail-closed without mar
 test("N.1) successful resumable upload streams chunks from disk and verifies remote integrity", async () => {
   const tempDir = createTempDir("test-drive-resumable-ok");
   try {
-    const testPayload = Buffer.alloc(64 * 1024, "A"); // 64 KB
+    const totalBytes = 1024 * 1024; // 1 MiB
+    const chunkSize = 256 * 1024; // 256 KiB
+    const testPayload = Buffer.alloc(totalBytes, "B");
     const filePath = join(tempDir, "database.dump");
     writeFileSync(filePath, testPayload);
 
     const localMd5 = await computeFileMd5(filePath);
     let chunkCount = 0;
+    const receivedRanges: string[] = [];
 
     const mockFetch: typeof fetch = async (input, init) => {
       const url = String(input);
@@ -654,20 +657,30 @@ test("N.1) successful resumable upload streams chunks from disk and verifies rem
         chunkCount++;
         const headers = new Headers(init?.headers);
         const contentRange = headers.get("content-range") || "";
-        const isFinal = contentRange.includes("65535/65536");
+        receivedRanges.push(contentRange);
 
-        if (isFinal) {
+        if (chunkCount === 1) {
+          const resHeaders = new Headers();
+          resHeaders.set("range", "bytes=0-262143");
+          return new Response(null, { status: 308, headers: resHeaders });
+        } else if (chunkCount === 2) {
+          const resHeaders = new Headers();
+          resHeaders.set("range", "bytes=0-524287");
+          return new Response(null, { status: 308, headers: resHeaders });
+        } else if (chunkCount === 3) {
+          const resHeaders = new Headers();
+          resHeaders.set("range", "bytes=0-786431");
+          return new Response(null, { status: 308, headers: resHeaders });
+        } else if (chunkCount === 4) {
           return new Response(
             JSON.stringify({
               id: "file-success-id",
               name: "database.dump",
-              size: "65536",
+              size: totalBytes.toString(),
               md5Checksum: localMd5,
             }),
             { status: 200, headers: { "Content-Type": "application/json" } },
           );
-        } else {
-          return new Response(null, { status: 308 });
         }
       }
 
@@ -684,13 +697,156 @@ test("N.1) successful resumable upload streams chunks from disk and verifies rem
       filePath,
       fileName: "database.dump",
       mimeType: "application/octet-stream",
-      chunkSize: 16 * 1024, // 16 KB chunks -> 4 chunks total
+      chunkSize,
     });
 
     assert.equal(record.id, "file-success-id");
-    assert.equal(record.size, "65536");
+    assert.equal(record.size, totalBytes.toString());
     assert.equal(record.md5Checksum, localMd5);
     assert.equal(chunkCount, 4);
+    assert.equal(receivedRanges[0], "bytes 0-262143/1048576");
+    assert.equal(receivedRanges[1], "bytes 262144-524287/1048576");
+    assert.equal(receivedRanges[2], "bytes 524288-786431/1048576");
+    assert.equal(receivedRanges[3], "bytes 786432-1048575/1048576");
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+// N.4) Chunk Size Validation Fails Closed
+test("N.4) validateChunkSize enforces positive multiple of 256 KiB", () => {
+  // Valid chunk sizes pass
+  assert.doesNotThrow(() => validateChunkSize(MIN_RESUMABLE_CHUNK_SIZE));
+  assert.doesNotThrow(() => validateChunkSize(512 * 1024));
+  assert.doesNotThrow(() => validateChunkSize(DEFAULT_RESUMABLE_CHUNK_SIZE));
+
+  // Sub-256 KiB chunks fail
+  assert.throws(() => validateChunkSize(16 * 1024), /Invalid Google Drive resumable upload chunk size/);
+  assert.throws(() => validateChunkSize(100), /Invalid Google Drive resumable upload chunk size/);
+
+  // Non-multiples fail
+  assert.throws(() => validateChunkSize(300 * 1024), /Invalid Google Drive resumable upload chunk size/);
+
+  // Negative / 0 / non-integers fail
+  assert.throws(() => validateChunkSize(0), /Invalid Google Drive resumable upload chunk size/);
+  assert.throws(() => validateChunkSize(-256 * 1024), /Invalid Google Drive resumable upload chunk size/);
+  assert.throws(() => validateChunkSize(256.5 * 1024), /Invalid Google Drive resumable upload chunk size/);
+});
+
+// N.5) 308 Range Header Parsing and Validation
+test("N.5) parseResumeRangeHeader validates Range header and rejects malformed/backward ranges", () => {
+  // Valid Range header
+  const nextOffset = parseResumeRangeHeader("bytes=0-262143", 1048576, 0);
+  assert.equal(nextOffset, 262144);
+
+  // Missing Range header throws
+  assert.throws(() => parseResumeRangeHeader(null, 1048576, 0), /missing required "Range" header/);
+  assert.throws(() => parseResumeRangeHeader("", 1048576, 0), /missing required "Range" header/);
+
+  // Malformed Range header throws
+  assert.throws(() => parseResumeRangeHeader("invalid-range", 1048576, 0), /Malformed Range header/);
+
+  // Start byte not 0 throws
+  assert.throws(() => parseResumeRangeHeader("bytes=100-262143", 1048576, 0), /Unexpected Range header start byte 100/);
+
+  // End byte exceeding total size throws
+  assert.throws(() => parseResumeRangeHeader("bytes=0-2000000", 1048576, 0), /exceeds total file size/);
+
+  // Range not advancing offset throws
+  assert.throws(() => parseResumeRangeHeader("bytes=0-100", 1048576, 150), /did not advance offset/);
+});
+
+// C1) Complete=true Regression Test: 4 verified artifacts triggers markBackupComplete exactly once
+test("C1) uploadAndFinalizeBackupArtifacts marks complete=true only when all 4 artifacts pass verification", async () => {
+  const tempDir = createTempDir("test-finalize-ok");
+  try {
+    const files = ["database.dump", "storage.tar.gz", "manifest.json", "SHA256SUMS.txt"];
+    const artifacts = files.map((fileName) => {
+      const p = join(tempDir, fileName);
+      writeFileSync(p, `content-for-${fileName}`);
+      return {
+        filePath: p,
+        fileName,
+        mimeType: "application/octet-stream",
+      };
+    });
+
+    let completeCallCount = 0;
+
+    const mockDriveClient = {
+      uploadFile: async ({ fileName }: { fileName: string }) => {
+        return {
+          id: `id-${fileName}`,
+          name: fileName,
+          size: "100",
+          md5Checksum: "mock-md5",
+        };
+      },
+      markBackupComplete: async (folderId: string) => {
+        assert.equal(folderId, "backup-folder-777");
+        completeCallCount++;
+      },
+    } as unknown as GoogleDriveClient;
+
+    const result = await uploadAndFinalizeBackupArtifacts({
+      driveClient: mockDriveClient,
+      backupFolderId: "backup-folder-777",
+      artifacts,
+    });
+
+    assert.equal(result.length, 4);
+    assert.equal(completeCallCount, 1);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+// C2) Complete=true Regression Test: any artifact verification failure produces ZERO markBackupComplete calls
+test("C2) uploadAndFinalizeBackupArtifacts makes ZERO markBackupComplete calls if any artifact verification fails", async () => {
+  const tempDir = createTempDir("test-finalize-fail");
+  try {
+    const files = ["database.dump", "storage.tar.gz", "manifest.json", "SHA256SUMS.txt"];
+    const artifacts = files.map((fileName) => {
+      const p = join(tempDir, fileName);
+      writeFileSync(p, `content-for-${fileName}`);
+      return {
+        filePath: p,
+        fileName,
+        mimeType: "application/octet-stream",
+      };
+    });
+
+    let completeCallCount = 0;
+
+    const mockDriveClient = {
+      uploadFile: async ({ fileName }: { fileName: string }) => {
+        if (fileName === "manifest.json") {
+          throw new Error(`Remote checksum mismatch for "manifest.json": expected MD5 a, got b (fail-closed).`);
+        }
+        return {
+          id: `id-${fileName}`,
+          name: fileName,
+          size: "100",
+          md5Checksum: "mock-md5",
+        };
+      },
+      markBackupComplete: async () => {
+        completeCallCount++;
+      },
+    } as unknown as GoogleDriveClient;
+
+    await assert.rejects(
+      async () =>
+        uploadAndFinalizeBackupArtifacts({
+          driveClient: mockDriveClient,
+          backupFolderId: "backup-folder-777",
+          artifacts,
+        }),
+      /Remote checksum mismatch for "manifest.json"/,
+    );
+
+    // ZERO markBackupComplete calls
+    assert.equal(completeCallCount, 0);
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }

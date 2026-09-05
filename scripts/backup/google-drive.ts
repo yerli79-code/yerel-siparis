@@ -19,6 +19,65 @@ export interface GoogleDriveClientOptions {
   fetchFn?: typeof fetch;
 }
 
+export const MIN_RESUMABLE_CHUNK_SIZE = 256 * 1024; // 256 KiB
+export const DEFAULT_RESUMABLE_CHUNK_SIZE = 8 * 1024 * 1024; // 8 MiB
+
+export function validateChunkSize(chunkSize: number): void {
+  if (
+    !Number.isInteger(chunkSize) ||
+    chunkSize <= 0 ||
+    chunkSize < MIN_RESUMABLE_CHUNK_SIZE ||
+    chunkSize % MIN_RESUMABLE_CHUNK_SIZE !== 0
+  ) {
+    throw new Error(
+      `Invalid Google Drive resumable upload chunk size: ${chunkSize} bytes. Chunk size must be a positive integer multiple of 256 KiB (at least ${MIN_RESUMABLE_CHUNK_SIZE} bytes).`,
+    );
+  }
+}
+
+export function parseResumeRangeHeader(
+  rangeHeader: string | null | undefined,
+  totalSize: number,
+  currentOffset: number,
+): number {
+  if (!rangeHeader || !rangeHeader.trim()) {
+    throw new Error(
+      `Google Drive 308 response is missing required "Range" header (fail-closed).`,
+    );
+  }
+
+  const match = rangeHeader.trim().match(/^bytes=(\d+)-(\d+)$/i);
+  if (!match) {
+    throw new Error(
+      `Malformed Range header in Google Drive 308 response: "${rangeHeader}" (fail-closed).`,
+    );
+  }
+
+  const startByte = parseInt(match[1], 10);
+  const endByte = parseInt(match[2], 10);
+
+  if (startByte !== 0) {
+    throw new Error(
+      `Unexpected Range header start byte ${startByte} (expected 0): "${rangeHeader}" (fail-closed).`,
+    );
+  }
+
+  if (endByte >= totalSize) {
+    throw new Error(
+      `Range header end byte ${endByte} exceeds total file size ${totalSize}: "${rangeHeader}" (fail-closed).`,
+    );
+  }
+
+  const nextOffset = endByte + 1;
+  if (nextOffset <= currentOffset) {
+    throw new Error(
+      `Range header did not advance offset (current: ${currentOffset}, reported next: ${nextOffset}): "${rangeHeader}" (fail-closed).`,
+    );
+  }
+
+  return nextOffset;
+}
+
 export interface UploadFileOptions {
   parentId: string;
   filePath: string;
@@ -187,8 +246,10 @@ export class GoogleDriveClient {
     fileName,
     mimeType,
     appProperties = {},
-    chunkSize = 8 * 1024 * 1024,
+    chunkSize = DEFAULT_RESUMABLE_CHUNK_SIZE,
   }: UploadFileOptions): Promise<DriveFileRecord> {
+    validateChunkSize(chunkSize);
+
     const stats = statSync(filePath);
     if (stats.size === 0 && !fileName.endsWith("empty")) {
       // 0-byte file check for critical backup artifacts
@@ -296,15 +357,17 @@ export class GoogleDriveClient {
               );
             }
             finalRemoteFile = (await putRes.json()) as DriveFileRecord;
+            offset += bytesRead;
           } else {
             if (putRes.status !== 308) {
               throw new Error(
                 `Resumable upload chunk failed for "${fileName}" at bytes ${offset}-${chunkEnd}. HTTP ${putRes.status}: ${putRes.statusText}`,
               );
             }
-          }
 
-          offset += bytesRead;
+            const rangeHeader = putRes.headers.get("range");
+            offset = parseResumeRangeHeader(rangeHeader, totalSize, offset);
+          }
         }
       } finally {
         closeSync(fd);
@@ -419,4 +482,44 @@ export class GoogleDriveClient {
       );
     }
   }
+}
+
+export interface BackupArtifactToUpload {
+  filePath: string;
+  fileName: string;
+  mimeType: string;
+  appProperties?: Record<string, string>;
+}
+
+export interface UploadAndFinalizeOptions {
+  driveClient: GoogleDriveClient;
+  backupFolderId: string;
+  artifacts: BackupArtifactToUpload[];
+  chunkSize?: number;
+}
+
+export async function uploadAndFinalizeBackupArtifacts({
+  driveClient,
+  backupFolderId,
+  artifacts,
+  chunkSize,
+}: UploadAndFinalizeOptions): Promise<DriveFileRecord[]> {
+  const uploadedRecords: DriveFileRecord[] = [];
+
+  for (const artifact of artifacts) {
+    const record = await driveClient.uploadFile({
+      parentId: backupFolderId,
+      filePath: artifact.filePath,
+      fileName: artifact.fileName,
+      mimeType: artifact.mimeType,
+      appProperties: artifact.appProperties,
+      chunkSize,
+    });
+    uploadedRecords.push(record);
+  }
+
+  // Atomically mark complete ONLY after ALL artifacts are uploaded and verified
+  await driveClient.markBackupComplete(backupFolderId);
+
+  return uploadedRecords;
 }
