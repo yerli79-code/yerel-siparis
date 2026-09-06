@@ -56,11 +56,11 @@ async function assertActiveAdmin(identity: AdminIdentity) {
 }
 
 async function exchangePassword(email: string, password: string) {
-  const { url, anonKey } = getSupabasePublicServerConfig();
+  const { url, publishableKey } = getSupabasePublicServerConfig();
   const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: {
-      apikey: anonKey,
+      apikey: publishableKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ email, password }),
@@ -94,13 +94,13 @@ async function exchangePassword(email: string, password: string) {
 }
 
 async function exchangeRefreshToken(refreshToken: string) {
-  const { url, anonKey } = getSupabasePublicServerConfig();
+  const { url, publishableKey } = getSupabasePublicServerConfig();
   const response = await fetch(
     `${url}/auth/v1/token?grant_type=refresh_token`,
     {
       method: "POST",
       headers: {
-        apikey: anonKey,
+        apikey: publishableKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -194,11 +194,11 @@ export async function logoutAdminSession() {
   const { accessToken } = await readAdminSessionCookies();
   try {
     if (accessToken) {
-      const { url, anonKey } = getSupabasePublicServerConfig();
+      const { url, publishableKey } = getSupabasePublicServerConfig();
       await fetch(`${url}/auth/v1/logout`, {
         method: "POST",
         headers: {
-          apikey: anonKey,
+          apikey: publishableKey,
           Authorization: `Bearer ${accessToken}`,
         },
         cache: "no-store",

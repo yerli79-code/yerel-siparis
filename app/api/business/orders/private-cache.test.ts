@@ -11,7 +11,7 @@ const userId = "33333333-3333-4333-8333-333333333333";
 const productId = "44444444-4444-4444-8444-444444444444";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test_key";
 process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 function createSuccessfulFetch() {

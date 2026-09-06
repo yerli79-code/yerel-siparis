@@ -1,5 +1,7 @@
 "use client";
 
+import { isSupabasePublishableKey } from "../../lib/supabase-publishable-key";
+
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
@@ -233,20 +235,20 @@ const emptyProfileForm: ProfileForm = {
 
 function getSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !isSupabasePublishableKey(publishableKey)) {
     throw new Error(
-      ".env.local icinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_ANON_KEY eksik.",
+      ".env.local icinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY eksik.",
     );
   }
 
-  return { url, anonKey };
+  return { url, publishableKey };
 }
 
 function getBusinessAuthConfig() {
-  const { url, anonKey } = getSupabaseConfig();
-  return { url, anonKey, sessionKey };
+  const { url, publishableKey } = getSupabaseConfig();
+  return { url, publishableKey, sessionKey };
 }
 
 function formatPrice(price: number) {

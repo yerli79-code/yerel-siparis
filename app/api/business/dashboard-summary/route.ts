@@ -200,7 +200,7 @@ export async function GET(request: Request) {
     | "rpc_validation" = "config";
 
   try {
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
 
     stage = "auth";
     const accessToken = getBearerToken(request);
@@ -208,7 +208,7 @@ export async function GET(request: Request) {
       return summaryError("Oturum bulunamadi.", "UNAUTHORIZED", 401);
     }
 
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) {
       return summaryError(
         "Gecersiz veya suresi dolmus oturum.",

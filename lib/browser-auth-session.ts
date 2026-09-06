@@ -10,7 +10,7 @@ export type BrowserAuthSession = {
 
 type BrowserAuthConfig = {
   url: string;
-  anonKey: string;
+  publishableKey: string;
   sessionKey: string;
 };
 
@@ -104,7 +104,7 @@ export async function signInWithPassword(
     response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: {
-        apikey: config.anonKey,
+        apikey: config.publishableKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
@@ -133,7 +133,7 @@ async function refreshAuthSession(config: BrowserAuthConfig, session: BrowserAut
     const response = await fetch(`${config.url}/auth/v1/token?grant_type=refresh_token`, {
       method: "POST",
       headers: {
-        apikey: config.anonKey,
+        apikey: config.publishableKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ refresh_token: session.refresh_token }),

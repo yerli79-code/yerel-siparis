@@ -1,3 +1,4 @@
+import { isSupabasePublishableKey } from "../../../../lib/supabase-publishable-key";
 import { privateBusinessJson } from "../_response";
 import {
   hasBusinessLocationChanged,
@@ -90,17 +91,17 @@ function jsonError(message: string, status = 400, detail?: unknown) {
 
 function getSupabaseServerConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !isSupabasePublishableKey(publishableKey)) {
     throw new ServerConfigError();
   }
   if (!serverSecretKey) {
     throw new ServerConfigError();
   }
 
-  return { url, anonKey, serverSecretKey };
+  return { url, publishableKey, serverSecretKey };
 }
 
 async function readJson(response: Response) {
@@ -120,10 +121,10 @@ function getBearerToken(request: Request) {
   return token.trim();
 }
 
-async function getUserFromToken(url: string, anonKey: string, accessToken: string) {
+async function getUserFromToken(url: string, publishableKey: string, accessToken: string) {
   const response = await fetch(`${url}/auth/v1/user`, {
     headers: {
-      apikey: anonKey,
+      apikey: publishableKey,
       Authorization: `Bearer ${accessToken}`,
     },
   });
@@ -413,7 +414,7 @@ async function updateBusinessProfile(
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
@@ -445,7 +446,7 @@ export async function POST(request: Request) {
     assertNoForbiddenFields(body as Record<string, unknown>);
     assertNoForbiddenFields(body.input);
 
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) {
       return jsonError("Gecersiz veya suresi dolmus oturum.", 401);
     }
