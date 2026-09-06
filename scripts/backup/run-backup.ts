@@ -62,7 +62,7 @@ export async function executeBackupPipeline(): Promise<void> {
     console.log("\n[4/7] Exporting Supabase Storage buckets & objects...");
     const storageResult = await runStorageBackup({
       supabaseUrl: env.SUPABASE_URL,
-      serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      backupSecretKey: env.SUPABASE_BACKUP_SECRET_KEY,
       stagingDir,
     });
     console.log(

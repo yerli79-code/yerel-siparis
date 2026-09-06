@@ -1,7 +1,7 @@
 export interface BackupEnv {
   SUPABASE_DB_URL: string;
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_BACKUP_SECRET_KEY: string;
   GOOGLE_DRIVE_CLIENT_ID: string;
   GOOGLE_DRIVE_CLIENT_SECRET: string;
   GOOGLE_DRIVE_REFRESH_TOKEN: string;

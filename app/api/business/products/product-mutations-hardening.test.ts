@@ -19,7 +19,7 @@ const nextUpdatedAt = "2026-08-29T06:00:01.000Z";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 type FetchCall = { url: URL; init: RequestInit };
 type Scenario = {
@@ -267,7 +267,10 @@ test("matching version conditionally PATCHes and returns authoritative row", asy
     assert.equal(patchCall.url.searchParams.get("id"), `eq.${productId}`);
     assert.equal(patchCall.url.searchParams.get("business_id"), `eq.${businessId}`);
     assert.equal(patchCall.url.searchParams.get("updated_at"), `eq.${expectedUpdatedAt}`);
-    assert.equal(new Headers(patchCall.init.headers).get("Prefer"), "return=representation");
+    const patchHeaders = new Headers(patchCall.init.headers);
+    assert.equal(patchHeaders.get("Prefer"), "return=representation");
+    assert.equal(patchHeaders.get("apikey"), "server-secret-key");
+    assert.equal(patchHeaders.has("Authorization"), false);
     assert.deepEqual(JSON.parse(String(patchCall.init.body)), { name: "Yeni Ad" });
   });
 });

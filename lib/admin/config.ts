@@ -19,9 +19,9 @@ export function getSupabasePublicServerConfig() {
 
 export function getSupabaseAdminServerConfig() {
   const { url, anonKey } = getSupabasePublicServerConfig();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
 
-  if (!serviceRoleKey) {
+  if (!serverSecretKey) {
     throw new AdminError(
       "ADMIN_UNAVAILABLE",
       "Admin servisi yapılandırılamadı.",
@@ -29,5 +29,5 @@ export function getSupabaseAdminServerConfig() {
     );
   }
 
-  return { url, anonKey, serviceRoleKey };
+  return { url, anonKey, serverSecretKey };
 }

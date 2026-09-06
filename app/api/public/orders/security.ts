@@ -103,9 +103,9 @@ export function getTrustedVercelClientIp(request: Request) {
 
 export function createPublicOrderIpFingerprint(
   clientIp: string | null,
-  serviceRoleKey: string,
+  serverSecretKey: string,
 ) {
-  return createHmac("sha256", serviceRoleKey)
+  return createHmac("sha256", serverSecretKey)
     .update(`public-order-ip:v1:${clientIp ?? "unavailable"}`)
     .digest("hex");
 }
@@ -138,6 +138,7 @@ function parseRateLimitResult(value: unknown): PublicOrderRateLimitResult {
   const allowed = record.allowed;
   const blockedDimension = record.blocked_dimension;
   const retryAfterSeconds = Number(record.retry_after_seconds);
+
   if (
     typeof allowed !== "boolean" ||
     (blockedDimension !== null &&
@@ -161,7 +162,7 @@ function parseRateLimitResult(value: unknown): PublicOrderRateLimitResult {
 
 export async function checkPublicOrderRateLimit(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   input: { ipFingerprint: string; businessSlug: string },
 ) {
   const response = await fetch(
@@ -169,8 +170,7 @@ export async function checkPublicOrderRateLimit(
     {
       method: "POST",
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serverSecretKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

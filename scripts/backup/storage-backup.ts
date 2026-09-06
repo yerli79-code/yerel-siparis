@@ -7,7 +7,7 @@ import type { StorageBackupResult, StorageObjectMeta } from "./types.ts";
 
 export interface StorageBackupOptions {
   supabaseUrl: string;
-  serviceRoleKey: string;
+  backupSecretKey: string;
   stagingDir: string;
   fetchFn?: typeof fetch;
   execCommand?: (
@@ -58,15 +58,14 @@ export async function defaultArchiveCommand(
 
 export async function listBuckets(
   supabaseUrl: string,
-  serviceRoleKey: string,
+  backupSecretKey: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<SupabaseBucketInfo[]> {
   const url = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/bucket`;
   const res = await fetchFn(url, {
     method: "GET",
     headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: backupSecretKey,
     },
   });
 
@@ -86,7 +85,7 @@ export async function listBuckets(
 
 export async function listBucketObjectsRecursive(
   supabaseUrl: string,
-  serviceRoleKey: string,
+  backupSecretKey: string,
   bucketId: string,
   prefix: string = "",
   fetchFn: typeof fetch = fetch,
@@ -108,8 +107,7 @@ export async function listBucketObjectsRecursive(
     const res = await fetchFn(url, {
       method: "POST",
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: backupSecretKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -138,7 +136,7 @@ export async function listBucketObjectsRecursive(
         // Folder / prefix placeholder: recursively traverse
         const subObjects = await listBucketObjectsRecursive(
           supabaseUrl,
-          serviceRoleKey,
+          backupSecretKey,
           bucketId,
           fullPath,
           fetchFn,
@@ -163,7 +161,7 @@ export async function listBucketObjectsRecursive(
 
 export async function downloadStorageObject(
   supabaseUrl: string,
-  serviceRoleKey: string,
+  backupSecretKey: string,
   bucketId: string,
   objectPath: string,
   fetchFn: typeof fetch = fetch,
@@ -178,8 +176,7 @@ export async function downloadStorageObject(
   const res = await fetchFn(url, {
     method: "GET",
     headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: backupSecretKey,
     },
   });
 
@@ -221,7 +218,7 @@ export function resolveSafeStoragePath(
 
 export async function runStorageBackup({
   supabaseUrl,
-  serviceRoleKey,
+  backupSecretKey,
   stagingDir,
   fetchFn = fetch,
   execCommand = defaultArchiveCommand,
@@ -229,14 +226,14 @@ export async function runStorageBackup({
   const storageRootDir = join(stagingDir, "storage");
   mkdirSync(storageRootDir, { recursive: true });
 
-  const buckets = await listBuckets(supabaseUrl, serviceRoleKey, fetchFn);
+  const buckets = await listBuckets(supabaseUrl, backupSecretKey, fetchFn);
   const objectsMeta: StorageObjectMeta[] = [];
   let totalBytes = 0;
 
   for (const bucket of buckets) {
     const bucketObjects = await listBucketObjectsRecursive(
       supabaseUrl,
-      serviceRoleKey,
+      backupSecretKey,
       bucket.id,
       "",
       fetchFn,
@@ -247,7 +244,7 @@ export async function runStorageBackup({
     for (const obj of bucketObjects) {
       const content = await downloadStorageObject(
         supabaseUrl,
-        serviceRoleKey,
+        backupSecretKey,
         obj.bucket,
         obj.path,
         fetchFn,

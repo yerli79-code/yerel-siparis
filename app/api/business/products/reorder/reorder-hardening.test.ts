@@ -15,7 +15,7 @@ const expectedB = "2026-08-29T06:00:01.000Z";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 const validItems = [
   { productId: productA, sortOrder: 2, expectedUpdatedAt: expectedA },
@@ -190,7 +190,9 @@ test("RPC receives only server-derived business ownership and strict item versio
     assert.deepEqual(body, { p_business_id: businessId, p_items: validItems });
     assert.equal(String(rpcCall.init.body).includes("name"), false);
     assert.equal(String(rpcCall.init.body).includes("price"), false);
-    assert.equal(new Headers(rpcCall.init.headers).get("Authorization"), "Bearer service-role-key");
+    const headers = new Headers(rpcCall.init.headers);
+    assert.equal(headers.get("apikey"), "server-secret-key");
+    assert.equal(headers.has("Authorization"), false);
   });
 });
 

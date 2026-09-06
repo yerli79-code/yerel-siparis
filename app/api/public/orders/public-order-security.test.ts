@@ -14,7 +14,7 @@ import {
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 const idempotencyKey = "11111111-1111-4111-8111-111111111111";
 const productId = "22222222-2222-4222-8222-222222222222";
@@ -150,7 +150,13 @@ test("normal public order below limits preserves the authoritative RPC flow", as
       orderType: "pickup",
     });
     assert.equal(rateRpcCalls(calls).length, 1);
+    const rateHeaders = new Headers(rateRpcCalls(calls)[0].init.headers);
+    assert.equal(rateHeaders.get("apikey"), "server-secret-key");
+    assert.equal(rateHeaders.has("authorization"), false);
     assert.equal(orderRpcCalls(calls).length, 1);
+    const orderHeaders = new Headers(orderRpcCalls(calls)[0].init.headers);
+    assert.equal(orderHeaders.get("apikey"), "server-secret-key");
+    assert.equal(orderHeaders.has("authorization"), false);
     assert.deepEqual(orderRpcCalls(calls)[0].body, {
       p_business_slug: validPayload.businessSlug,
       p_order_type: validPayload.orderType,
@@ -353,8 +359,8 @@ test("missing trusted metadata uses one fail-safe bucket instead of spoofable he
   assert.equal(getTrustedVercelClientIp(first), null);
   assert.equal(getTrustedVercelClientIp(second), null);
   assert.equal(
-    createPublicOrderIpFingerprint(null, "service-role-key"),
-    createPublicOrderIpFingerprint(null, "service-role-key"),
+    createPublicOrderIpFingerprint(null, "server-secret-key"),
+    createPublicOrderIpFingerprint(null, "server-secret-key"),
   );
 });
 

@@ -122,16 +122,16 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
 export function getSupabaseServerConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
 
   if (!url || !anonKey) {
     throw new Error("Supabase public ortam degiskenleri eksik.");
   }
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik.");
+  if (!serverSecretKey) {
+    throw new Error("SUPABASE_SERVER_SECRET_KEY eksik.");
   }
 
-  return { url, anonKey, serviceRoleKey };
+  return { url, anonKey, serverSecretKey };
 }
 
 export async function readJson(response: Response) {
@@ -147,10 +147,9 @@ export function getBearerToken(request: Request) {
   return token.trim();
 }
 
-function serviceHeaders(serviceRoleKey: string, contentType = false) {
+function serviceHeaders(serverSecretKey: string, contentType = false) {
   return {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
+    apikey: serverSecretKey,
     ...(contentType ? { "Content-Type": "application/json" } : {}),
   };
 }
@@ -169,10 +168,9 @@ function parseExactCount(contentRange: string | null) {
   return total;
 }
 
-function serviceRpcHeaders(serviceRoleKey: string) {
+function serviceRpcHeaders(serverSecretKey: string) {
   return {
-    ...serviceHeaders(serviceRoleKey, true),
-    Authorization: `Bearer ${serviceRoleKey}`,
+    ...serviceHeaders(serverSecretKey, true),
   };
 }
 
@@ -260,7 +258,7 @@ export function mapOrder(row: OrderRow, items: OrderItemRow[] = []) {
 
 export async function fetchBusinessesForUser(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   userId: string,
 ) {
   const response = await fetch(
@@ -268,7 +266,7 @@ export async function fetchBusinessesForUser(
       userId,
     )}&select=id,owner_id,is_active,subscription_status,subscription_expires_at&limit=2`,
     {
-      headers: serviceHeaders(serviceRoleKey),
+      headers: serviceHeaders(serverSecretKey),
     },
   );
   if (!response.ok) {
@@ -304,14 +302,14 @@ export function getSingleUserBusiness(businesses: BusinessAccessRow[]) {
 
 export async function createOrderWithItemsRpc(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   payload: Record<string, unknown>,
 ) {
   const response = await fetch(
     `${url}/rest/v1/rpc/create_order_with_items`,
     {
     method: "POST",
-    headers: serviceRpcHeaders(serviceRoleKey),
+    headers: serviceRpcHeaders(serverSecretKey),
     body: JSON.stringify(payload),
     },
   );
@@ -363,7 +361,7 @@ export async function createOrderWithItemsRpc(
 
 export async function fetchOrdersForBusiness(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
   query: BusinessOrderQuery,
 ) {
@@ -393,7 +391,7 @@ export async function fetchOrdersForBusiness(
       `${url}/rest/v1/orders?${params.toString()}`,
       {
         headers: {
-          ...serviceHeaders(serviceRoleKey),
+          ...serviceHeaders(serverSecretKey),
           Prefer: "count=exact",
         },
       },
@@ -438,7 +436,7 @@ export async function fetchOrdersForBusiness(
 
 export async function fetchOrderItemsForOrders(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   orderIds: string[],
 ) {
   if (orderIds.length === 0) return [];
@@ -447,7 +445,7 @@ export async function fetchOrderItemsForOrders(
       ",",
     )})&select=${orderItemSelect}&order=created_at.asc`,
     {
-      headers: serviceHeaders(serviceRoleKey),
+      headers: serviceHeaders(serverSecretKey),
     },
   );
   const body = await readJson(response);
@@ -461,7 +459,7 @@ export async function fetchOrderItemsForOrders(
 
 export async function fetchOrderById(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   orderId: string,
 ) {
   async function requestOrder(select: string) {
@@ -470,7 +468,7 @@ export async function fetchOrderById(
         orderId,
       )}&select=${select}&limit=1`,
       {
-        headers: serviceHeaders(serviceRoleKey),
+        headers: serviceHeaders(serverSecretKey),
       },
     );
     const body = await readJson(response);
@@ -499,7 +497,7 @@ export async function fetchOrderById(
 
 export async function updateOrderStatusById(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   orderId: string,
   businessId: string,
   status: OrderStatus,
@@ -514,7 +512,7 @@ export async function updateOrderStatusById(
   const response = await fetch(`${url}/rest/v1/orders?${params.toString()}`, {
     method: "PATCH",
     headers: {
-      ...serviceHeaders(serviceRoleKey, true),
+      ...serviceHeaders(serverSecretKey, true),
       Prefer: "return=representation",
     },
     body: JSON.stringify({ status }),

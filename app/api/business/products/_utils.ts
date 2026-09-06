@@ -138,11 +138,11 @@ export function resolveProductRouteError(error: unknown) {
 export function getSupabaseServerConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anonKey || !serviceRoleKey) {
+  const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
+  if (!url || !anonKey || !serverSecretKey) {
     throw new Error("Product server configuration is unavailable.");
   }
-  return { url, anonKey, serviceRoleKey };
+  return { url, anonKey, serverSecretKey };
 }
 
 async function readJson(response: Response) {
@@ -150,10 +150,9 @@ async function readJson(response: Response) {
   return text ? (JSON.parse(text) as unknown) : null;
 }
 
-function serviceHeaders(serviceRoleKey: string, contentType = false) {
+function serviceHeaders(serverSecretKey: string, contentType = false) {
   return {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
+    apikey: serverSecretKey,
     ...(contentType ? { "Content-Type": "application/json" } : {}),
   };
 }
@@ -412,14 +411,14 @@ function requireProductRow(value: unknown) {
 
 export async function fetchBusinessesForUser(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   userId: string,
 ) {
   const response = await fetch(
     `${url}/rest/v1/businesses?owner_id=eq.${encodeURIComponent(
       userId,
     )}&select=id,owner_id,is_active,subscription_status,subscription_expires_at&limit=2`,
-    { headers: serviceHeaders(serviceRoleKey) },
+    { headers: serviceHeaders(serverSecretKey) },
   );
   const body = await readJson(response);
   if (!response.ok || !Array.isArray(body)) throw new Error("Business lookup failed.");
@@ -449,14 +448,14 @@ export function ensureProductWriteAllowed(business: BusinessAccessRow) {
 
 export async function fetchProductsForBusiness(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
 ) {
   const response = await fetch(
     `${url}/rest/v1/products?business_id=eq.${encodeURIComponent(
       businessId,
     )}&select=${productSelect}&order=sort_order.asc,created_at.asc`,
-    { headers: serviceHeaders(serviceRoleKey) },
+    { headers: serviceHeaders(serverSecretKey) },
   );
   const body = await readJson(response);
   if (!response.ok || !Array.isArray(body) || !body.every(isSupabaseProductRow)) {
@@ -467,14 +466,14 @@ export async function fetchProductsForBusiness(
 
 export async function fetchProductById(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   productId: string,
 ) {
   const response = await fetch(
     `${url}/rest/v1/products?id=eq.${encodeURIComponent(
       productId,
     )}&select=${productSelect}&limit=1`,
-    { headers: serviceHeaders(serviceRoleKey) },
+    { headers: serviceHeaders(serverSecretKey) },
   );
   const body = await readJson(response);
   if (!response.ok || !Array.isArray(body) || body.length > 1) {
@@ -485,14 +484,14 @@ export async function fetchProductById(
 
 export async function fetchBusinessById(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
 ) {
   const response = await fetch(
     `${url}/rest/v1/businesses?id=eq.${encodeURIComponent(
       businessId,
     )}&select=id,owner_id,is_active,subscription_status,subscription_expires_at&limit=1`,
-    { headers: serviceHeaders(serviceRoleKey) },
+    { headers: serviceHeaders(serverSecretKey) },
   );
   const body = await readJson(response);
   if (!response.ok || !Array.isArray(body) || body.length > 1) {
@@ -503,13 +502,13 @@ export async function fetchBusinessById(
 
 export async function insertProduct(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   payload: ProductInsertPayload,
 ) {
   const response = await fetch(`${url}/rest/v1/products?select=${productSelect}`, {
     method: "POST",
     headers: {
-      ...serviceHeaders(serviceRoleKey, true),
+      ...serviceHeaders(serverSecretKey, true),
       Prefer: "return=representation",
     },
     body: JSON.stringify(payload),
@@ -523,7 +522,7 @@ export async function insertProduct(
 
 export async function updateProductConditionally(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   productId: string,
   businessId: string,
   expectedUpdatedAt: string,
@@ -538,7 +537,7 @@ export async function updateProductConditionally(
   const response = await fetch(`${url}/rest/v1/products?${params.toString()}`, {
     method: "PATCH",
     headers: {
-      ...serviceHeaders(serviceRoleKey, true),
+      ...serviceHeaders(serverSecretKey, true),
       Prefer: "return=representation",
     },
     body: JSON.stringify(payload),
@@ -552,7 +551,7 @@ export async function updateProductConditionally(
 
 export async function deleteProductConditionally(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   productId: string,
   businessId: string,
   expectedUpdatedAt: string,
@@ -566,7 +565,7 @@ export async function deleteProductConditionally(
   const response = await fetch(`${url}/rest/v1/products?${params.toString()}`, {
     method: "DELETE",
     headers: {
-      ...serviceHeaders(serviceRoleKey),
+      ...serviceHeaders(serverSecretKey),
       Prefer: "return=representation",
     },
   });
@@ -579,7 +578,7 @@ export async function deleteProductConditionally(
 
 export async function reorderProductsAtomically(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
   items: Array<{
     productId: string;
@@ -591,7 +590,7 @@ export async function reorderProductsAtomically(
     `${url}/rest/v1/rpc/reorder_business_products_atomic`,
     {
       method: "POST",
-      headers: serviceHeaders(serviceRoleKey, true),
+      headers: serviceHeaders(serverSecretKey, true),
       body: JSON.stringify({
         p_business_id: businessId,
         p_items: items.map((item) => ({
@@ -631,14 +630,14 @@ export async function reorderProductsAtomically(
 
 export async function getNextSortOrder(
   url: string,
-  serviceRoleKey: string,
+  serverSecretKey: string,
   businessId: string,
 ) {
   const response = await fetch(
     `${url}/rest/v1/products?business_id=eq.${encodeURIComponent(
       businessId,
     )}&select=sort_order&order=sort_order.desc.nullslast&limit=1`,
-    { headers: serviceHeaders(serviceRoleKey) },
+    { headers: serviceHeaders(serverSecretKey) },
   );
   const body = await readJson(response);
   if (!response.ok || !Array.isArray(body)) {

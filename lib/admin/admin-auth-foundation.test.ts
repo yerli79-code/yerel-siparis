@@ -400,9 +400,9 @@ test("controlled error contract contains every required security code", () => {
 
 test("service role stays outside the admin client import graph", () => {
   const clientSource = `${adminPage}\n${adminClient}\n${supabaseAdminClient}`;
-  assert.doesNotMatch(clientSource, /SUPABASE_SERVICE_ROLE_KEY|serviceRoleKey/);
-  assert.match(source("lib/admin/config.ts"), /SUPABASE_SERVICE_ROLE_KEY/);
-  assert.doesNotMatch(source("lib/admin/config.ts"), /NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(clientSource, /SUPABASE_SERVICE_ROLE_KEY|serviceRoleKey|SUPABASE_SERVER_SECRET_KEY|serverSecretKey/);
+  assert.match(source("lib/admin/config.ts"), /SUPABASE_SERVER_SECRET_KEY/);
+  assert.doesNotMatch(source("lib/admin/config.ts"), /NEXT_PUBLIC_SUPABASE_SERVER_SECRET_KEY/);
 });
 
 test("auth implementation does not log credentials, tokens or cookies", () => {

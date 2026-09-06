@@ -200,7 +200,7 @@ export async function GET(request: Request) {
     | "rpc_validation" = "config";
 
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
 
     stage = "auth";
     const accessToken = getBearerToken(request);
@@ -220,7 +220,7 @@ export async function GET(request: Request) {
     stage = "business_lookup";
     const businesses = await fetchBusinessesForUser(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       user.id,
     );
 
@@ -277,8 +277,7 @@ export async function GET(request: Request) {
       {
         method: "POST",
         headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serverSecretKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

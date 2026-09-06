@@ -19,7 +19,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
@@ -32,11 +32,11 @@ export async function GET(request: Request) {
     }
 
     const business = getSingleUserBusiness(
-      await fetchBusinessesForUser(url, serviceRoleKey, user.id),
+      await fetchBusinessesForUser(url, serverSecretKey, user.id),
     );
     const products = await fetchProductsForBusiness(
       url,
-      serviceRoleKey,
+      serverSecretKey,
       business.id,
     );
 
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serviceRoleKey } = getSupabaseServerConfig();
+    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     const business = getSingleUserBusiness(
-      await fetchBusinessesForUser(url, serviceRoleKey, user.id),
+      await fetchBusinessesForUser(url, serverSecretKey, user.id),
     );
     ensureProductWriteAllowed(business);
 
@@ -87,12 +87,12 @@ export async function POST(request: Request) {
       payload.image_label = "";
     }
     if (!("sort_order" in payload)) {
-      payload.sort_order = await getNextSortOrder(url, serviceRoleKey, business.id);
+      payload.sort_order = await getNextSortOrder(url, serverSecretKey, business.id);
     }
     const imageLabel =
       typeof payload.image_label === "string" ? payload.image_label : "";
 
-    const product = await insertProduct(url, serviceRoleKey, {
+    const product = await insertProduct(url, serverSecretKey, {
       ...payload,
       image_label: imageLabel,
       business_id: business.id,
