@@ -38,11 +38,44 @@ jobs:
         run: |
           sudo apt-get update -y
 
+          sudo apt-get install -y \
+            ca-certificates \
+            curl
+
+          sudo install -d /usr/share/postgresql-common/pgdg
+
+          sudo curl \
+            --fail \
+            --show-error \
+            --silent \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+
+          . /etc/os-release
+
+          if [ "$VERSION_CODENAME" != "noble" ]; then
+            echo "Unexpected runner distro: $VERSION_CODENAME" >&2
+            exit 1
+          fi
+
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/pgdg.sources >/dev/null
+          Types: deb
+          URIs: https://apt.postgresql.org/pub/repos/apt
+          Suites: ${VERSION_CODENAME}-pgdg
+          Components: main
+          Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          EOF
+
+          sudo apt-get update -y
+
           PG_CLIENT_POLICY=$(apt-cache policy postgresql-client-17)
           echo "$PG_CLIENT_POLICY"
 
           if ! echo "$PG_CLIENT_POLICY" | grep -Eq 'Candidate: [0-9]'; then
-            echo "PostgreSQL 17 client package is unavailable." >&2
+            echo "PostgreSQL 17 client package is unavailable after PGDG setup." >&2
             exit 1
           fi
 
