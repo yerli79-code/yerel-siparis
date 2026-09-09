@@ -36,9 +36,26 @@ jobs:
 
       - name: Install PostgreSQL Client
         run: |
+          PG_CLIENT_POLICY=$(apt-cache policy postgresql-client-17)
+          echo "$PG_CLIENT_POLICY"
+
+          if ! echo "$PG_CLIENT_POLICY" | grep -Eq 'Candidate: [0-9]'; then
+            echo "PostgreSQL 17 client package is unavailable." >&2
+            exit 1
+          fi
+
           sudo apt-get update -y
-          sudo apt-get install -y postgresql-client
-          pg_dump --version
+          sudo apt-get install -y postgresql-client-17
+
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+          PG_DUMP_VERSION=$(/usr/lib/postgresql/17/bin/pg_dump --version)
+          echo "$PG_DUMP_VERSION"
+
+          if ! echo "$PG_DUMP_VERSION" | grep -Eq 'PostgreSQL\) 17\.'; then
+            echo "Expected PostgreSQL 17 pg_dump." >&2
+            exit 1
+          fi
 
       - name: Run Backup Pipeline
         env:
