@@ -36,6 +36,8 @@ jobs:
 
       - name: Install PostgreSQL Client
         run: |
+          sudo apt-get update -y
+
           PG_CLIENT_POLICY=$(apt-cache policy postgresql-client-17)
           echo "$PG_CLIENT_POLICY"
 
@@ -44,7 +46,6 @@ jobs:
             exit 1
           fi
 
-          sudo apt-get update -y
           sudo apt-get install -y postgresql-client-17
 
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
