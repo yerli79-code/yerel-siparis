@@ -1,3 +1,4 @@
+import { isSupabasePublishableKey } from "./supabase-publishable-key";
 import type { Business } from "./businesses";
 import {
   getPaymentMethodModeOrDefault,
@@ -202,22 +203,22 @@ const publicProductSelect = [
 
 function getSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !isSupabasePublishableKey(publishableKey)) {
     throw new Error(
-      ".env.local icinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_ANON_KEY eksik.",
+      ".env.local icinde NEXT_PUBLIC_SUPABASE_URL veya NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY eksik.",
     );
   }
 
-  return { url, anonKey };
+  return { url, publishableKey };
 }
 
-function authHeaders(accessToken?: string) {
-  const { anonKey } = getSupabaseConfig();
+function authHeaders(accessToken?: string): Record<string, string> {
+  const { publishableKey } = getSupabaseConfig();
   return {
-    apikey: anonKey,
-    Authorization: `Bearer ${accessToken || anonKey}`,
+    apikey: publishableKey,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     "Content-Type": "application/json",
   };
 }
@@ -680,14 +681,14 @@ export async function uploadProductImage(
     throw new Error("Urun gorseli en fazla 5 MB olabilir.");
   }
 
-  const { url, anonKey } = getSupabaseConfig();
+  const { url, publishableKey } = getSupabaseConfig();
   const fileName = `${Date.now()}-${safeProductImageFileName(file)}`;
   const objectPath = `${businessId}/${fileName}`;
   const uploadUrl = `${url}/storage/v1/object/product-images/${objectPath}`;
   const response = await fetch(uploadUrl, {
     method: "POST",
     headers: {
-      apikey: anonKey,
+      apikey: publishableKey,
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": file.type,
       "x-upsert": "true",
@@ -721,14 +722,14 @@ export async function uploadBusinessImage(
     throw new Error("Isletme gorseli en fazla 5 MB olabilir.");
   }
 
-  const { url, anonKey } = getSupabaseConfig();
+  const { url, publishableKey } = getSupabaseConfig();
   const fileName = `${Date.now()}-${safeProductImageFileName(file)}`;
   const objectPath = `${businessId}/${imageType}/${fileName}`;
   const uploadUrl = `${url}/storage/v1/object/business-images/${objectPath}`;
   const response = await fetch(uploadUrl, {
     method: "POST",
     headers: {
-      apikey: anonKey,
+      apikey: publishableKey,
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": file.type,
       "x-upsert": "true",

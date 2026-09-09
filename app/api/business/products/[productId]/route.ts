@@ -49,7 +49,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
@@ -64,7 +64,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
     const { input, expectedUpdatedAt } = getProductMutationRequest(body);
 
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) return productError("PRODUCT_UNAUTHORIZED", 401);
 
     const { product, business } = await getProductAccess(
@@ -109,7 +109,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       return productError("INVALID_PRODUCT_MUTATION", 400);
     }
 
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) return productError("PRODUCT_UNAUTHORIZED", 401);
 
@@ -124,7 +124,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     }
     const { expectedUpdatedAt } = getProductDeleteRequest(body);
 
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) return productError("PRODUCT_UNAUTHORIZED", 401);
 
     const { product, business } = await getProductAccess(

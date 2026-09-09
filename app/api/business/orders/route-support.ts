@@ -192,7 +192,7 @@ export async function fetchBusinessOrdersForUser(request: Request) {
     | "order_items" = "config";
 
   try {
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
 
     stage = "auth";
     const accessToken = getBearerToken(request);
@@ -201,7 +201,7 @@ export async function fetchBusinessOrdersForUser(request: Request) {
       return { response: jsonError("Oturum bulunamadi veya gecersiz.", 401) };
     }
 
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) {
       return { response: jsonError("Oturum bulunamadi veya gecersiz.", 401) };
     }

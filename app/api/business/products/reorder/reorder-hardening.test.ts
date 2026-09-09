@@ -14,7 +14,7 @@ const expectedA = "2026-08-29T06:00:00.000Z";
 const expectedB = "2026-08-29T06:00:01.000Z";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test_key";
 process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 const validItems = [

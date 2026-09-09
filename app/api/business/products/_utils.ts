@@ -1,3 +1,4 @@
+import { isSupabasePublishableKey } from "../../../../lib/supabase-publishable-key";
 import { NextResponse } from "next/server";
 import { normalizeProductCategory } from "../../../../lib/product-categories";
 
@@ -137,12 +138,12 @@ export function resolveProductRouteError(error: unknown) {
 
 export function getSupabaseServerConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
-  if (!url || !anonKey || !serverSecretKey) {
+  if (!url || !isSupabasePublishableKey(publishableKey) || !serverSecretKey) {
     throw new Error("Product server configuration is unavailable.");
   }
-  return { url, anonKey, serverSecretKey };
+  return { url, publishableKey, serverSecretKey };
 }
 
 async function readJson(response: Response) {
@@ -166,11 +167,11 @@ export function getBearerToken(request: Request) {
 
 export async function getUserFromToken(
   url: string,
-  anonKey: string,
+  publishableKey: string,
   accessToken: string,
 ) {
   const response = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` },
+    headers: { apikey: publishableKey, Authorization: `Bearer ${accessToken}` },
   });
   let body: unknown;
   try {

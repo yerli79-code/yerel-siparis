@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isSupabasePublishableKey } from "./supabase-publishable-key";
+
 import { cache } from "react";
 import type { Business } from "./businesses";
 import { getPaymentMethodModeOrDefault } from "./payment-methods";
@@ -62,15 +64,15 @@ const publicBusinessRequestTimeoutMs = 9000;
 
 function getPublicSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !isSupabasePublishableKey(publishableKey)) {
     throw new Error(
       "Public işletme sorgusu için Supabase yapılandırması eksik.",
     );
   }
 
-  return { url: url.replace(/\/$/, ""), anonKey };
+  return { url: url.replace(/\/$/, ""), publishableKey };
 }
 
 function toNullableNumber(value: number | string | null) {
@@ -113,7 +115,7 @@ function mapPublicBusiness(row: PublicBusinessRow): PublicBusiness {
 async function fetchPublicBusinessBySlug(
   slug: string,
 ): Promise<PublicBusiness | null> {
-  const { url, anonKey } = getPublicSupabaseConfig();
+  const { url, publishableKey } = getPublicSupabaseConfig();
   const requestUrl = new URL(`${url}/rest/v1/businesses`);
   requestUrl.searchParams.set("slug", `eq.${slug}`);
   requestUrl.searchParams.set("select", publicBusinessSelect);
@@ -131,8 +133,7 @@ async function fetchPublicBusinessBySlug(
     response = await fetch(requestUrl, {
       cache: "no-store",
       headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+        apikey: publishableKey,
       },
       signal: controller.signal,
     });
@@ -175,7 +176,7 @@ function isValidPublicBusinessSlug(slug: string): boolean {
 }
 
 export async function getPublicBusinessSlugs(): Promise<string[]> {
-  const { url, anonKey } = getPublicSupabaseConfig();
+  const { url, publishableKey } = getPublicSupabaseConfig();
   const requestUrl = new URL(`${url}/rest/v1/businesses`);
   requestUrl.searchParams.set("select", "slug");
   requestUrl.searchParams.set("order", "slug.asc");
@@ -191,8 +192,7 @@ export async function getPublicBusinessSlugs(): Promise<string[]> {
   try {
     response = await fetch(requestUrl, {
       headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+        apikey: publishableKey,
       },
       signal: controller.signal,
       next: { revalidate: 1800 },

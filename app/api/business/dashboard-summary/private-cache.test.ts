@@ -9,7 +9,7 @@ const businessId = "22222222-2222-4222-8222-222222222222";
 const userId = "33333333-3333-4333-8333-333333333333";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test_key";
 process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
 function createSuccessfulFetch() {

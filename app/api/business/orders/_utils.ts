@@ -1,3 +1,4 @@
+import { isSupabasePublishableKey } from "../../../../lib/supabase-publishable-key";
 import { isPaymentMethod } from "../../../../lib/payment-methods";
 import { privateBusinessJson } from "../_response";
 import {
@@ -121,17 +122,17 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
 
 export function getSupabaseServerConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const serverSecretKey = process.env.SUPABASE_SERVER_SECRET_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !isSupabasePublishableKey(publishableKey)) {
     throw new Error("Supabase public ortam degiskenleri eksik.");
   }
   if (!serverSecretKey) {
     throw new Error("SUPABASE_SERVER_SECRET_KEY eksik.");
   }
 
-  return { url, anonKey, serverSecretKey };
+  return { url, publishableKey, serverSecretKey };
 }
 
 export async function readJson(response: Response) {
@@ -176,12 +177,12 @@ function serviceRpcHeaders(serverSecretKey: string) {
 
 export async function getUserFromToken(
   url: string,
-  anonKey: string,
+  publishableKey: string,
   accessToken: string,
 ) {
   const response = await fetch(`${url}/auth/v1/user`, {
     headers: {
-      apikey: anonKey,
+      apikey: publishableKey,
       Authorization: `Bearer ${accessToken}`,
     },
   });

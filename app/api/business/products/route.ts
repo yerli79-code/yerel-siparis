@@ -19,14 +19,14 @@ import {
 
 export async function GET(request: Request) {
   try {
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
       return productError("PRODUCT_UNAUTHORIZED", 401);
     }
 
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) {
       return productError("PRODUCT_UNAUTHORIZED", 401);
     }
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
 
     if (!accessToken) {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     }
 
     const input = getCreateProductInput(body);
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) {
       return productError("PRODUCT_UNAUTHORIZED", 401);
     }

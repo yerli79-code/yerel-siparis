@@ -22,10 +22,10 @@ export async function readJsonBody(response: Response) {
 export async function getVerifiedSupabaseIdentity(
   accessToken: string,
 ): Promise<AdminIdentity | null> {
-  const { url, anonKey } = getSupabasePublicServerConfig();
+  const { url, publishableKey } = getSupabasePublicServerConfig();
   const response = await fetch(`${url}/auth/v1/user`, {
     headers: {
-      apikey: anonKey,
+      apikey: publishableKey,
       Authorization: `Bearer ${accessToken}`,
     },
     cache: "no-store",

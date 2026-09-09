@@ -91,7 +91,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     stage = "config";
-    const { url, anonKey, serverSecretKey } = getSupabaseServerConfig();
+    const { url, publishableKey, serverSecretKey } = getSupabaseServerConfig();
     const accessToken = getBearerToken(request);
     if (!accessToken) {
       return mutationError("ORDER_UNAUTHORIZED", 401);
@@ -120,7 +120,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     stage = "auth";
-    const user = await getUserFromToken(url, anonKey, accessToken);
+    const user = await getUserFromToken(url, publishableKey, accessToken);
     if (!user) {
       return mutationError("ORDER_UNAUTHORIZED", 401);
     }
