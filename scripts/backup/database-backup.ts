@@ -94,8 +94,53 @@ export const REQUIRED_DATABASE_ACL_IDENTITIES = [
   "public FUNCTION purge_expired_orders()",
 ] as const;
 
-function normalizeArchiveAclIdentity(identity: string): string {
-  return identity.trim().replace(/\s*,\s*/g, ",").replace(/\s+/g, " ");
+const MULTI_WORD_POSTGRES_TYPES = [
+  "double precision",
+  "timestamp with time zone",
+  "timestamp without time zone",
+  "time with time zone",
+  "time without time zone",
+  "character varying",
+  "bit varying",
+] as const;
+
+function normalizeFunctionArgument(arg: string): string {
+  const trimmed = arg.trim();
+  if (!trimmed) return "";
+
+  // Strip leading parameter mode (IN, OUT, INOUT, VARIADIC)
+  const withoutMode = trimmed.replace(/^(?:IN|OUT|INOUT|VARIADIC)\s+/i, "");
+  const lower = withoutMode.toLowerCase();
+
+  for (const mwt of MULTI_WORD_POSTGRES_TYPES) {
+    if (lower === mwt || lower.startsWith(mwt + "[")) {
+      return lower;
+    }
+  }
+
+  // Strip parameter name if present (e.g. `param_name type` or `"param_name" type`)
+  const paramMatch = withoutMode.match(/^(?:"[^"]+"|[a-zA-Z_][a-zA-Z0-9_$]*)\s+(.+)$/);
+  if (paramMatch) {
+    return paramMatch[1].trim().toLowerCase();
+  }
+
+  return withoutMode.toLowerCase();
+}
+
+export function normalizeArchiveAclIdentity(identity: string): string {
+  const trimmed = identity.trim();
+  const funcMatch = trimmed.match(/^([^(]+)\((.*)\)$/);
+  if (!funcMatch) {
+    return trimmed.replace(/\s*,\s*/g, ",").replace(/\s+/g, " ");
+  }
+
+  const [, funcName, rawArgs] = funcMatch;
+  if (!rawArgs.trim()) {
+    return `${funcName.trim().toLowerCase()}()`;
+  }
+
+  const args = rawArgs.split(",").map(normalizeFunctionArgument);
+  return `${funcName.trim().toLowerCase()}(${args.join(",")})`;
 }
 
 export function listArchiveObjectAclIdentities(tocOutput: string): string[] {
@@ -142,13 +187,19 @@ export async function verifyDatabaseArchiveAcl(
   }
 
   const aclEntryCount = countArchiveAclEntries(result.stdout);
+  const parsedIdentities = listArchiveObjectAclIdentities(result.stdout);
   const missingCriticalAclEntries = findMissingCriticalArchiveAclEntries(result.stdout);
+  const criticalFound = parsedIdentities.filter((id) =>
+    (REQUIRED_DATABASE_ACL_IDENTITIES as readonly string[]).includes(id),
+  );
 
   if (aclEntryCount === 0 || missingCriticalAclEntries.length > 0) {
     throw new Error(
       `Database archive is missing critical ACL entries: ${missingCriticalAclEntries.join(
         ", ",
-      )}. Rejecting database backup (fail-closed).`,
+      )} (total ACL entries in TOC: ${aclEntryCount}, critical identities parsed: [${criticalFound.join(
+        ", ",
+      )}]). Rejecting database backup (fail-closed).`,
     );
   }
 

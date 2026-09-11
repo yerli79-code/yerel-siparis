@@ -80,7 +80,15 @@ test(
       create table public.order_items(id bigint primary key);
       create sequence public.orders_order_number_seq;
       create function public.create_order_with_items(
-        text, text, text, text, text, text, jsonb, uuid, text
+        p_business_slug text,
+        p_order_type text,
+        p_customer_name text,
+        p_customer_phone text,
+        p_customer_address text,
+        p_customer_note text,
+        p_items jsonb,
+        p_idempotency_key uuid,
+        p_payment_method text default null
       ) returns integer language sql as $$ select 1 $$;
       create function public.purge_expired_orders()
       returns integer language sql as $$ select 0 $$;
@@ -184,7 +192,7 @@ test(
       );
       assert.match(
         normalizedSchema,
-        /GRANT ALL ON FUNCTION public\.create_order_with_items\(text, text, text, text, text, text, jsonb, uuid, text\) TO acl_fixture_reader;/,
+        /GRANT ALL ON FUNCTION public\.create_order_with_items\((?:p_business_slug text|text).*?(?:p_payment_method text|text)\) TO acl_fixture_reader;/,
       );
       assert.match(
         normalizedSchema,
