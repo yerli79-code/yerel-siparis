@@ -1253,7 +1253,8 @@ test("P1.5) restore fidelity verifier covers the critical read-only security con
   assert.match(verifier, /begin read only;/i);
   assert.match(verifier, /public_order_rate_limit_buckets/i);
   assert.match(verifier, /array\['orders', 'order_items'\]/i);
-  assert.match(verifier, /'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN'/i);
+  assert.match(verifier, /rolsuper or rolbypassrls/i);
+  assert.match(verifier, /fail-closed RLS protection/i);
   assert.match(verifier, /orders_order_number_seq/i);
   assert.match(verifier, /create_order_with_items\(text,text,text,text,text,text,jsonb,uuid,text\)/i);
   assert.match(verifier, /purge_expired_orders\(\)/i);

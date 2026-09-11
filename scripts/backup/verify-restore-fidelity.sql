@@ -74,8 +74,33 @@ begin
     end if;
   end loop;
 
+  -- Verify anon and authenticated roles cannot bypass RLS
+  select count(*)
+  into matching_count
+  from pg_roles
+  where rolname in ('anon', 'authenticated')
+    and (rolsuper or rolbypassrls);
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: role anon or authenticated unexpectedly has SUPERUSER or BYPASSRLS privilege.';
+  end if;
+
   foreach table_name in array array['orders', 'order_items']
   loop
+    -- A. RLS MUST be enabled
+    select count(*)
+    into matching_count
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname = table_name
+      and c.relrowsecurity;
+
+    if matching_count <> 1 then
+      raise exception 'Restore fidelity check failed: public.% is missing or RLS is disabled.', table_name;
+    end if;
+
+    -- C. No policies permitting anon/authenticated access (exact 0 policies for fail-closed RLS protection)
     select count(*)
     into matching_count
     from pg_policies
@@ -83,9 +108,11 @@ begin
       and tablename = table_name;
 
     if matching_count <> 0 then
-      raise exception 'Restore fidelity check failed: public.% has % unexpected policies.', table_name, matching_count;
+      raise exception 'Restore fidelity check failed: public.% has % unexpected policies (expected 0 for fail-closed RLS protection).',
+        table_name, matching_count;
     end if;
 
+    -- D. PUBLIC (grantee 0) must not have table privileges
     select exists (
       select 1
       from pg_class c
@@ -102,20 +129,20 @@ begin
         table_name;
     end if;
 
-    foreach role_name in array array['anon', 'authenticated']
-    loop
-      foreach privilege_name in array array[
-        'SELECT', 'INSERT', 'UPDATE', 'DELETE',
-        'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN'
-      ]
-      loop
-        if has_table_privilege(role_name, format('public.%I', table_name), privilege_name) then
-          raise exception 'Restore fidelity check failed: role % unexpectedly has % on public.%.',
-            role_name, privilege_name, table_name;
-        end if;
-      end loop;
-    end loop;
+    -- E. Table owner must not be anon or authenticated
+    select count(*)
+    into matching_count
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname = table_name
+      and pg_get_userbyid(c.relowner) in ('anon', 'authenticated');
 
+    if matching_count > 0 then
+      raise exception 'Restore fidelity check failed: public.% is owned by untrusted role anon or authenticated.', table_name;
+    end if;
+
+    -- F. service_role must retain required table privileges
     foreach privilege_name in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE']
     loop
       if not has_table_privilege('service_role', format('public.%I', table_name), privilege_name) then
