@@ -327,10 +327,10 @@ test(
       returns integer security definer language sql as $$ select 0 $$;
       alter function public.purge_expired_orders() owner to postgres;
 
-      -- Permissions on orders & order_items
+      -- Permissions on orders & order_items (matches production: PUBLIC has no privs, anon/auth may have table grants, but RLS with 0 policies ensures fail-closed protection)
       revoke all on table public.orders, public.order_items from public;
-      revoke all on table public.orders, public.order_items from anon, authenticated;
       grant select, insert, update, delete on table public.orders, public.order_items to service_role;
+      grant select on table public.orders, public.order_items to anon, authenticated;
 
       -- Sequence permissions
       revoke all on sequence public.orders_order_number_seq from public, anon, authenticated;
@@ -499,8 +499,8 @@ test(
         "utf8",
       );
 
-      const verifyRes = await new Promise<{ stdout: string; stderr: string }>(
-        (resolvePromise, rejectPromise) => {
+      async function execVerify(): Promise<{ success: boolean; stdout: string; stderr: string }> {
+        return new Promise((resolvePromise) => {
           const child = execFile(
             dockerCli,
             [
@@ -518,16 +518,162 @@ test(
             ],
             { encoding: "utf8" },
             (err, stdout, stderr) => {
-              if (err) rejectPromise(err);
-              else resolvePromise({ stdout, stderr });
+              if (err) {
+                resolvePromise({ success: false, stdout, stderr });
+              } else {
+                resolvePromise({ success: true, stdout, stderr });
+              }
             },
           );
           child.stdin?.write(verifySql);
           child.stdin?.end();
-        },
-      );
+        });
+      }
 
-      assert.match(verifyRes.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
+      // 1. Baseline contract verification: RLS enabled + 0 policy + anon SELECT ACL -> PASS
+      const baselineVerify = await execVerify();
+      assert.equal(baselineVerify.success, true, `Baseline verification failed: ${baselineVerify.stderr}`);
+      assert.match(baselineVerify.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
+
+      // 2. Negative test: RLS disabled on orders -> FAIL
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders disable row level security;",
+      ]);
+      const rlsDisabled = await execVerify();
+      assert.equal(rlsDisabled.success, false, "Expected failure when orders RLS is disabled");
+      assert.match(rlsDisabled.stderr, /public\.orders is missing or RLS is disabled/);
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders enable row level security;",
+      ]);
+
+      // 3. Negative test: anon permissive SELECT policy added -> FAIL
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "create policy anon_can_read on public.orders for select to anon using (true);",
+      ]);
+      const anonPolicy = await execVerify();
+      assert.equal(anonPolicy.success, false, "Expected failure when anon policy is added");
+      assert.match(anonPolicy.stderr, /public\.orders has 1 unexpected policies/);
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "drop policy anon_can_read on public.orders;",
+      ]);
+
+      // 4. Negative test: authenticated permissive policy added -> FAIL
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "create policy auth_can_read on public.order_items for select to authenticated using (true);",
+      ]);
+      const authPolicy = await execVerify();
+      assert.equal(authPolicy.success, false, "Expected failure when authenticated policy is added");
+      assert.match(authPolicy.stderr, /public\.order_items has 1 unexpected policies/);
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "drop policy auth_can_read on public.order_items;",
+      ]);
+
+      // 5. Negative test: table owner is anon -> FAIL
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders owner to anon;",
+      ]);
+      const ownerAnon = await execVerify();
+      assert.equal(ownerAnon.success, false, "Expected failure when orders table owner is anon");
+      assert.match(ownerAnon.stderr, /public\.orders is missing or does not have expected owner postgres|owned by untrusted role/);
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders owner to postgres;",
+      ]);
+
+      // 6. Negative test: role BYPASSRLS scenario -> FAIL
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter role anon bypassrls;",
+      ]);
+      const anonBypass = await execVerify();
+      assert.equal(anonBypass.success, false, "Expected failure when anon has BYPASSRLS");
+      assert.match(anonBypass.stderr, /role anon or authenticated unexpectedly has SUPERUSER or BYPASSRLS privilege/);
+      await run(dockerCli, [
+        "exec",
+        containerName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter role anon nobypassrls;",
+      ]);
+
+      // 7. Post-reversion verification confirms state returns to PASS
+      const postRevert = await execVerify();
+      assert.equal(postRevert.success, true, `Post-revert verification failed: ${postRevert.stderr}`);
+      assert.match(postRevert.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
 
       // Verify row counts on restored database
       const countCheck = await run(dockerCli, [
