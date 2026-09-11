@@ -84,6 +84,77 @@ export interface ParsedDatabaseParams {
   env: Record<string, string | undefined>;
 }
 
+const PG_RESTORE_ACL_TOC_ENTRY = /^\s*\d+;\s+\d+\s+\d+\s+(?:DEFAULT )?ACL(?:\s|$)/i;
+
+export const REQUIRED_DATABASE_ACL_IDENTITIES = [
+  "public TABLE orders",
+  "public TABLE order_items",
+  "public SEQUENCE orders_order_number_seq",
+  "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+  "public FUNCTION purge_expired_orders()",
+] as const;
+
+function normalizeArchiveAclIdentity(identity: string): string {
+  return identity.trim().replace(/\s*,\s*/g, ",").replace(/\s+/g, " ");
+}
+
+export function listArchiveObjectAclIdentities(tocOutput: string): string[] {
+  const identities = new Set<string>();
+
+  for (const line of tocOutput.split(/\r?\n/)) {
+    const match = line.match(
+      /^\s*\d+;\s+\d+\s+\d+\s+ACL\s+(\S+)\s+(TABLE|SEQUENCE|FUNCTION)\s+(.+)\s+(\S+)\s*$/i,
+    );
+    if (!match) {
+      continue;
+    }
+
+    const [, schemaName, objectType, rawIdentity] = match;
+    identities.add(
+      `${schemaName.toLowerCase()} ${objectType.toUpperCase()} ${normalizeArchiveAclIdentity(rawIdentity)}`,
+    );
+  }
+
+  return [...identities].sort();
+}
+
+export function findMissingCriticalArchiveAclEntries(tocOutput: string): string[] {
+  const identities = new Set(listArchiveObjectAclIdentities(tocOutput));
+  return REQUIRED_DATABASE_ACL_IDENTITIES.filter((identity) => !identities.has(identity));
+}
+
+export function countArchiveAclEntries(tocOutput: string): number {
+  return tocOutput
+    .split(/\r?\n/)
+    .filter((line) => PG_RESTORE_ACL_TOC_ENTRY.test(line)).length;
+}
+
+export async function verifyDatabaseArchiveAcl(
+  archivePath: string,
+  execCommand: NonNullable<DatabaseBackupOptions["execCommand"]> = defaultExecCommand,
+): Promise<number> {
+  const result = await execCommand("pg_restore", ["--list", archivePath], {});
+
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `pg_restore --list failed with exit code ${result.exitCode}. Rejecting database backup (fail-closed).`,
+    );
+  }
+
+  const aclEntryCount = countArchiveAclEntries(result.stdout);
+  const missingCriticalAclEntries = findMissingCriticalArchiveAclEntries(result.stdout);
+
+  if (aclEntryCount === 0 || missingCriticalAclEntries.length > 0) {
+    throw new Error(
+      `Database archive is missing critical ACL entries: ${missingCriticalAclEntries.join(
+        ", ",
+      )}. Rejecting database backup (fail-closed).`,
+    );
+  }
+
+  return aclEntryCount;
+}
+
 export function parseDatabaseConnectionParams(
   dbUrl: string,
   outputPath: string,
@@ -102,8 +173,6 @@ export function parseDatabaseConnectionParams(
     ...(username ? [`--username=${username}`] : []),
     `--dbname=${dbname}`,
     "--format=custom",
-    "--no-owner",
-    "--no-acl",
     `--file=${outputPath}`,
   ];
 
@@ -157,6 +226,8 @@ export async function runDatabaseBackup({
       `Database dump produced a 0-byte file at ${outputPath}. Rejecting backup (fail-closed).`,
     );
   }
+
+  await verifyDatabaseArchiveAcl(outputPath, execCommand);
 
   const sha256 = await computeFileSha256(outputPath);
 
