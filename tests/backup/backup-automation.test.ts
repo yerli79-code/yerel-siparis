@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -9,7 +9,7 @@ import { computeBufferSha256, computeFileSha256, computeFileMd5, formatSha256Sum
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { validateBackupEnv, getBackupEnvStatus, formatEnvStatusReport } from "../../scripts/backup/env.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
-import { runDatabaseBackup, maskDatabaseUrl, parseDatabaseConnectionParams } from "../../scripts/backup/database-backup.ts";
+import { countArchiveAclEntries, findMissingCriticalArchiveAclEntries, listArchiveObjectAclIdentities, runDatabaseBackup, maskDatabaseUrl, parseDatabaseConnectionParams } from "../../scripts/backup/database-backup.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
 import { runStorageBackup, listBucketObjectsRecursive, resolveSafeStoragePath } from "../../scripts/backup/storage-backup.ts";
 // @ts-expect-error The local TypeScript test runner resolves source extensions.
@@ -985,7 +985,11 @@ test("P1) parseDatabaseConnectionParams extracts host, port, username, dbname in
   assert.ok(result.args.includes("--port=6543"));
   assert.ok(result.args.includes("--username=secuser"));
   assert.ok(result.args.includes("--dbname=postgres"));
+  assert.ok(result.args.includes("--format=custom"));
   assert.ok(result.args.includes(`--file=${outputPath}`));
+  assert.ok(!result.args.includes("--no-acl"));
+  assert.ok(!result.args.includes("--no-privileges"));
+  assert.ok(!result.args.includes("--no-owner"));
 
   // Ensure password and raw full URL are NEVER in argv
   for (const arg of result.args) {
@@ -997,6 +1001,197 @@ test("P1) parseDatabaseConnectionParams extracts host, port, username, dbname in
   assert.equal(result.env.PGPASSWORD, "topsecretpassword123");
   assert.equal(result.env.PGSSLMODE, "require");
   assert.equal(result.env.PGCONNECT_TIMEOUT, "30");
+});
+
+test("P1.1) database backup verifies real archive ACL entries with pg_restore --list", async () => {
+  const tempDir = createTempDir("test-database-acl");
+  const dumpPath = join(tempDir, "database.dump");
+  const calls: Array<{ command: string; args: string[] }> = [];
+
+  try {
+    const mockExec = async (command: string, args: string[]) => {
+      calls.push({ command, args });
+
+      if (command === "pg_dump") {
+        writeFileSync(dumpPath, "mock-custom-archive");
+        return { exitCode: 0, stdout: "", stderr: "" };
+      }
+
+      assert.equal(command, "pg_restore");
+      return {
+        exitCode: 0,
+        stdout: [
+          "; Archive created by pg_dump",
+          "4101; 0 0 ACL public TABLE orders postgres",
+          "4102; 0 0 ACL public TABLE order_items postgres",
+          "4103; 0 0 ACL public SEQUENCE orders_order_number_seq postgres",
+          "4104; 0 0 ACL public FUNCTION create_order_with_items(text, text, text, text, text, text, jsonb, uuid, text) postgres",
+          "4105; 0 0 ACL public FUNCTION purge_expired_orders() postgres",
+          "4102; 0 0 DEFAULT ACL public DEFAULT PRIVILEGES FOR TABLES postgres",
+        ].join("\n"),
+        stderr: "",
+      };
+    };
+
+    const result = await runDatabaseBackup({
+      dbUrl: "postgresql://backup-user:backup-password@localhost:5432/postgres",
+      outputPath: dumpPath,
+      execCommand: mockExec,
+    });
+
+    assert.ok(result.bytes > 0);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].command, "pg_dump");
+    assert.ok(calls[0].args.includes("--format=custom"));
+    assert.ok(!calls[0].args.includes("--no-acl"));
+    assert.ok(!calls[0].args.includes("--no-privileges"));
+    assert.ok(!calls[0].args.includes("--no-owner"));
+    assert.deepEqual(calls[1], {
+      command: "pg_restore",
+      args: ["--list", dumpPath],
+    });
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("P1.2) ACL TOC parser ignores comments and requires archive ACL records", () => {
+  const toc = [
+    "; ACL mentioned in an archive comment is not evidence",
+    "123; 0 0 TABLE public orders postgres",
+    "124; 0 0 ACL public TABLE orders postgres",
+    "125; 0 0 ACL public TABLE order_items postgres",
+    "126; 0 0 ACL public SEQUENCE orders_order_number_seq postgres",
+    "127; 0 0 ACL public FUNCTION create_order_with_items(text, text, text, text, text, text, jsonb, uuid, text) postgres",
+    "128; 0 0 ACL public FUNCTION purge_expired_orders() postgres",
+    "129; 0 0 DEFAULT ACL public DEFAULT PRIVILEGES FOR FUNCTIONS postgres",
+  ].join("\n");
+
+  assert.equal(countArchiveAclEntries(toc), 6);
+  assert.deepEqual(findMissingCriticalArchiveAclEntries(toc), []);
+  assert.deepEqual(listArchiveObjectAclIdentities(toc), [
+    "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+    "public FUNCTION purge_expired_orders()",
+    "public SEQUENCE orders_order_number_seq",
+    "public TABLE order_items",
+    "public TABLE orders",
+  ]);
+});
+
+test("P1.3) database backup rejects an archive without ACL records", async () => {
+  const tempDir = createTempDir("test-database-no-acl");
+  const dumpPath = join(tempDir, "database.dump");
+
+  try {
+    const mockExec = async (command: string) => {
+      if (command === "pg_dump") {
+        writeFileSync(dumpPath, "mock-custom-archive");
+        return { exitCode: 0, stdout: "", stderr: "" };
+      }
+
+      return {
+        exitCode: 0,
+        stdout: "123; 0 0 DEFAULT ACL public DEFAULT PRIVILEGES FOR TABLES postgres\n",
+        stderr: "",
+      };
+    };
+
+    await assert.rejects(
+      () =>
+        runDatabaseBackup({
+          dbUrl: "postgresql://backup-user:backup-password@localhost:5432/postgres",
+          outputPath: dumpPath,
+          execCommand: mockExec,
+        }),
+      /missing critical ACL entries/,
+    );
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("P1.3a) unrelated object ACL entries cannot satisfy the critical archive gate", async () => {
+  const tempDir = createTempDir("test-database-unrelated-acl");
+  const dumpPath = join(tempDir, "database.dump");
+
+  try {
+    const mockExec = async (command: string) => {
+      if (command === "pg_dump") {
+        writeFileSync(dumpPath, "mock-custom-archive");
+        return { exitCode: 0, stdout: "", stderr: "" };
+      }
+
+      return {
+        exitCode: 0,
+        stdout: "123; 0 0 ACL public TABLE unrelated_table postgres\n",
+        stderr: "",
+      };
+    };
+
+    await assert.rejects(
+      () =>
+        runDatabaseBackup({
+          dbUrl: "postgresql://backup-user:backup-password@localhost:5432/postgres",
+          outputPath: dumpPath,
+          execCommand: mockExec,
+        }),
+      /public TABLE orders/,
+    );
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("P1.4) database backup rejects an unreadable archive TOC", async () => {
+  const tempDir = createTempDir("test-database-toc-failure");
+  const dumpPath = join(tempDir, "database.dump");
+
+  try {
+    const mockExec = async (command: string) => {
+      if (command === "pg_dump") {
+        writeFileSync(dumpPath, "mock-custom-archive");
+        return { exitCode: 0, stdout: "", stderr: "" };
+      }
+
+      return { exitCode: 3, stdout: "", stderr: "invalid archive" };
+    };
+
+    await assert.rejects(
+      () =>
+        runDatabaseBackup({
+          dbUrl: "postgresql://backup-user:backup-password@localhost:5432/postgres",
+          outputPath: dumpPath,
+          execCommand: mockExec,
+        }),
+      /pg_restore --list failed with exit code 3/,
+    );
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("P1.5) restore fidelity verifier covers the critical read-only security contract", () => {
+  const verifierPath = join(process.cwd(), "scripts", "backup", "verify-restore-fidelity.sql");
+  const verifier = readFileSync(verifierPath, "utf8");
+
+  assert.match(verifier, /begin read only;/i);
+  assert.match(verifier, /public_order_rate_limit_buckets/i);
+  assert.match(verifier, /array\['orders', 'order_items'\]/i);
+  assert.match(verifier, /'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN'/i);
+  assert.match(verifier, /orders_order_number_seq/i);
+  assert.match(verifier, /create_order_with_items\(text,text,text,text,text,text,jsonb,uuid,text\)/i);
+  assert.match(verifier, /purge_expired_orders\(\)/i);
+  assert.match(verifier, /expected owner postgres/i);
+  assert.match(verifier, /pg_default_acl/i);
+  assert.match(verifier, /OBSERVED_ONLY/);
+  assert.match(verifier, /pgrst_ddl_watch/i);
+  assert.match(verifier, /pgrst_drop_watch/i);
+  assert.match(verifier, /pgcrypto/i);
+  assert.match(verifier, /pg_cron/i);
+  assert.match(verifier, /purge_orders_after_180_days/i);
+  assert.match(verifier, /not con\.convalidated/i);
+  assert.match(verifier, /not idx\.indisvalid or not idx\.indisready or not idx\.indislive/i);
+  assert.match(verifier, /RESTORE_FIDELITY_VERIFICATION=PASS/);
 });
 
 // P2) Database Backup Command Error Redacts Password
