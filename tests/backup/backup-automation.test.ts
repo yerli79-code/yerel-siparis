@@ -1078,6 +1078,82 @@ test("P1.2) ACL TOC parser ignores comments and requires archive ACL records", (
   ]);
 });
 
+test("P1.2a) ACL TOC parser normalizes realistic PostgreSQL 17 named function arguments (PASS)", () => {
+  const realisticPg17Toc = [
+    "; Archive created by pg_dump version 17.11",
+    "3650; 0 0 ACL public TABLE orders postgres",
+    "3651; 0 0 ACL public TABLE order_items postgres",
+    "3652; 0 0 ACL public SEQUENCE orders_order_number_seq postgres",
+    "3659; 0 0 ACL public FUNCTION create_order_with_items(p_business_slug text, p_order_type text, p_customer_name text, p_customer_phone text, p_customer_address text, p_customer_note text, p_items jsonb, p_idempotency_key uuid, p_payment_method text) postgres",
+    "3660; 0 0 ACL public FUNCTION purge_expired_orders() postgres",
+  ].join("\n");
+
+  assert.equal(countArchiveAclEntries(realisticPg17Toc), 5);
+  assert.deepEqual(findMissingCriticalArchiveAclEntries(realisticPg17Toc), []);
+  assert.deepEqual(listArchiveObjectAclIdentities(realisticPg17Toc), [
+    "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+    "public FUNCTION purge_expired_orders()",
+    "public SEQUENCE orders_order_number_seq",
+    "public TABLE order_items",
+    "public TABLE orders",
+  ]);
+});
+
+test("P1.2b) ACL TOC parser rejects legacy 8-parameter function signature (FAIL)", () => {
+  const legacy8ParamToc = [
+    "3650; 0 0 ACL public TABLE orders postgres",
+    "3651; 0 0 ACL public TABLE order_items postgres",
+    "3652; 0 0 ACL public SEQUENCE orders_order_number_seq postgres",
+    "3659; 0 0 ACL public FUNCTION create_order_with_items(p_business_slug text, p_order_type text, p_customer_name text, p_customer_phone text, p_customer_address text, p_customer_note text, p_items jsonb, p_idempotency_key uuid) postgres",
+    "3660; 0 0 ACL public FUNCTION purge_expired_orders() postgres",
+  ].join("\n");
+
+  const missing = findMissingCriticalArchiveAclEntries(legacy8ParamToc);
+  assert.deepEqual(missing, [
+    "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+  ]);
+});
+
+test("P1.2c) Table and Sequence ACLs present but Function ACL missing fails critical gate", () => {
+  const missingFunctionAclToc = [
+    "3650; 0 0 ACL public TABLE orders postgres",
+    "3651; 0 0 ACL public TABLE order_items postgres",
+    "3652; 0 0 ACL public SEQUENCE orders_order_number_seq postgres",
+    "3660; 0 0 ACL public FUNCTION purge_expired_orders() postgres",
+  ].join("\n");
+
+  const missing = findMissingCriticalArchiveAclEntries(missingFunctionAclToc);
+  assert.deepEqual(missing, [
+    "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+  ]);
+});
+
+test("P1.2d) Function definition in TOC without ACL keyword cannot satisfy critical ACL gate", () => {
+  const tocWithDefinitionOnly = [
+    "3650; 0 0 ACL public TABLE orders postgres",
+    "3651; 0 0 ACL public TABLE order_items postgres",
+    "3652; 0 0 ACL public SEQUENCE orders_order_number_seq postgres",
+    "316; 1255 16663 FUNCTION public create_order_with_items(text, text, text, text, text, text, jsonb, uuid, text) postgres",
+    "3660; 0 0 ACL public FUNCTION purge_expired_orders() postgres",
+  ].join("\n");
+
+  const missing = findMissingCriticalArchiveAclEntries(tocWithDefinitionOnly);
+  assert.deepEqual(missing, [
+    "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+  ]);
+});
+
+test("P1.2e) Function ACL TOC parser tolerates spacing, case, quotes, and modes", () => {
+  const variationsToc = [
+    '101; 0 0 ACL public FUNCTION create_order_with_items( IN "p_business_slug" text , p_order_type TEXT, p_customer_name   text, p_customer_phone text, p_customer_address text, p_customer_note text, p_items jsonb, p_idempotency_key uuid, p_payment_method text ) postgres',
+  ].join("\n");
+
+  const parsed = listArchiveObjectAclIdentities(variationsToc);
+  assert.deepEqual(parsed, [
+    "public FUNCTION create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)",
+  ]);
+});
+
 test("P1.3) database backup rejects an archive without ACL records", async () => {
   const tempDir = createTempDir("test-database-no-acl");
   const dumpPath = join(tempDir, "database.dump");
