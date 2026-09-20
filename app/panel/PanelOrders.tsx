@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   BusinessOrder,
   BusinessOrderPagination,
@@ -19,6 +19,7 @@ type PanelOrdersProps = {
   isLoadingOrders: boolean;
   ordersError: string;
   orderMutationMessages: Record<string, string>;
+  canManageOrders?: boolean;
   conflictedOrderIds: ReadonlySet<string>;
   pagination: BusinessOrderPagination;
   pageSize: number;
@@ -62,6 +63,7 @@ export default function PanelOrders({
   isLoadingOrders,
   ordersError,
   orderMutationMessages,
+  canManageOrders = true,
   conflictedOrderIds,
   pagination,
   pageSize,
@@ -121,9 +123,19 @@ export default function PanelOrders({
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const orderTriggerRef = useRef<HTMLButtonElement | null>(null);
   const orderTriggerIdRef = useRef("");
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+  const cancelConfirmDialogRef = useRef<HTMLElement | null>(null);
+  const cancelConfirmAbortButtonRef = useRef<HTMLButtonElement | null>(null);
+  const statusSelectRef = useRef<HTMLSelectElement | null>(null);
+  const restoreStatusFocusRef = useRef(false);
+
+  useEffect(() => {
+    setIsCancelConfirmOpen(false);
+    restoreStatusFocusRef.current = false;
+  }, [expandedOrderId]);
 
   useModalFocusTrap({
-    isOpen: Boolean(selectedOrder),
+    isOpen: Boolean(selectedOrder) && !isCancelConfirmOpen,
     dialogRef,
     initialFocusRef: closeButtonRef,
     returnFocusRef:
@@ -134,6 +146,35 @@ export default function PanelOrders({
       if (selectedOrder) onToggleOrderDetails(selectedOrder.id);
     },
   });
+
+  useModalFocusTrap({
+    isOpen: Boolean(selectedOrder) && isCancelConfirmOpen,
+    dialogRef: cancelConfirmDialogRef,
+    initialFocusRef: cancelConfirmAbortButtonRef,
+    returnFocusRef: statusSelectRef,
+    onClose: () => {
+      setIsCancelConfirmOpen(false);
+    },
+  });
+
+  // Run after both traps: resuming the drawer otherwise focuses its close button.
+  // A confirmed mutation temporarily disables the select, so wait until it settles.
+  useEffect(() => {
+    if (isCancelConfirmOpen) {
+      restoreStatusFocusRef.current = true;
+      return;
+    }
+    if (!selectedOrder) {
+      restoreStatusFocusRef.current = false;
+      return;
+    }
+    if (!restoreStatusFocusRef.current || updatingOrderId === selectedOrder.id) return;
+
+    restoreStatusFocusRef.current = false;
+    if (statusSelectRef.current && !statusSelectRef.current.disabled) {
+      statusSelectRef.current.focus({ preventScroll: true });
+    }
+  }, [isCancelConfirmOpen, selectedOrder, updatingOrderId]);
 
   return (
     <section
@@ -438,18 +479,26 @@ export default function PanelOrders({
                 <span>Durum</span>
                 <select
                   aria-describedby={
-                    selectedOrderMutationMessage
-                      ? "panel-order-mutation-message"
-                      : undefined
+                    !canManageOrders
+                      ? "panel-order-status-blocked-hint"
+                      : selectedOrderMutationMessage
+                        ? "panel-order-mutation-message"
+                        : undefined
                   }
                   disabled={
+                    !canManageOrders ||
                     updatingOrderId === selectedOrder.id ||
                     selectedOrderHasConflict
                   }
+                  ref={statusSelectRef}
                   value={selectedOrder.status}
                   onChange={(event) => {
                     const nextStatus = event.target.value as OrderStatus;
                     if (nextStatus === selectedOrder.status) return;
+                    if (nextStatus === "cancelled") {
+                      setIsCancelConfirmOpen(true);
+                      return;
+                    }
                     onUpdateOrderStatus(selectedOrder.id, nextStatus);
                   }}
                 >
@@ -457,7 +506,15 @@ export default function PanelOrders({
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
-                {updatingOrderId === selectedOrder.id ? (
+                {!canManageOrders ? (
+                  <small
+                    className="panel-order-status-blocked-hint"
+                    id="panel-order-status-blocked-hint"
+                    role="status"
+                  >
+                    İşletme aboneliği aktif olmadığından sipariş durumu değiştirilemez.
+                  </small>
+                ) : updatingOrderId === selectedOrder.id ? (
                   <small role="status">Durum güncelleniyor...</small>
                 ) : null}
               </label>
@@ -515,6 +572,56 @@ export default function PanelOrders({
               </div>
             </footer>
           </aside>
+
+          {isCancelConfirmOpen ? (
+            <div
+              className="panel-order-cancel-overlay"
+              role="presentation"
+              onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                  setIsCancelConfirmOpen(false);
+                }
+              }}
+            >
+              <aside
+                aria-describedby="panel-order-cancel-desc"
+                aria-labelledby="panel-order-cancel-title"
+                aria-modal="true"
+                className="panel-order-cancel-dialog"
+                ref={cancelConfirmDialogRef}
+                role="dialog"
+              >
+                <div className="panel-order-cancel-header">
+                  <h3 id="panel-order-cancel-title">Siparişi İptal Et</h3>
+                  <p id="panel-order-cancel-desc">
+                    #{selectedOrder.orderNumber} numaralı siparişi iptal etmek
+                    istediğinize emin misiniz? Bu işlem geri alınamaz.
+                  </p>
+                </div>
+                <div className="panel-order-cancel-actions">
+                  <button
+                    className="submit-button panel-secondary-action"
+                    ref={cancelConfirmAbortButtonRef}
+                    type="button"
+                    onClick={() => setIsCancelConfirmOpen(false)}
+                  >
+                    Vazgeç
+                  </button>
+                  <button
+                    className="submit-button panel-danger-action"
+                    disabled={updatingOrderId === selectedOrder.id}
+                    type="button"
+                    onClick={() => {
+                      setIsCancelConfirmOpen(false);
+                      onUpdateOrderStatus(selectedOrder.id, "cancelled");
+                    }}
+                  >
+                    Siparişi İptal Et
+                  </button>
+                </div>
+              </aside>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

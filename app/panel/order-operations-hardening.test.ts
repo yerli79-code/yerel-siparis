@@ -182,3 +182,18 @@ test("390px drawer keeps status, refresh and print actions reachable without ove
   assert.match(css, /panel-order-mutation-message button\)[\s\S]*min-height: 44px/);
   assert.match(css, /overflow-x: clip/);
 });
+
+test("subscription inactive or blocked state disables status control with explanatory hint", () => {
+  assert.match(panel, /const canManageOrders = canManageProducts;/);
+  assert.match(mutationSource, /if \(!canManageOrders\) return;/);
+  assert.match(orders, /disabled=\{[\s\S]*!canManageOrders/);
+  assert.match(orders, /panel-order-status-blocked-hint/);
+  assert.match(orders, /İşletme aboneliği aktif olmadığından sipariş durumu değiştirilemez\./);
+});
+
+test("selecting cancelled order status requires explicit confirmation before mutation", () => {
+  assert.match(orders, /if \(nextStatus === "cancelled"\) \{\s*setIsCancelConfirmOpen\(true\);\s*return;\s*\}/);
+  assert.match(orders, /className="panel-order-cancel-dialog"/);
+  assert.match(orders, /Vazgeç\s*<\/button>/);
+  assert.match(orders, /setIsCancelConfirmOpen\(false\);\s*onUpdateOrderStatus\(selectedOrder\.id, "cancelled"\);/);
+});
