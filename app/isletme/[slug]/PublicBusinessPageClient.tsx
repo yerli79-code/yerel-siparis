@@ -23,6 +23,7 @@ import {
   normalizeProductCategory,
   type StandardProductCategory,
 } from "../../../lib/product-categories";
+import { getDisplayDeliveryStatus } from "../../../lib/delivery-settings";
 import {
   getPaymentMethodDisplayLabel,
   getInitialPaymentMethod,
@@ -596,7 +597,7 @@ export default function PublicBusinessPageClient({
         )}. Sipariş için sepete ${formatPrice(minimumRemaining)} daha ekleyin.`
       : "";
   const orderInfoItems = [
-    currentBusiness.deliveryStatus?.trim() || "",
+    getDisplayDeliveryStatus(currentBusiness.deliveryStatus),
     minimumOrderAmount !== null ? `Min. ${formatPrice(minimumOrderAmount)}` : "",
     preparationTimeMinutes !== null ? `Tahmini ${preparationTimeMinutes} dk` : "",
   ].filter(Boolean);

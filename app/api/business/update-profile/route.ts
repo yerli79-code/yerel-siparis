@@ -1,3 +1,4 @@
+import { normalizeDeliveryStatus } from "../../../../lib/delivery-settings";
 import { isSupabasePublishableKey } from "../../../../lib/supabase-publishable-key";
 import { privateBusinessJson } from "../_response";
 import {
@@ -153,9 +154,7 @@ function addNullableStringField(
   input: Record<string, unknown>,
   key: Extract<
     (typeof allowedProfileFields)[number],
-    | "name"
     | "description"
-    | "whatsapp_order_number"
     | "city"
     | "district"
     | "neighborhood"
@@ -178,10 +177,36 @@ function addNullableStringField(
   payload[key] = value.trim();
 }
 
+function addDeliveryStatusField(
+  payload: ProfileUpdatePayload,
+  input: Record<string, unknown>,
+) {
+  if (!("delivery_status" in input)) return;
+
+  const value = input.delivery_status;
+  if (value === null) {
+    payload.delivery_status = null;
+    return;
+  }
+  if (typeof value !== "string") {
+    throw new PublicRouteError("Profil bilgileri gecersiz.", 400);
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length > 120) {
+    throw new PublicRouteError(
+      "Teslimat bilgisi en fazla 120 karakter olabilir.",
+      400,
+    );
+  }
+
+  payload.delivery_status = normalizeDeliveryStatus(trimmed);
+}
+
 function addLimitedStringField(
   payload: ProfileUpdatePayload,
   input: Record<string, unknown>,
-  key: Extract<(typeof allowedProfileFields)[number], "delivery_status" | "order_note">,
+  key: Extract<(typeof allowedProfileFields)[number], "order_note">,
   maxLength: number,
   label: string,
 ) {
@@ -242,20 +267,53 @@ function addPaymentMethodModeField(
   payload.payment_method_mode = value;
 }
 
-function buildProfilePayload(input: Record<string, unknown>) {
+export function buildProfilePayload(input: Record<string, unknown>) {
   assertNoForbiddenFields(input);
 
   const payload: ProfileUpdatePayload = {};
-  addNullableStringField(payload, input, "name");
+
+  if ("name" in input) {
+    const nameVal = input.name;
+    if (nameVal === null || typeof nameVal !== "string" || !nameVal.trim()) {
+      throw new PublicRouteError("İşletme adı boş olamaz.", 400);
+    }
+    const trimmedName = nameVal.trim();
+    if (trimmedName.length > 120) {
+      throw new PublicRouteError(
+        "İşletme adı en fazla 120 karakter olabilir.",
+        400,
+      );
+    }
+    payload.name = trimmedName;
+  }
+
   addNullableStringField(payload, input, "description");
-  addNullableStringField(payload, input, "whatsapp_order_number");
+
+  if ("whatsapp_order_number" in input) {
+    const phoneVal = input.whatsapp_order_number;
+    if (phoneVal === null) {
+      payload.whatsapp_order_number = null;
+    } else if (typeof phoneVal !== "string") {
+      throw new PublicRouteError("Profil bilgileri gecersiz.", 400);
+    } else {
+      const trimmedPhone = phoneVal.trim();
+      if (trimmedPhone.length > 30) {
+        throw new PublicRouteError(
+          "WhatsApp sipariş numarası en fazla 30 karakter olabilir.",
+          400,
+        );
+      }
+      payload.whatsapp_order_number = trimmedPhone || null;
+    }
+  }
+
   addNullableStringField(payload, input, "city");
   addNullableStringField(payload, input, "district");
   addNullableStringField(payload, input, "neighborhood");
   addNullableStringField(payload, input, "address");
   addNullableStringField(payload, input, "logo_url");
   addNullableStringField(payload, input, "cover_image_url");
-  addLimitedStringField(payload, input, "delivery_status", 120, "Teslimat bilgisi");
+  addDeliveryStatusField(payload, input);
   addLimitedStringField(payload, input, "order_note", 300, "Siparis notu");
   addPaymentMethodModeField(payload, input);
 

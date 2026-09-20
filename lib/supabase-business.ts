@@ -4,6 +4,10 @@ import {
   getPaymentMethodModeOrDefault,
   type PaymentMethodMode,
 } from "./payment-methods";
+import {
+  getDisplayDeliveryStatus,
+  normalizeDeliveryStatus,
+} from "./delivery-settings";
 
 export type BusinessProduct = {
   id: string;
@@ -294,7 +298,7 @@ function mapBusiness(row: SupabaseBusinessRow): BusinessPanelBusiness {
     district: row.district ?? "",
     neighborhood: row.neighborhood ?? "",
     address: row.address ?? "",
-    deliveryStatus: row.delivery_status ?? "",
+    deliveryStatus: getDisplayDeliveryStatus(row.delivery_status),
     paymentMethodMode: getPaymentMethodModeOrDefault(row.payment_method_mode),
     minimumOrderAmount: toNullableNumber(row.minimum_order_amount),
     preparationTimeMinutes:
@@ -622,7 +626,7 @@ export async function updateBusinessProfile(
     district: input.district?.trim() || "",
     neighborhood: input.neighborhood?.trim() || "",
     address: input.address?.trim() || "",
-    delivery_status: input.deliveryStatus?.trim() || null,
+    delivery_status: normalizeDeliveryStatus(input.deliveryStatus),
     payment_method_mode: input.paymentMethodMode,
     minimum_order_amount:
       typeof input.minimumOrderAmount === "number" &&
