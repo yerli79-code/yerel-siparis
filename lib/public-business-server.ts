@@ -5,6 +5,7 @@ import { isSupabasePublishableKey } from "./supabase-publishable-key";
 import { cache } from "react";
 import type { Business } from "./businesses";
 import { getPaymentMethodModeOrDefault } from "./payment-methods";
+import { getDisplayDeliveryStatus } from "./delivery-settings";
 
 type PublicBusinessRow = {
   id: string;
@@ -95,7 +96,7 @@ function mapPublicBusiness(row: PublicBusinessRow): PublicBusiness {
     district: row.district ?? "",
     neighborhood: row.neighborhood ?? "",
     address: row.address ?? "",
-    deliveryStatus: row.delivery_status ?? "",
+    deliveryStatus: getDisplayDeliveryStatus(row.delivery_status),
     paymentMethodMode: getPaymentMethodModeOrDefault(row.payment_method_mode),
     minimumOrderAmount: toNullableNumber(row.minimum_order_amount),
     preparationTimeMinutes: row.preparation_time_minutes,

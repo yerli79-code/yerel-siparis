@@ -9,6 +9,7 @@ import PlatformBrand from "../components/PlatformBrand";
 import type { Business } from "../lib/businesses";
 import { normalizeLocationLabel } from "../lib/locations";
 import { fetchPublicActiveBusinesses } from "../lib/supabase-business";
+import { getDisplayDeliveryStatus } from "../lib/delivery-settings";
 
 type DiscoveryBusiness = Business & {
   city?: string | null;
@@ -290,7 +291,7 @@ export default function Home() {
                 business.preparationTimeMinutes > 0
                   ? business.preparationTimeMinutes
                   : null;
-              const deliveryStatus = business.deliveryStatus?.trim();
+              const deliveryStatus = getDisplayDeliveryStatus(business.deliveryStatus);
               const orderNote = business.orderNote?.trim();
 
               return (
