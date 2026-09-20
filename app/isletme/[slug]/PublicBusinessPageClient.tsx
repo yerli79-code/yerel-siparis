@@ -1107,6 +1107,11 @@ export default function PublicBusinessPageClient({
     }
   }
 
+  const whatsappContactPhone = normalizeWhatsAppPhone(currentBusiness.whatsappOrderNumber);
+  const whatsappContactUrl = whatsappContactPhone
+    ? `https://wa.me/${whatsappContactPhone}`
+    : null;
+
   return (
     <main className="page public-order-page">
       <div className="shell public-order-shell">
@@ -1135,6 +1140,7 @@ export default function PublicBusinessPageClient({
             total={total}
             totalProductCount={totalProductCount}
             visibleCategories={visibleCategories}
+            whatsappContactUrl={whatsappContactUrl}
             onAddItem={addToCart}
             onDecreaseItem={decrease}
             onIncreaseItem={increase}
