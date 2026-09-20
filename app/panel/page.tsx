@@ -475,6 +475,7 @@ export default function PanelPage() {
     () => (business ? isBusinessSubscriptionActive(business) : false),
     [business],
   );
+  const canManageOrders = canManageProducts;
   const isEditingProductConflicted = Boolean(
     editingProductId && conflictedProductIds.has(editingProductId),
   );
@@ -1189,6 +1190,7 @@ export default function PanelPage() {
   }
 
   async function changeOrderStatus(orderId: string, status: OrderStatus) {
+    if (!canManageOrders) return;
     const authoritativeOrder = ordersRef.current.find(
       (order) => order.id === orderId,
     );
@@ -2432,6 +2434,7 @@ export default function PanelPage() {
                 appliedDateFrom={appliedOrderDateFrom}
                 appliedDateTo={appliedOrderDateTo}
                 appliedSearch={appliedOrderSearch}
+                canManageOrders={canManageOrders}
                 conflictedOrderIds={conflictedOrderIds}
                 dateFromDraft={orderDateFromDraft}
                 dateToDraft={orderDateToDraft}

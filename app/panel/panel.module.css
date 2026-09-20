@@ -2530,6 +2530,12 @@
     line-height: 1.45;
   }
 
+  .panelScope :global(.panel-order-status-blocked-hint) {
+    color: var(--panel-danger, #b42318);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
   .panelScope :global(.panel-order-mutation-message) {
     display: grid;
     min-width: 0;
@@ -2578,6 +2584,68 @@
   .panelScope :global(.panel-order-detail-actions) .orderPrintControls {
     border: 0;
     padding: 0;
+  }
+
+  .panelScope :global(.panel-order-cancel-overlay) {
+    position: fixed;
+    z-index: 110;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(17, 44, 30, 0.55);
+  }
+
+  .panelScope :global(.panel-order-cancel-dialog) {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+    max-width: 400px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(17, 44, 30, 0.2);
+  }
+
+  .panelScope :global(.panel-order-cancel-header) {
+    display: grid;
+    gap: 8px;
+  }
+
+  .panelScope :global(.panel-order-cancel-header h3) {
+    margin: 0;
+    font-size: 18px;
+    color: #112c1e;
+  }
+
+  .panelScope :global(.panel-order-cancel-header p) {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #526157;
+  }
+
+  .panelScope :global(.panel-order-cancel-actions) {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+  }
+
+  .panelScope :global(.panel-order-cancel-actions button) {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  .panelScope :global(.panel-order-cancel-actions .panel-danger-action) {
+    border-color: #fecaca;
+    background: var(--panel-danger, #b42318);
+    color: #fff;
+  }
+
+  .panelScope :global(.panel-order-cancel-actions .panel-danger-action:hover:not([disabled])) {
+    background: #912018;
   }
 
   .panelScope :global(.panel-order-pagination-footer) {
