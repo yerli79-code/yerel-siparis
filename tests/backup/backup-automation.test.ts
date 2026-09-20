@@ -1260,7 +1260,9 @@ test("P1.5) restore fidelity verifier covers the critical read-only security con
   assert.match(verifier, /purge_expired_orders\(\)/i);
   assert.match(verifier, /expected owner postgres/i);
   assert.match(verifier, /pg_default_acl/i);
-  assert.match(verifier, /OBSERVED_ONLY/);
+  assert.match(verifier, /PUBLIC_DEFAULT_PRIVILEGES=RESTORED_VERIFIED/);
+  assert.match(verifier, /expected exactly 6 restored default ACL entries in public schema/i);
+  assert.match(verifier, /expected exactly 96 restored exploded default privileges in public/i);
   assert.match(verifier, /pgrst_ddl_watch/i);
   assert.match(verifier, /pgrst_drop_watch/i);
   assert.match(verifier, /pgcrypto/i);
@@ -1269,6 +1271,37 @@ test("P1.5) restore fidelity verifier covers the critical read-only security con
   assert.match(verifier, /not con\.convalidated/i);
   assert.match(verifier, /not idx\.indisvalid or not idx\.indisready or not idx\.indislive/i);
   assert.match(verifier, /RESTORE_FIDELITY_VERIFICATION=PASS/);
+});
+
+// P1.6) Target ACL Preparation Script Contract
+test("P1.6) prepare-restore-target-acl.sql enforces fail-closed validation and baseline normalization", () => {
+  const prepPath = join(process.cwd(), "scripts", "backup", "prepare-restore-target-acl.sql");
+  assert.ok(existsSync(prepPath), "prepare-restore-target-acl.sql must exist");
+  const prepSql = readFileSync(prepPath, "utf8");
+
+  assert.match(prepSql, /\\set ON_ERROR_STOP on/i);
+  assert.match(prepSql, /begin;/i);
+  assert.match(prepSql, /current_database\(\) <> 'postgres'/i);
+  assert.match(prepSql, /inet_server_addr\(\) is not null/i);
+  assert.match(prepSql, /to_regnamespace\('public'\) is null/i);
+  assert.match(prepSql, /'postgres',\s*'supabase_admin',\s*'anon',\s*'authenticated',\s*'service_role'/i);
+  assert.match(prepSql, /unexpected global default ACL entries/i);
+  assert.match(prepSql, /unexpected default ACL owner in public schema/i);
+  assert.match(prepSql, /unexpected default ACL object type in public schema/i);
+  assert.match(prepSql, /expected exactly 6 default ACL entries in public schema/i);
+  assert.match(prepSql, /unexpected grantee in public default ACL/i);
+  assert.match(prepSql, /unexpected grant option in public default ACL/i);
+  assert.match(prepSql, /unexpected privilege type in public default ACL/i);
+  assert.match(prepSql, /expected exactly 96 exploded default privileges in public/i);
+  assert.match(prepSql, /alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated, service_role, postgres;/i);
+  assert.match(prepSql, /alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated, service_role, postgres;/i);
+  assert.match(prepSql, /alter default privileges for role postgres in schema public revoke all on functions from anon, authenticated, service_role, postgres;/i);
+  assert.match(prepSql, /alter default privileges for role supabase_admin in schema public revoke all on tables from anon, authenticated, service_role, postgres;/i);
+  assert.match(prepSql, /alter default privileges for role supabase_admin in schema public revoke all on sequences from anon, authenticated, service_role, postgres;/i);
+  assert.match(prepSql, /alter default privileges for role supabase_admin in schema public revoke all on functions from anon, authenticated, service_role, postgres;/i);
+  assert.match(prepSql, /expected 0 default ACL rows in public after normalization/i);
+  assert.match(prepSql, /commit;/i);
+  assert.match(prepSql, /PREPARE_RESTORE_TARGET_ACL=PASS/);
 });
 
 // P2) Database Backup Command Error Redacts Password

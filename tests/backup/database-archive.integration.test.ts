@@ -66,6 +66,41 @@ async function waitForStablePostgres(dockerCli: string, containerName: string): 
   throw new Error("Disposable PostgreSQL fixture did not become stably ready.");
 }
 
+function execSqlOnContainer(
+  dockerCli: string,
+  containerName: string,
+  sql: string,
+): Promise<{ success: boolean; stdout: string; stderr: string }> {
+  return new Promise((resolvePromise) => {
+    const child = execFile(
+      dockerCli,
+      [
+        "exec",
+        "-i",
+        containerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+      ],
+      { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+      (err, stdout, stderr) => {
+        if (err) {
+          resolvePromise({ success: false, stdout, stderr });
+        } else {
+          resolvePromise({ success: true, stdout, stderr });
+        }
+      },
+    );
+    child.stdin?.write(sql);
+    child.stdin?.end();
+  });
+}
+
 test(
   "database archive integration: PG17 custom dump contains every critical application ACL",
   { skip: !RUN_INTEGRATION, timeout: 120_000 },
@@ -208,11 +243,14 @@ test(
 
 test(
   "database restore drill integration: full-fidelity restore into isolated PG17 container passes verify-restore-fidelity.sql",
-  { skip: !RUN_INTEGRATION, timeout: 180_000 },
+  { skip: !RUN_INTEGRATION, timeout: 240_000 },
   async () => {
     const dockerCli = resolveDockerCli();
-    const containerName = `p66b-a3-restore-drill-${process.pid}-${Date.now()}`;
+    const sourceContainerName = `p66b-a3-src-${process.pid}-${Date.now()}`;
+    const unprepTargetName = `p66b-a3-unprep-${process.pid}-${Date.now()}`;
+    const prepTargetName = `p66b-a3-prep-${process.pid}-${Date.now()}`;
     const localPassword = "local_restore_drill_pw";
+    const hostDumpPath = join(tmpdir(), `p66b-dump-${process.pid}-${Date.now()}.dump`);
 
     const setupSql = `
       create extension if not exists pgcrypto schema extensions;
@@ -327,16 +365,16 @@ test(
       returns integer security definer language sql as $$ select 0 $$;
       alter function public.purge_expired_orders() owner to postgres;
 
-      -- Permissions on orders & order_items (matches production: PUBLIC has no privs, anon/auth may have table grants, but RLS with 0 policies ensures fail-closed protection)
+      -- Permissions on orders & order_items
       revoke all on table public.orders, public.order_items from public;
       grant select, insert, update, delete on table public.orders, public.order_items to service_role;
       grant select on table public.orders, public.order_items to anon, authenticated;
 
-      -- Sequence permissions
+      -- Sequence permissions (production least-privilege)
       revoke all on sequence public.orders_order_number_seq from public, anon, authenticated;
       grant usage, select on sequence public.orders_order_number_seq to service_role;
 
-      -- Function permissions
+      -- Function permissions (production least-privilege)
       revoke all on function public.create_order_with_items(text, text, text, text, text, text, jsonb, uuid, text) from public, anon, authenticated;
       grant execute on function public.create_order_with_items(text, text, text, text, text, text, jsonb, uuid, text) to service_role;
 
@@ -394,37 +432,52 @@ test(
         select o.id, p.id, 1 from public.orders o, public.products p limit 1;
     `;
 
-    let containerStarted = false;
+    const verifySql = readFileSync(
+      resolve(process.cwd(), "scripts/backup/verify-restore-fidelity.sql"),
+      "utf8",
+    );
+    const prepareAclSql = readFileSync(
+      resolve(process.cwd(), "scripts/backup/prepare-restore-target-acl.sql"),
+      "utf8",
+    );
+
+    let sourceStarted = false;
+    let unprepStarted = false;
+    let prepStarted = false;
+
     try {
+      // A. Production-like source container
+      const image = await run(dockerCli, ["image", "inspect", IMAGE, "--format", "{{.Id}}"]);
+      assert.equal(image.stdout.trim(), IMAGE_ID);
+
       await run(dockerCli, [
         "run",
         "-d",
         "--rm",
         "--name",
-        containerName,
+        sourceContainerName,
         "--network",
         "none",
         "--env",
         `POSTGRES_PASSWORD=${localPassword}`,
         IMAGE,
       ]);
-      containerStarted = true;
+      sourceStarted = true;
 
-      // Verify strict isolation
       const isolation = await run(dockerCli, [
         "inspect",
-        containerName,
+        sourceContainerName,
         "--format",
         "{{.HostConfig.NetworkMode}}|{{json .HostConfig.PortBindings}}|{{json .NetworkSettings.Ports}}",
       ]);
       assert.equal(isolation.stdout.trim(), "none|{}|{}");
 
-      await waitForStablePostgres(dockerCli, containerName);
+      await waitForStablePostgres(dockerCli, sourceContainerName);
 
-      // Provision schema & data
+      // Provision schema, tables, triggers, sequences, functions, storage, cron, data
       await run(dockerCli, [
         "exec",
-        containerName,
+        sourceContainerName,
         "psql",
         "-X",
         "-v",
@@ -437,10 +490,10 @@ test(
         setupSql,
       ]);
 
-      // Dump database using custom format
+      // B. Custom archive dump
       await run(dockerCli, [
         "exec",
-        containerName,
+        sourceContainerName,
         "pg_dump",
         "--format=custom",
         "--file=/tmp/database.dump",
@@ -448,43 +501,41 @@ test(
         "--username=supabase_admin",
       ]);
 
-      // Verify TOC contains all critical ACLs
       const toc = await run(dockerCli, [
         "exec",
-        containerName,
+        sourceContainerName,
         "pg_restore",
         "--list",
         "/tmp/database.dump",
       ]);
       assert.deepEqual(findMissingCriticalArchiveAclEntries(toc.stdout), []);
 
-      // Clear application objects before restore
-      const resetSql = `
-        drop schema public cascade;
-        create schema public;
-        alter schema public owner to postgres;
-        grant all on schema public to postgres;
-        grant all on schema public to public;
-      `;
-      await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-X",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-U",
-        "supabase_admin",
-        "-d",
-        "postgres",
-        "-c",
-        resetSql,
-      ]);
+      // Copy dump to host
+      await run(dockerCli, ["cp", `${sourceContainerName}:/tmp/database.dump`, hostDumpPath]);
 
-      // Execute clean single-transaction restore
+      // C. Separate bare exact Supabase target container
+      await run(dockerCli, [
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        unprepTargetName,
+        "--network",
+        "none",
+        "--env",
+        `POSTGRES_PASSWORD=${localPassword}`,
+        IMAGE,
+      ]);
+      unprepStarted = true;
+      await waitForStablePostgres(dockerCli, unprepTargetName);
+
+      // Copy dump to unprepared target
+      await run(dockerCli, ["cp", hostDumpPath, `${unprepTargetName}:/tmp/database.dump`]);
+
+      // D. HAZIRLIKSIZ restore: pg_restore executes, but fidelity verifier FAILS due to critical ACL drift
       await run(dockerCli, [
         "exec",
-        containerName,
+        unprepTargetName,
         "pg_restore",
         "--clean",
         "--if-exists",
@@ -493,192 +544,129 @@ test(
         "/tmp/database.dump",
       ]);
 
-      // Run verify-restore-fidelity.sql
-      const verifySql = readFileSync(
-        resolve(process.cwd(), "scripts/backup/verify-restore-fidelity.sql"),
-        "utf8",
+      const unprepVerify = await execSqlOnContainer(dockerCli, unprepTargetName, verifySql);
+      assert.equal(unprepVerify.success, false, "Expected verifier failure on unprepared bare target restore");
+      assert.match(
+        unprepVerify.stderr,
+        /Restore fidelity check failed: role (?:anon|authenticated) unexpectedly has (?:USAGE|SELECT|UPDATE|EXECUTE)/,
       );
 
-      async function execVerify(): Promise<{ success: boolean; stdout: string; stderr: string }> {
-        return new Promise((resolvePromise) => {
-          const child = execFile(
-            dockerCli,
-            [
-              "exec",
-              "-i",
-              containerName,
-              "psql",
-              "-X",
-              "-v",
-              "ON_ERROR_STOP=1",
-              "-U",
-              "supabase_admin",
-              "-d",
-              "postgres",
-            ],
-            { encoding: "utf8" },
-            (err, stdout, stderr) => {
-              if (err) {
-                resolvePromise({ success: false, stdout, stderr });
-              } else {
-                resolvePromise({ success: true, stdout, stderr });
-              }
-            },
-          );
-          child.stdin?.write(verifySql);
-          child.stdin?.end();
-        });
-      }
+      // Destroy unprepared target
+      await run(dockerCli, ["rm", "-f", unprepTargetName]).catch(() => undefined);
+      unprepStarted = false;
 
-      // 1. Baseline contract verification: RLS enabled + 0 policy + anon SELECT ACL -> PASS
-      const baselineVerify = await execVerify();
-      assert.equal(baselineVerify.success, true, `Baseline verification failed: ${baselineVerify.stderr}`);
-      assert.match(baselineVerify.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
-
-      // 2. Negative test: RLS disabled on orders -> FAIL
+      // E. Clean disposable target container
       await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-U",
-        "supabase_admin",
+        "run",
         "-d",
-        "postgres",
-        "-c",
-        "alter table public.orders disable row level security;",
+        "--rm",
+        "--name",
+        prepTargetName,
+        "--network",
+        "none",
+        "--env",
+        `POSTGRES_PASSWORD=${localPassword}`,
+        IMAGE,
       ]);
-      const rlsDisabled = await execVerify();
-      assert.equal(rlsDisabled.success, false, "Expected failure when orders RLS is disabled");
-      assert.match(rlsDisabled.stderr, /public\.orders is missing or RLS is disabled/);
-      await run(dockerCli, [
+      prepStarted = true;
+      await waitForStablePostgres(dockerCli, prepTargetName);
+
+      // F. prepare-restore-target-acl.sql execution
+      const prepAclResult = await execSqlOnContainer(dockerCli, prepTargetName, prepareAclSql);
+      assert.equal(prepAclResult.success, true, `Target ACL preparation failed: ${prepAclResult.stderr}`);
+      assert.match(prepAclResult.stdout, /PREPARE_RESTORE_TARGET_ACL=PASS/);
+
+      // Fail-closed verification: public schema default ACL count must be exactly 0
+      const postPrepCheck = await run(dockerCli, [
         "exec",
-        containerName,
+        prepTargetName,
         "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
         "-U",
         "supabase_admin",
         "-d",
         "postgres",
-        "-c",
-        "alter table public.orders enable row level security;",
+        "-Atqc",
+        "select count(*) from pg_default_acl d join pg_namespace n on n.oid = d.defaclnamespace where n.nspname = 'public';",
+      ]);
+      assert.equal(postPrepCheck.stdout.trim(), "0");
+
+      // G. Full restore on prepared target
+      await run(dockerCli, ["cp", hostDumpPath, `${prepTargetName}:/tmp/database.dump`]);
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "pg_restore",
+        "--clean",
+        "--if-exists",
+        "--username=supabase_admin",
+        "--dbname=postgres",
+        "/tmp/database.dump",
       ]);
 
-      // 3. Negative test: anon permissive SELECT policy added -> FAIL
-      await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-U",
-        "supabase_admin",
-        "-d",
-        "postgres",
-        "-c",
-        "create policy anon_can_read on public.orders for select to anon using (true);",
-      ]);
-      const anonPolicy = await execVerify();
-      assert.equal(anonPolicy.success, false, "Expected failure when anon policy is added");
-      assert.match(anonPolicy.stderr, /public\.orders has 1 unexpected policies/);
-      await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-U",
-        "supabase_admin",
-        "-d",
-        "postgres",
-        "-c",
-        "drop policy anon_can_read on public.orders;",
-      ]);
+      // H. Verifier PASS, critical ACL exact source parity, dump's 6 default ACLs restored
+      const prepVerify = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(prepVerify.success, true, `Prepared restore verification failed: ${prepVerify.stderr}`);
+      assert.match(prepVerify.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
+      assert.match(prepVerify.stdout, /PUBLIC_DEFAULT_PRIVILEGES=RESTORED_VERIFIED/);
 
-      // 4. Negative test: authenticated permissive policy added -> FAIL
-      await run(dockerCli, [
+      // Critical sequence ACL exact parity: anon/authenticated = false, service_role = true
+      const seqParity = await run(dockerCli, [
         "exec",
-        containerName,
+        prepTargetName,
         "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
         "-U",
         "supabase_admin",
         "-d",
         "postgres",
-        "-c",
-        "create policy auth_can_read on public.order_items for select to authenticated using (true);",
+        "-Atqc",
+        "select has_sequence_privilege('anon', 'public.orders_order_number_seq', 'USAGE'), has_sequence_privilege('authenticated', 'public.orders_order_number_seq', 'USAGE'), has_sequence_privilege('service_role', 'public.orders_order_number_seq', 'USAGE');",
       ]);
-      const authPolicy = await execVerify();
-      assert.equal(authPolicy.success, false, "Expected failure when authenticated policy is added");
-      assert.match(authPolicy.stderr, /public\.order_items has 1 unexpected policies/);
-      await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-U",
-        "supabase_admin",
-        "-d",
-        "postgres",
-        "-c",
-        "drop policy auth_can_read on public.order_items;",
-      ]);
+      assert.equal(seqParity.stdout.trim(), "f|f|t");
 
-      // 5. Negative test: table owner is anon -> FAIL
-      await run(dockerCli, [
+      // Critical function ACL exact parity: anon/authenticated/public EXECUTE = false, service_role = true
+      const fnParity = await run(dockerCli, [
         "exec",
-        containerName,
+        prepTargetName,
         "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
         "-U",
         "supabase_admin",
         "-d",
         "postgres",
-        "-c",
-        "alter table public.orders owner to anon;",
+        "-Atqc",
+        "select has_function_privilege('anon', 'public.create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)', 'EXECUTE'), has_function_privilege('authenticated', 'public.create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)', 'EXECUTE'), has_function_privilege('service_role', 'public.create_order_with_items(text,text,text,text,text,text,jsonb,uuid,text)', 'EXECUTE');",
       ]);
-      const ownerAnon = await execVerify();
-      assert.equal(ownerAnon.success, false, "Expected failure when orders table owner is anon");
-      assert.match(ownerAnon.stderr, /public\.orders is missing or does not have expected owner postgres|owned by untrusted role/);
-      await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-U",
-        "supabase_admin",
-        "-d",
-        "postgres",
-        "-c",
-        "alter table public.orders owner to postgres;",
-      ]);
+      assert.equal(fnParity.stdout.trim(), "f|f|t");
 
-      // 6. Negative test: role BYPASSRLS scenario -> FAIL
-      await run(dockerCli, [
+      // Dump's 6 public default ACL entries restored:
+      const defAclCheck = await run(dockerCli, [
         "exec",
-        containerName,
+        prepTargetName,
         "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
         "-U",
         "supabase_admin",
         "-d",
         "postgres",
-        "-c",
-        "alter role anon bypassrls;",
+        "-Atqc",
+        "select count(*) from pg_default_acl d join pg_namespace n on n.oid = d.defaclnamespace where n.nspname = 'public';",
       ]);
-      const anonBypass = await execVerify();
-      assert.equal(anonBypass.success, false, "Expected failure when anon has BYPASSRLS");
-      assert.match(anonBypass.stderr, /role anon or authenticated unexpectedly has SUPERUSER or BYPASSRLS privilege/);
-      await run(dockerCli, [
-        "exec",
-        containerName,
-        "psql",
-        "-U",
-        "supabase_admin",
-        "-d",
-        "postgres",
-        "-c",
-        "alter role anon nobypassrls;",
-      ]);
+      assert.equal(defAclCheck.stdout.trim(), "6");
 
-      // 7. Post-reversion verification confirms state returns to PASS
-      const postRevert = await execVerify();
-      assert.equal(postRevert.success, true, `Post-revert verification failed: ${postRevert.stderr}`);
-      assert.match(postRevert.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
-
-      // Verify row counts on restored database
+      // Row counts on restored database
       const countCheck = await run(dockerCli, [
         "exec",
-        containerName,
+        prepTargetName,
         "psql",
         "-X",
         "-v",
@@ -690,12 +678,355 @@ test(
         "-Atqc",
         "select count(*) from public.businesses; select count(*) from public.products; select count(*) from public.orders; select count(*) from public.order_items;",
       ]);
-
       const counts = countCheck.stdout.trim().split(/\r?\n/).map(Number);
       assert.deepEqual(counts, [1, 1, 1, 1]);
+
+      // RLS Negative Tests on Restored Target
+      // 1. Negative test: RLS disabled on orders -> FAIL
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders disable row level security;",
+      ]);
+      const rlsDisabled = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(rlsDisabled.success, false, "Expected failure when orders RLS is disabled");
+      assert.match(rlsDisabled.stderr, /public\.orders is missing or RLS is disabled/);
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders enable row level security;",
+      ]);
+
+      // 2. Negative test: anon permissive SELECT policy added -> FAIL
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "create policy anon_can_read on public.orders for select to anon using (true);",
+      ]);
+      const anonPolicy = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(anonPolicy.success, false, "Expected failure when anon policy is added");
+      assert.match(anonPolicy.stderr, /public\.orders has 1 unexpected policies/);
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "drop policy anon_can_read on public.orders;",
+      ]);
+
+      // 3. Negative test: authenticated permissive policy added -> FAIL
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "create policy auth_can_read on public.order_items for select to authenticated using (true);",
+      ]);
+      const authPolicy = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(authPolicy.success, false, "Expected failure when authenticated policy is added");
+      assert.match(authPolicy.stderr, /public\.order_items has 1 unexpected policies/);
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "drop policy auth_can_read on public.order_items;",
+      ]);
+
+      // 4. Negative test: table owner is anon -> FAIL
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders owner to anon;",
+      ]);
+      const ownerAnon = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(ownerAnon.success, false, "Expected failure when orders table owner is anon");
+      assert.match(ownerAnon.stderr, /public\.orders is missing or does not have expected owner postgres|owned by untrusted role/);
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter table public.orders owner to postgres;",
+      ]);
+
+      // 5. Negative test: role BYPASSRLS scenario -> FAIL
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter role anon bypassrls;",
+      ]);
+      const anonBypass = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(anonBypass.success, false, "Expected failure when anon has BYPASSRLS");
+      assert.match(anonBypass.stderr, /role anon or authenticated unexpectedly has SUPERUSER or BYPASSRLS privilege/);
+      await run(dockerCli, [
+        "exec",
+        prepTargetName,
+        "psql",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter role anon nobypassrls;",
+      ]);
+
+      // 6. Post-reversion verification confirms state returns to PASS
+      const postRevert = await execSqlOnContainer(dockerCli, prepTargetName, verifySql);
+      assert.equal(postRevert.success, true, `Post-revert verification failed: ${postRevert.stderr}`);
+      assert.match(postRevert.stdout, /RESTORE_FIDELITY_VERIFICATION=PASS/);
+    } finally {
+      rmSync(hostDumpPath, { force: true });
+      if (sourceStarted) {
+        await run(dockerCli, ["rm", "-f", sourceContainerName]).catch(() => undefined);
+      }
+      if (unprepStarted) {
+        await run(dockerCli, ["rm", "-f", unprepTargetName]).catch(() => undefined);
+      }
+      if (prepStarted) {
+        await run(dockerCli, ["rm", "-f", prepTargetName]).catch(() => undefined);
+      }
+    }
+  },
+);
+
+test(
+  "target ACL preparation negative tests: reject unexpected owner, unknown grantee, global default ACL, grant option, and unclean normalization",
+  { skip: !RUN_INTEGRATION, timeout: 120_000 },
+  async () => {
+    const dockerCli = resolveDockerCli();
+    const negContainerName = `p66b-a3-neg-${process.pid}-${Date.now()}`;
+    const localPassword = "local_neg_test_pw";
+
+    const prepareAclSql = readFileSync(
+      resolve(process.cwd(), "scripts/backup/prepare-restore-target-acl.sql"),
+      "utf8",
+    );
+
+    let containerStarted = false;
+    try {
+      await run(dockerCli, [
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        negContainerName,
+        "--network",
+        "none",
+        "--env",
+        `POSTGRES_PASSWORD=${localPassword}`,
+        IMAGE,
+      ]);
+      containerStarted = true;
+      await waitForStablePostgres(dockerCli, negContainerName);
+
+      // Neg 1: Global default ACL -> FAIL
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role postgres grant select on tables to service_role;",
+      ]);
+      const resGlobal = await execSqlOnContainer(dockerCli, negContainerName, prepareAclSql);
+      assert.equal(resGlobal.success, false, "Expected failure when global default ACL exists");
+      assert.match(resGlobal.stderr, /unexpected global default ACL entries detected/);
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role postgres revoke select on tables from service_role;",
+      ]);
+
+      // Neg 2: Unexpected default ACL owner -> FAIL
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role anon in schema public grant select on tables to anon;",
+      ]);
+      const resOwner = await execSqlOnContainer(dockerCli, negContainerName, prepareAclSql);
+      assert.equal(resOwner.success, false, "Expected failure when unexpected default ACL owner exists");
+      assert.match(resOwner.stderr, /unexpected default ACL owner in public schema/);
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role anon in schema public revoke select on tables from anon;",
+      ]);
+
+      // Neg 3: Bilinmeyen grantee -> FAIL
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "create role untrusted_test_grantee; alter default privileges for role postgres in schema public grant select on tables to untrusted_test_grantee;",
+      ]);
+      const resGrantee = await execSqlOnContainer(dockerCli, negContainerName, prepareAclSql);
+      assert.equal(resGrantee.success, false, "Expected failure when unexpected grantee exists");
+      assert.match(resGrantee.stderr, /unexpected grantee in public default ACL/);
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role postgres in schema public revoke select on tables from untrusted_test_grantee; drop role untrusted_test_grantee;",
+      ]);
+
+      // Neg 4: Grant option -> FAIL
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role postgres in schema public grant select on tables to service_role with grant option;",
+      ]);
+      const resGrantOption = await execSqlOnContainer(dockerCli, negContainerName, prepareAclSql);
+      assert.equal(resGrantOption.success, false, "Expected failure when grant option exists");
+      assert.match(resGrantOption.stderr, /unexpected grant option in public default ACL/);
+      await run(dockerCli, [
+        "exec",
+        negContainerName,
+        "psql",
+        "-X",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-c",
+        "alter default privileges for role postgres in schema public revoke grant option for select on tables from service_role;",
+      ]);
+
+      // Neg 5: Normalization sonrası pg_default_acl satırı kalırsa -> FAIL
+      const uncleanSql = `
+        do $verify_cleanup$
+        declare
+          remaining_count bigint;
+        begin
+          select count(*)
+          into remaining_count
+          from pg_default_acl d
+          join pg_namespace n on n.oid = d.defaclnamespace
+          where n.nspname = 'public';
+
+          if remaining_count <> 0 then
+            raise exception 'Target ACL preparation check failed: expected 0 default ACL rows in public after normalization, found %.', remaining_count;
+          end if;
+        end
+        $verify_cleanup$;
+      `;
+      const resUnclean = await execSqlOnContainer(dockerCli, negContainerName, uncleanSql);
+      assert.equal(resUnclean.success, false, "Expected failure when default ACL rows remain after normalization");
+      assert.match(resUnclean.stderr, /expected 0 default ACL rows in public after normalization/);
+
+      // Verify clean execution passes after negative tests
+      const cleanPrep = await execSqlOnContainer(dockerCli, negContainerName, prepareAclSql);
+      assert.equal(cleanPrep.success, true, `Clean prep failed: ${cleanPrep.stderr}`);
+      assert.match(cleanPrep.stdout, /PREPARE_RESTORE_TARGET_ACL=PASS/);
     } finally {
       if (containerStarted) {
-        await run(dockerCli, ["rm", "-f", containerName]).catch(() => undefined);
+        await run(dockerCli, ["rm", "-f", negContainerName]).catch(() => undefined);
       }
     }
   },

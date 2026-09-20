@@ -353,6 +353,108 @@ begin
   if matching_count <> 0 then
     raise exception 'Restore fidelity check failed: % non-system indexes are invalid, unready, or non-live.', matching_count;
   end if;
+
+  -- Verify public schema default ACL contracts (restored from dump)
+  -- 1. No global default ACLs
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  where d.defaclnamespace = 0 or d.defaclnamespace is null;
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: unexpected global default ACL entries detected (% rows).', matching_count;
+  end if;
+
+  -- 2. Only expected owners in public schema default ACLs: postgres and supabase_admin
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  where n.nspname = 'public'
+    and pg_get_userbyid(d.defaclrole) not in ('postgres', 'supabase_admin');
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: unexpected default ACL owner in public schema (% rows).', matching_count;
+  end if;
+
+  -- 3. Only expected object types in public schema default ACLs: TABLE (r), SEQUENCE (S), FUNCTION (f)
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  where n.nspname = 'public'
+    and d.defaclobjtype not in ('r', 'S', 'f');
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: unexpected default ACL object type in public schema (% rows).', matching_count;
+  end if;
+
+  -- 4. Exactly 6 restored default ACL entries in public schema
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  where n.nspname = 'public';
+
+  if matching_count <> 6 then
+    raise exception 'Restore fidelity check failed: expected exactly 6 restored default ACL entries in public schema, found %.', matching_count;
+  end if;
+
+  -- 5. Only expected grantees in public default ACL: postgres, anon, authenticated, service_role
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  cross join lateral aclexplode(d.defaclacl) acl
+  left join pg_roles grantee_role on grantee_role.oid = acl.grantee
+  where n.nspname = 'public'
+    and coalesce(grantee_role.rolname, 'PUBLIC') not in ('postgres', 'anon', 'authenticated', 'service_role');
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: unexpected grantee in restored public default ACL (% rows).', matching_count;
+  end if;
+
+  -- 6. No grant options in public default ACL
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  cross join lateral aclexplode(d.defaclacl) acl
+  where n.nspname = 'public'
+    and acl.is_grantable;
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: unexpected grant option in restored public default ACL (% rows).', matching_count;
+  end if;
+
+  -- 7. Only expected privilege types per object type
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  cross join lateral aclexplode(d.defaclacl) acl
+  where n.nspname = 'public'
+    and not (
+      (d.defaclobjtype = 'r' and acl.privilege_type in ('DELETE', 'INSERT', 'MAINTAIN', 'REFERENCES', 'SELECT', 'TRIGGER', 'TRUNCATE', 'UPDATE')) or
+      (d.defaclobjtype = 'S' and acl.privilege_type in ('SELECT', 'UPDATE', 'USAGE')) or
+      (d.defaclobjtype = 'f' and acl.privilege_type in ('EXECUTE'))
+    );
+
+  if matching_count > 0 then
+    raise exception 'Restore fidelity check failed: unexpected privilege type in restored public default ACL (% rows).', matching_count;
+  end if;
+
+  -- 8. Exactly 96 exploded default privileges in public schema
+  select count(*)
+  into matching_count
+  from pg_default_acl d
+  join pg_namespace n on n.oid = d.defaclnamespace
+  cross join lateral aclexplode(d.defaclacl) acl
+  where n.nspname = 'public';
+
+  if matching_count <> 96 then
+    raise exception 'Restore fidelity check failed: expected exactly 96 restored exploded default privileges in public, found %.', matching_count;
+  end if;
 end
 $verify$;
 
@@ -373,7 +475,7 @@ select
   'UPDATE' as privilege_name,
   has_sequence_privilege('service_role', 'public.orders_order_number_seq', 'UPDATE') as observed;
 
-\echo PUBLIC_DEFAULT_PRIVILEGES=OBSERVED_ONLY
+\echo PUBLIC_DEFAULT_PRIVILEGES=RESTORED_VERIFIED
 
 select
   owner_role.rolname as owner_role,
