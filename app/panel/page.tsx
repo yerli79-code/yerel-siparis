@@ -48,6 +48,7 @@ import {
   type ProfileForm,
   toProfileForm,
   toProfileInput,
+  validateProfileForm as validateProfileFormData,
 } from "./profile-form";
 import {
   clearBrowserAuthSession,
@@ -428,6 +429,7 @@ export default function PanelPage() {
   const inFlightProductMutationsRef = useRef(new Set<string>());
   const conflictedProductIdsRef = useRef(new Set<string>());
   const createProductInFlightRef = useRef(false);
+  const profileSaveInFlightRef = useRef(false);
   const productMutationCountRef = useRef(0);
   const productListAbortControllerRef = useRef<AbortController | null>(null);
   const productListRequestGenerationRef = useRef(0);
@@ -464,6 +466,7 @@ export default function PanelPage() {
       inFlightProductMutationsRef.current.clear();
       conflictedProductIdsRef.current.clear();
       createProductInFlightRef.current = false;
+      profileSaveInFlightRef.current = false;
       productMutationCountRef.current = 0;
       inFlightOrderMutationsRef.current.clear();
       conflictedOrderIdsRef.current.clear();
@@ -803,6 +806,32 @@ export default function PanelPage() {
     returnFocusRef: mobileMenuTriggerRef,
     onClose: () => setIsMobileMenuOpen(false),
   });
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    if (typeof window === "undefined" || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    if (mediaQuery.matches) {
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+    if (typeof mediaQuery.addListener === "function") {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     if (isLoading || !business) return;
@@ -1622,48 +1651,12 @@ export default function PanelPage() {
   }
 
   function validateProfileForm() {
-    const radius = profileForm.serviceRadiusKm.trim()
-      ? Number(profileForm.serviceRadiusKm)
-      : null;
-    const minimumOrderAmount = profileForm.minimumOrderAmount.trim()
-      ? Number(profileForm.minimumOrderAmount)
-      : null;
-    const preparationTimeMinutes = profileForm.preparationTimeMinutes.trim()
-      ? Number(profileForm.preparationTimeMinutes)
-      : null;
-
-    if (!profileForm.name.trim()) return "İşletme adı boş olamaz.";
-    if (!isPaymentMethodMode(profileForm.paymentMethodMode)) {
-      return "Lütfen geçerli bir ödeme kabul yöntemi seçin.";
-    }
-    if (radius !== null && (!Number.isFinite(radius) || radius < 0)) {
-      return "Servis yarıçapı geçerli bir sayı olmalıdır.";
-    }
-    if (
-      minimumOrderAmount !== null &&
-      (!Number.isFinite(minimumOrderAmount) || minimumOrderAmount < 0)
-    ) {
-      return "Minimum sipariş tutarı 0 veya daha büyük bir sayı olmalıdır.";
-    }
-    if (
-      preparationTimeMinutes !== null &&
-      (!Number.isInteger(preparationTimeMinutes) ||
-        preparationTimeMinutes < 1 ||
-        preparationTimeMinutes > 720)
-    ) {
-      return "Tahmini hazırlık süresi 1 ile 720 dakika arasında tam sayı olmalıdır.";
-    }
-    if (profileForm.deliveryStatus.trim().length > 120) {
-      return "Teslimat / gel-al bilgisi en fazla 120 karakter olabilir.";
-    }
-    if (profileForm.orderNote.trim().length > 300) {
-      return "Kısa sipariş notu en fazla 300 karakter olabilir.";
-    }
-    return "";
+    return validateProfileFormData(profileForm);
   }
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (profileSaveInFlightRef.current) return;
     setError("");
     setMessage("");
 
@@ -1672,20 +1665,21 @@ export default function PanelPage() {
       return;
     }
 
-    const token = await getFreshAccessToken();
-    if (!token) return;
-
     const validationError = validateProfileForm();
     if (validationError) {
       setError(validationError);
       return;
     }
 
+    profileSaveInFlightRef.current = true;
     setIsSavingProfile(true);
     let profileFailureMessage =
       "İşletme bilgileri kaydedilemedi. Lütfen tekrar deneyin.";
 
     try {
+      const token = await getFreshAccessToken();
+      if (!token) return;
+
       const profilePayload = toProfileInput(profileForm);
       if (selectedLogoFile) {
         profileFailureMessage = "Görsel yüklenemedi. Lütfen tekrar deneyin.";
@@ -1735,6 +1729,7 @@ export default function PanelPage() {
     } catch {
       setError(profileFailureMessage);
     } finally {
+      profileSaveInFlightRef.current = false;
       setProfileUploadStatus("");
       setIsSavingProfile(false);
     }
@@ -2628,6 +2623,7 @@ export default function PanelPage() {
                   <input
                     disabled={isSavingProfile}
                     id="businessName"
+                    maxLength={120}
                     value={profileForm.name}
                     onChange={(event) =>
                       updateProfileForm("name", event.target.value)
@@ -2653,6 +2649,7 @@ export default function PanelPage() {
                     disabled={isSavingProfile}
                     id="businessWhatsapp"
                     inputMode="tel"
+                    maxLength={30}
                     value={profileForm.whatsappOrderNumber}
                     onChange={(event) =>
                       updateProfileForm("whatsappOrderNumber", event.target.value)

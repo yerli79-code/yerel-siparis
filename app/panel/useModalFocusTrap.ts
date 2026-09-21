@@ -96,7 +96,12 @@ export function useModalFocusTrap({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousBodyOverflow;
-      if (returnTarget?.isConnected) {
+      const isVisible =
+        returnTarget?.isConnected &&
+        returnTarget.getAttribute("aria-hidden") !== "true" &&
+        (typeof returnTarget.getClientRects !== "function" ||
+          returnTarget.getClientRects().length > 0);
+      if (returnTarget?.isConnected && isVisible) {
         returnTarget.focus({ preventScroll: true });
       }
     };

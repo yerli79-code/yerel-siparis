@@ -1,4 +1,7 @@
-import type { PaymentMethodMode } from "../../lib/payment-methods";
+import {
+  isPaymentMethodMode,
+  type PaymentMethodMode,
+} from "../../lib/payment-methods";
 import type {
   BusinessPanelBusiness,
   BusinessProfileInput,
@@ -86,4 +89,55 @@ export function toProfileInput(form: ProfileForm): BusinessProfileInput {
     logoUrl: form.logoUrl.trim() || null,
     coverImageUrl: form.coverImageUrl.trim() || null,
   };
+}
+
+export function validateProfileForm(form: ProfileForm): string {
+  const radius = form.serviceRadiusKm.trim()
+    ? Number(form.serviceRadiusKm)
+    : null;
+  const minimumOrderAmount = form.minimumOrderAmount.trim()
+    ? Number(form.minimumOrderAmount)
+    : null;
+  const preparationTimeMinutes = form.preparationTimeMinutes.trim()
+    ? Number(form.preparationTimeMinutes)
+    : null;
+
+  const trimmedName = form.name.trim();
+  if (!trimmedName) return "İşletme adı boş olamaz.";
+  if (trimmedName.length > 120) {
+    return "İşletme adı en fazla 120 karakter olabilir.";
+  }
+
+  const trimmedWhatsApp = form.whatsappOrderNumber.trim();
+  if (trimmedWhatsApp.length > 30) {
+    return "WhatsApp sipariş numarası en fazla 30 karakter olabilir.";
+  }
+
+  if (!isPaymentMethodMode(form.paymentMethodMode)) {
+    return "Lütfen geçerli bir ödeme kabul yöntemi seçin.";
+  }
+  if (radius !== null && (!Number.isFinite(radius) || radius < 0)) {
+    return "Servis yarıçapı geçerli bir sayı olmalıdır.";
+  }
+  if (
+    minimumOrderAmount !== null &&
+    (!Number.isFinite(minimumOrderAmount) || minimumOrderAmount < 0)
+  ) {
+    return "Minimum sipariş tutarı 0 veya daha büyük bir sayı olmalıdır.";
+  }
+  if (
+    preparationTimeMinutes !== null &&
+    (!Number.isInteger(preparationTimeMinutes) ||
+      preparationTimeMinutes < 1 ||
+      preparationTimeMinutes > 720)
+  ) {
+    return "Tahmini hazırlık süresi 1 ile 720 dakika arasında tam sayı olmalıdır.";
+  }
+  if (form.deliveryStatus.trim().length > 120) {
+    return "Teslimat / gel-al bilgisi en fazla 120 karakter olabilir.";
+  }
+  if (form.orderNote.trim().length > 300) {
+    return "Kısa sipariş notu en fazla 300 karakter olabilir.";
+  }
+  return "";
 }
