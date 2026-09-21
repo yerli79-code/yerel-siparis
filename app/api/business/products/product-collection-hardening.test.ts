@@ -15,6 +15,64 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
 process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test_key";
 process.env.SUPABASE_SERVER_SECRET_KEY = "server-secret-key";
 
+const invalidPhase3aInputs: Array<[string, Record<string, unknown>]> = [
+  ...[null, false, true, [], {}, "", " ", "   ", "10", -1].map(
+    (price): [string, Record<string, unknown>] => [`price ${JSON.stringify(price)}`, { price }],
+  ),
+  ["blank name", { name: "" }],
+  ["whitespace name", { name: "   " }],
+  ["181 character name", { name: "x".repeat(181) }],
+];
+
+for (const [label, invalidInput] of invalidPhase3aInputs) {
+  test("create rejects " + label + " without a database write", async () => {
+    await withScenario({}, async (calls) => {
+      const input = { name: "Ürün", price: 10, category: "Genel", ...invalidInput };
+      const response = await POST(postRequest(JSON.stringify({ input })));
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { code: "INVALID_PRODUCT_MUTATION" });
+      assert.equal(calls.some(({ init }) => init.method === "POST"), false);
+    });
+  });
+}
+
+for (const price of [0, 10, 10.5]) {
+  test("create accepts numeric price " + price + " and trims a 180 character name", async () => {
+    const name = "x".repeat(180);
+    await withScenario({ insertBody: [productRow({ name, price })] }, async (calls) => {
+      const input = { name: "  " + name + "  ", price, category: "Genel" };
+      const response = await POST(postRequest(JSON.stringify({ input })));
+      assert.equal(response.status, 200);
+      const write = calls.find(({ init }) => init.method === "POST");
+      assert.ok(write);
+      const payload = JSON.parse(String(write.init.body));
+      assert.equal(payload.price, price);
+      assert.equal(payload.name, name);
+    });
+  });
+}
+
+for (const numericToken of ["NaN", "Infinity", "1e400"]) {
+  test("create rejects non-finite JSON numeric token " + numericToken, async () => {
+    await withScenario({}, async (calls) => {
+      const body = `{"input":{"name":"Ürün","category":"Genel","price":${numericToken}}}`;
+      const response = await POST(postRequest(body));
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { code: "INVALID_PRODUCT_MUTATION" });
+      assert.equal(calls.some(({ init }) => init.method === "POST"), false);
+    });
+  });
+}
+
+test("create still requires an explicit price", async () => {
+  await withScenario({}, async (calls) => {
+    const response = await POST(postRequest(JSON.stringify({ input: { name: "Ürün", category: "Genel" } })));
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), { code: "INVALID_PRODUCT_MUTATION" });
+    assert.equal(calls.some(({ init }) => init.method === "POST"), false);
+  });
+});
+
 function productRow(overrides: Record<string, unknown> = {}) {
   return {
     id: productId,
