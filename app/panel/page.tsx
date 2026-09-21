@@ -61,6 +61,7 @@ import {
 import {
   BusinessProductMutationError,
   BusinessProductsRequestError,
+  ProductImageValidationError,
   createProduct,
   deleteProduct,
   fetchProductsByBusinessId,
@@ -75,6 +76,7 @@ import {
   type BusinessPanelBusiness,
   type BusinessProduct,
   type BusinessProductMutationErrorCode,
+  type ProductImageValidationErrorCode,
   type BusinessProfileInput,
   type ProductInput,
 } from "../../lib/supabase-business";
@@ -139,9 +141,13 @@ function getOrderMutationErrorMessage(code: BusinessOrderMutationErrorCode) {
 }
 
 function getProductMutationErrorMessage(
-  code: BusinessProductMutationErrorCode,
+  code: BusinessProductMutationErrorCode | ProductImageValidationErrorCode,
 ) {
   switch (code) {
+    case "PRODUCT_IMAGE_UNSUPPORTED_TYPE":
+      return "Sadece JPG, PNG veya WEBP görsel yükleyebilirsiniz.";
+    case "PRODUCT_IMAGE_TOO_LARGE":
+      return "Ürün görseli en fazla 5 MB olabilir.";
     case "PRODUCT_CONFLICT":
       return "Ürün başka bir oturumda güncellendi. Güncel bilgileri yükleyin.";
     case "PRODUCT_NOT_FOUND":
@@ -270,14 +276,7 @@ function sortProducts(products: BusinessProduct[]) {
     const sortDifference = first.sortOrder - second.sortOrder;
     if (sortDifference !== 0) return sortDifference;
 
-    const firstDate = new Date(first.createdAt).getTime();
-    const secondDate = new Date(second.createdAt).getTime();
-    if (Number.isFinite(firstDate) && Number.isFinite(secondDate)) {
-      const dateDifference = firstDate - secondDate;
-      if (dateDifference !== 0) return dateDifference;
-    }
-
-    return first.name.localeCompare(second.name, "tr", { sensitivity: "base" });
+    return first.id < second.id ? -1 : first.id > second.id ? 1 : 0;
   });
 }
 
@@ -969,6 +968,10 @@ export default function PanelPage() {
     caughtError: unknown,
     affectedProductIds: string[],
   ) {
+    if (caughtError instanceof ProductImageValidationError) {
+      setProductOperationError(getProductMutationErrorMessage(caughtError.code));
+      return;
+    }
     const mutationError =
       caughtError instanceof BusinessProductMutationError
         ? caughtError
@@ -1594,10 +1597,14 @@ export default function PanelPage() {
   }
 
   function validateForm() {
+    const name = form.name.trim();
+    if (!name) return "Ürün adı boş olamaz.";
+    if (name.length > 180) return "Ürün adı en fazla 180 karakter olabilir.";
+    if (!form.price.trim()) return "Fiyat boş olamaz.";
+
     const price = Number(form.price);
     const sortOrder = Number(form.sortOrder || 0);
 
-    if (!form.name.trim()) return "Ürün adı boş olamaz.";
     if (!Number.isFinite(price) || price < 0) return "Fiyat geçerli bir sayı olmalıdır.";
     if (!Number.isFinite(sortOrder)) return "Sıralama geçerli bir sayı olmalıdır.";
     const hasUntouchedLegacyCategory =

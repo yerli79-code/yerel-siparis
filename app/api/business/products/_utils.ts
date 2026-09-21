@@ -302,7 +302,11 @@ export function buildProductPayload(
 ) {
   const payload: ProductUpdatePayload = {};
   if ("name" in input) {
-    if (typeof input.name !== "string" || !input.name.trim()) {
+    if (
+      typeof input.name !== "string" ||
+      !input.name.trim() ||
+      input.name.trim().length > 180
+    ) {
       throw new ProductRequestError("INVALID_PRODUCT_MUTATION", 400);
     }
     payload.name = input.name.trim();
@@ -311,8 +315,8 @@ export function buildProductPayload(
   }
 
   if ("price" in input) {
-    const price = Number(input.price);
-    if (!Number.isFinite(price) || price < 0) {
+    const price = input.price;
+    if (typeof price !== "number" || !Number.isFinite(price) || price < 0) {
       throw new ProductRequestError("INVALID_PRODUCT_MUTATION", 400);
     }
     payload.price = price;

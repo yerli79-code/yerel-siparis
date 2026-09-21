@@ -69,6 +69,20 @@ export class BusinessProductMutationError extends Error {
   }
 }
 
+export type ProductImageValidationErrorCode =
+  | "PRODUCT_IMAGE_UNSUPPORTED_TYPE"
+  | "PRODUCT_IMAGE_TOO_LARGE";
+
+export class ProductImageValidationError extends Error {
+  readonly code: ProductImageValidationErrorCode;
+
+  constructor(code: ProductImageValidationErrorCode) {
+    super("Ürün görseli geçersiz.");
+    this.name = "ProductImageValidationError";
+    this.code = code;
+  }
+}
+
 export class BusinessProductsRequestError extends Error {
   readonly status: number | null;
 
@@ -679,10 +693,10 @@ export async function uploadProductImage(
     throw new Error("Oturum bulunamadi.");
   }
   if (!supportedProductImageTypes.has(file.type)) {
-    throw new Error("Sadece JPG, PNG veya WEBP gorsel yukleyebilirsiniz.");
+    throw new ProductImageValidationError("PRODUCT_IMAGE_UNSUPPORTED_TYPE");
   }
   if (file.size > maxProductImageSize) {
-    throw new Error("Urun gorseli en fazla 5 MB olabilir.");
+    throw new ProductImageValidationError("PRODUCT_IMAGE_TOO_LARGE");
   }
 
   const { url, publishableKey } = getSupabaseConfig();

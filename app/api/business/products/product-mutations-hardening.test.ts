@@ -39,6 +39,65 @@ type Scenario = {
   deleteStatus?: number;
 };
 
+const invalidPhase3aInputs: Array<[string, Record<string, unknown>]> = [
+  ...[null, false, true, [], {}, "", " ", "   ", "10", -1].map(
+    (price): [string, Record<string, unknown>] => [`price ${JSON.stringify(price)}`, { price }],
+  ),
+  ["blank name", { name: "" }],
+  ["whitespace name", { name: "   " }],
+  ["181 character name", { name: "x".repeat(181) }],
+];
+
+for (const [label, invalidInput] of invalidPhase3aInputs) {
+  test("update rejects " + label + " without a database write", async () => {
+    await withScenario({}, async (calls) => {
+      const input = { name: "Ürün", price: 10, category: "Genel", ...invalidInput };
+      const response = await PATCH(patchRequest(JSON.stringify({ input, expectedUpdatedAt })), context());
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { code: "INVALID_PRODUCT_MUTATION" });
+      assert.equal(calls.some(({ init }) => init.method === "PATCH"), false);
+    });
+  });
+}
+
+for (const price of [0, 10, 10.5]) {
+  test("update accepts numeric price " + price + " and trims a 180 character name", async () => {
+    const name = "x".repeat(180);
+    await withScenario({ patchBody: [productRow({ name, price })] }, async (calls) => {
+      const input = { name: "  " + name + "  ", price, category: "Genel" };
+      const response = await PATCH(patchRequest(JSON.stringify({ input, expectedUpdatedAt })), context());
+      assert.equal(response.status, 200);
+      const write = calls.find(({ init }) => init.method === "PATCH");
+      assert.ok(write);
+      const payload = JSON.parse(String(write.init.body));
+      assert.equal(payload.price, price);
+      assert.equal(payload.name, name);
+    });
+  });
+}
+
+for (const numericToken of ["NaN", "Infinity", "1e400"]) {
+  test("update rejects non-finite JSON numeric token " + numericToken, async () => {
+    await withScenario({}, async (calls) => {
+      const body = `{"input":{"name":"Ürün","category":"Genel","price":${numericToken}},"expectedUpdatedAt":"${expectedUpdatedAt}"}`;
+      const response = await PATCH(patchRequest(body), context());
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { code: "INVALID_PRODUCT_MUTATION" });
+      assert.equal(calls.some(({ init }) => init.method === "PATCH"), false);
+    });
+  });
+}
+
+test("partial update accepts an omitted price without writing it", async () => {
+  await withScenario({}, async (calls) => {
+    const response = await PATCH(patchRequest(), context());
+    assert.equal(response.status, 200);
+    const write = calls.find(({ init }) => init.method === "PATCH");
+    assert.ok(write);
+    assert.deepEqual(JSON.parse(String(write.init.body)), { name: "Yeni Ad" });
+  });
+});
+
 function productRow(overrides: Record<string, unknown> = {}) {
   return {
     id: productId,
