@@ -1,8 +1,13 @@
 # BUSINESS PANEL AUTHENTICATED E2E SCENARIO PROTOCOL
 
-**Document Version:** 1.0.0
+**Document Version:** 1.1.0
 **Target Environment:** Local Mock Harness (`http://127.0.0.1:3100` via Next.js + `http://127.0.0.1:4010` Mock Supabase)
-**Security Posture:** Fail-Closed Loopback Only (Zero external requests)
+**Security Posture:**
+- Synthetic isolated Supabase configuration (mock Auth, REST, RPC, Storage).
+- Explicit child-env allowlist (only essential system variables inherited; parent credentials stripped).
+- Browser main-target external requests are intercepted/blocked pre-network via CDP Fetch domain.
+- Observed external requests = 0.
+- Single-target CDP limitation on popup-target window inspection remains documented (S4.3).
 **Status:** PROTOCOL SPECIFICATION ONLY (Execution deferred to dedicated E2E verification step).
 
 ---
@@ -89,7 +94,7 @@ The E2E suites specifically validate that the five targeted Phase 4 production r
 ### Suite 8: Network & Console Integrity (3 Scenarios)
 - **S8.1 Zero Console Errors:** Browser console logs must contain zero unhandled exceptions, zero React runtime errors, and zero unhandled rejections.
 - **S8.2 Clean Network Traffic:** Network log must contain zero unexpected 4xx or 5xx responses (except intentional conflict tests).
-- **S8.3 Zero Egress Audit:** 100% of network requests must target `http://127.0.0.1:3100` or `http://127.0.0.1:4010`. Zero requests to `*.supabase.co`, `yerelsiparis.com`, or external internet.
+- **S8.3 Zero Egress Audit:** 100% of network requests must target `http://127.0.0.1:3100` or `http://127.0.0.1:4010`. Browser main-target external requests are intercepted and blocked pre-network via CDP Fetch domain; observed external requests = 0.
 
 ---
 

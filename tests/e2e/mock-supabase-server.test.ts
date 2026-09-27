@@ -16,7 +16,9 @@ import {
   STALE_ORDER_UPDATED_AT,
   STALE_PRODUCT_UPDATED_AT,
 } from "./fixtures";
+import { isAllowedUrl } from "./browser-cdp-helper";
 import {
+  ALLOWED_PARENT_SYSTEM_ENV_VARS,
   createSanitizedChildEnv,
   scanRuntimeSupabaseEnvVars,
   validateDiscoveredEnvVars,
@@ -484,9 +486,21 @@ test("26. real validateEffectiveChildEnv verifies loopback and rejects leaks", (
   );
 });
 
-test("27. hostile parent env containment test", () => {
+test("27. hostile parent env containment and explicit allowlist test", () => {
   const hostileParentEnv = {
-    ...process.env,
+    PATH: process.env.PATH || "C:\\Windows\\system32",
+    SystemRoot: process.env.SystemRoot || "C:\\Windows",
+    TEMP: process.env.TEMP || "C:\\Temp",
+    NUMBER_OF_PROCESSORS: process.env.NUMBER_OF_PROCESSORS || "8",
+    OPENAI_API_KEY: "fake-hostile-openai-key",
+    DATABASE_URL: "postgresql://user:pass@evil.host:5432/db",
+    SENTRY_DSN: "https://fake@sentry.io/12345",
+    RESEND_API_KEY: "re_fake_hostile_resend_key",
+    AWS_ACCESS_KEY_ID: "AKIAFAKEHOSTILEKEY",
+    AWS_SECRET_ACCESS_KEY: "fake-hostile-aws-secret",
+    STRIPE_SECRET_KEY: "sk_test_fake_stripe_secret",
+    GOOGLE_CLIENT_SECRET: "fake_google_client_secret",
+    CUSTOM_BUSINESS_SECRET: "fake_custom_secret",
     NEXT_PUBLIC_SUPABASE_URL: "https://evil-test.supabase.co",
     SUPABASE_URL: "https://evil-test.supabase.co",
     SUPABASE_DB_URL: "postgresql://example.invalid/not-real",
@@ -496,6 +510,24 @@ test("27. hostile parent env containment test", () => {
 
   const sanitized = createSanitizedChildEnv(hostileParentEnv);
 
+  // A. Hostile unrelated parent credentials must NOT be inherited
+  assert.equal("OPENAI_API_KEY" in sanitized, false, "OPENAI_API_KEY must not be inherited");
+  assert.equal("DATABASE_URL" in sanitized, false, "DATABASE_URL must not be inherited");
+  assert.equal("SENTRY_DSN" in sanitized, false, "SENTRY_DSN must not be inherited");
+  assert.equal("RESEND_API_KEY" in sanitized, false, "RESEND_API_KEY must not be inherited");
+  assert.equal("AWS_ACCESS_KEY_ID" in sanitized, false, "AWS_ACCESS_KEY_ID must not be inherited");
+  assert.equal("AWS_SECRET_ACCESS_KEY" in sanitized, false, "AWS_SECRET_ACCESS_KEY must not be inherited");
+  assert.equal("STRIPE_SECRET_KEY" in sanitized, false, "STRIPE_SECRET_KEY must not be inherited");
+  assert.equal("GOOGLE_CLIENT_SECRET" in sanitized, false, "GOOGLE_CLIENT_SECRET must not be inherited");
+  assert.equal("CUSTOM_BUSINESS_SECRET" in sanitized, false, "CUSTOM_BUSINESS_SECRET must not be inherited");
+
+  // B. Required Windows/runtime env survives
+  assert.equal(sanitized.PATH, hostileParentEnv.PATH);
+  assert.equal(sanitized.SystemRoot, hostileParentEnv.SystemRoot);
+  assert.equal(sanitized.TEMP, hostileParentEnv.TEMP);
+  assert.equal(sanitized.NUMBER_OF_PROCESSORS, hostileParentEnv.NUMBER_OF_PROCESSORS);
+
+  // C. All Supabase values remain synthetic/loopback
   assert.equal(sanitized.NEXT_PUBLIC_SUPABASE_URL, "http://127.0.0.1:4010");
   assert.equal(sanitized.SUPABASE_URL, "http://127.0.0.1:4010");
   assert.equal(sanitized.SUPABASE_DB_URL, "postgresql://postgres:dummy@127.0.0.1:5432/dummy");
@@ -571,6 +603,26 @@ test("29. storage upload and public URL contract matches production client", asy
   assert.equal(publicRes.headers.get("content-type"), "image/png");
   const buffer = await publicRes.arrayBuffer();
   assert(buffer.byteLength > 0);
+});
+
+test("30. browser egress pre-network interceptor allows only safe loopback targets", () => {
+  // Allowed loopback & internal targets
+  assert.equal(isAllowedUrl("http://127.0.0.1:3100/"), true);
+  assert.equal(isAllowedUrl("http://127.0.0.1:3100/panel"), true);
+  assert.equal(isAllowedUrl("http://127.0.0.1:4010/rest/v1/products"), true);
+  assert.equal(isAllowedUrl("data:image/png;base64,iVBORw0KGgo="), true);
+  assert.equal(isAllowedUrl("blob:http://127.0.0.1:3100/uuid"), true);
+  assert.equal(isAllowedUrl("about:blank"), true);
+
+  // Blocked external targets
+  assert.equal(isAllowedUrl("https://example.com"), false);
+  assert.equal(isAllowedUrl("https://yerelsiparis.com"), false);
+  assert.equal(isAllowedUrl("https://api.supabase.co"), false);
+  assert.equal(isAllowedUrl("https://subdomain.supabase.co/rest/v1"), false);
+  assert.equal(isAllowedUrl("http://127.0.0.1:8080/evil"), false);
+  assert.equal(isAllowedUrl("http://127.0.0.1:5432/"), false);
+  assert.equal(isAllowedUrl("http://localhost:3100/"), false);
+  assert.equal(isAllowedUrl("ftp://127.0.0.1:3100"), false);
 });
 
 test("teardown: close mock supabase server", async () => {

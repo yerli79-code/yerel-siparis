@@ -123,28 +123,56 @@ export function validateSafeUrl(urlStr: string): void {
   }
 }
 
-export function createSanitizedChildEnv(baseEnv: NodeJS.ProcessEnv): Record<string, string> {
+export const ALLOWED_PARENT_SYSTEM_ENV_VARS = new Set([
+  // Windows runtime & system variables
+  "PATH",
+  "PATHEXT",
+  "SYSTEMROOT",
+  "WINDIR",
+  "COMSPEC",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+  "USERPROFILE",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "LOCALAPPDATA",
+  "APPDATA",
+  "PROGRAMFILES",
+  "PROGRAMFILES(X86)",
+  "PROGRAMW6432",
+  "COMMONPROGRAMFILES",
+  "COMMONPROGRAMFILES(X86)",
+  "COMMONPROGRAMW6432",
+  "NUMBER_OF_PROCESSORS",
+  "PROCESSOR_ARCHITECTURE",
+  "PROCESSOR_IDENTIFIER",
+  "SYSTEMDRIVE",
+  // POSIX standard runtime variables (for cross-platform compatibility)
+  "HOME",
+  "SHELL",
+  "USER",
+  "LOGNAME",
+  "LANG",
+  "LC_ALL",
+  "TERM",
+]);
+
+export function createSanitizedChildEnv(
+  baseEnv: NodeJS.ProcessEnv | Record<string, string | undefined>,
+): Record<string, string> {
   const sanitized: Record<string, string> = {};
 
-  // Copy only necessary safe environment variables; strip all credentials & external proxies
+  // Copy ONLY variables matching the explicit minimal system allowlist
   for (const [key, value] of Object.entries(baseEnv)) {
     if (value === undefined) continue;
-    // Strip sensitive keys
-    if (
-      key.includes("SUPABASE") ||
-      key.includes("SECRET") ||
-      key.includes("VERCEL") ||
-      key.includes("TOKEN") ||
-      key === "HTTP_PROXY" ||
-      key === "HTTPS_PROXY" ||
-      key === "ALL_PROXY"
-    ) {
-      continue;
+    const upperKey = key.toUpperCase();
+    if (ALLOWED_PARENT_SYSTEM_ENV_VARS.has(upperKey)) {
+      sanitized[key] = value;
     }
-    sanitized[key] = value;
   }
 
-  // Explicitly inject safe local loopback values
+  // Explicitly inject ONLY safe local loopback values & synthetic Supabase application variables
   sanitized.NODE_ENV = "development";
   sanitized.PORT = String(NEXT_DEV_PORT);
   sanitized.NO_PROXY = "127.0.0.1,localhost";

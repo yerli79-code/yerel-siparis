@@ -17,6 +17,29 @@ export interface ConsoleLogEntry {
   timestamp: number;
 }
 
+export interface BlockedRequestEntry {
+  url: string;
+  method: string;
+  timestamp: number;
+}
+
+export function isAllowedUrl(url: string): boolean {
+  if (url === "about:blank") return true;
+  if (url.startsWith("data:")) return true;
+  if (url.startsWith("blob:")) return true;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:") {
+      if (parsed.hostname === "127.0.0.1" && (parsed.port === "3100" || parsed.port === "4010")) {
+        return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 export class BrowserCDPClient {
   private chromeProc: ChildProcess | null = null;
   private tempProfileDir: string | null = null;
@@ -29,8 +52,14 @@ export class BrowserCDPClient {
   public networkLogs: NetworkLogEntry[] = [];
   public consoleLogs: ConsoleLogEntry[] = [];
   public observedHosts = new Set<string>();
+  public blockedRequests: BlockedRequestEntry[] = [];
   public egressViolation = false;
   public egressViolationUrl: string | null = null;
+
+  public resetEgressViolation() {
+    this.egressViolation = false;
+    this.egressViolationUrl = null;
+  }
 
   async launch(options: { port?: number } = {}) {
     const port = options.port ?? 9222;
@@ -43,6 +72,9 @@ export class BrowserCDPClient {
       `--user-data-dir=${this.tempProfileDir}`,
       "--no-first-run",
       "--no-default-browser-check",
+      "--disable-background-networking",
+      "--disable-component-update",
+      "--disable-sync",
       "--window-size=1280,800",
       "about:blank",
     ]);
@@ -94,7 +126,27 @@ export class BrowserCDPClient {
         return;
       }
 
-      // Event: Network.requestWillBeSent
+      // Event: Fetch.requestPaused (pre-network interception gate)
+      if (msg.method === "Fetch.requestPaused") {
+        const { requestId, request } = msg.params;
+        const url = request.url as string;
+        if (isAllowedUrl(url)) {
+          this.send("Fetch.continueRequest", { requestId }).catch(() => {});
+        } else {
+          this.egressViolation = true;
+          this.egressViolationUrl = url;
+          this.blockedRequests.push({
+            url,
+            method: request.method,
+            timestamp: Date.now(),
+          });
+          console.error(`[CDP Egress Interceptor] Pre-network BLOCKED external request: ${request.method} ${url}`);
+          this.send("Fetch.failRequest", { requestId, errorReason: "BlockedByClient" }).catch(() => {});
+        }
+        return;
+      }
+
+      // Event: Network.requestWillBeSent (second-layer audit & logging)
       if (msg.method === "Network.requestWillBeSent") {
         const req = msg.params.request;
         const url = req.url as string;
@@ -151,7 +203,8 @@ export class BrowserCDPClient {
       }
     };
 
-    // Enable necessary domains
+    // Enable necessary domains including pre-network Fetch interception
+    await this.send("Fetch.enable");
     await this.send("Network.enable");
     await this.send("Page.enable");
     await this.send("Runtime.enable");
@@ -163,7 +216,7 @@ export class BrowserCDPClient {
       throw new Error("WebSocket not connected to Chrome CDP");
     }
 
-    if (this.egressViolation) {
+    if (this.egressViolation && method !== "Fetch.failRequest" && method !== "Fetch.continueRequest") {
       throw new Error(`E2E SAFETY ABORT — EXTERNAL EGRESS DETECTED: ${this.egressViolationUrl}`);
     }
 
