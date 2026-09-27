@@ -8,20 +8,48 @@ export const FIXTURE_USER_PASSWORD = "SafeE2ELocalOnly2026!";
 export const FIXTURE_ACCESS_TOKEN = "mock-e2e-jwt-access-token-000000000001";
 export const FIXTURE_REFRESH_TOKEN = "mock-e2e-jwt-refresh-token-000000000001";
 
+// Synthetic Admin fixtures
+export const FIXTURE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000099";
+export const FIXTURE_ADMIN_USER_EMAIL = "admin@example.invalid";
+export const FIXTURE_ADMIN_USER_PASSWORD = "SafeAdminE2E2026!";
+export const FIXTURE_ADMIN_ACCESS_TOKEN = "mock-e2e-jwt-admin-access-token-000000000099";
+export const FIXTURE_ADMIN_REFRESH_TOKEN = "mock-e2e-jwt-admin-refresh-token-000000000099";
+
+// Synthetic Inactive Admin fixtures (for testing 403 rejection)
+export const FIXTURE_INACTIVE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000098";
+export const FIXTURE_INACTIVE_ADMIN_EMAIL = "inactive-admin@example.invalid";
+export const FIXTURE_INACTIVE_ADMIN_PASSWORD = "SafeInactiveAdmin2026!";
+export const FIXTURE_INACTIVE_ADMIN_ACCESS_TOKEN = "mock-e2e-jwt-inactive-admin-token-000000000098";
+export const FIXTURE_INACTIVE_ADMIN_REFRESH_TOKEN = "mock-e2e-jwt-inactive-admin-refresh-000000000098";
+
 export const FIXTURE_BUSINESS_ID = "00000000-0000-4000-8000-000000000101";
 export const FIXTURE_BUSINESS_SLUG = "e2e-test-kebap";
+
+export const FIXTURE_BUSINESS_2_ID = "00000000-0000-4000-8000-000000000102";
+export const FIXTURE_BUSINESS_2_SLUG = "pasif-pide-sarayi";
+
+export const FIXTURE_BUSINESS_3_ID = "00000000-0000-4000-8000-000000000103";
+export const FIXTURE_BUSINESS_3_SLUG = "suresi-dolmus-corbaci";
+
+export const FIXTURE_BUSINESS_4_ID = "00000000-0000-4000-8000-000000000104";
+export const FIXTURE_BUSINESS_4_SLUG = "engelli-donercilik";
+
+export const FIXTURE_BUSINESS_5_ID = "00000000-0000-4000-8000-000000000105";
+export const FIXTURE_BUSINESS_5_SLUG = "cok-ozel-geleneksel-uzun-isimli-isletme";
 
 export type FixtureBusiness = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
+  category: string | null;
   whatsapp_order_number: string | null;
   city: string | null;
   district: string | null;
   neighborhood: string | null;
   address: string | null;
   delivery_status: string | null;
+  logo_text: string | null;
   payment_method_mode: PaymentMethodMode | null;
   minimum_order_amount: number | null;
   preparation_time_minutes: number | null;
@@ -33,9 +61,41 @@ export type FixtureBusiness = {
   is_active: boolean | null;
   owner_id: string | null;
   subscription_status: string | null;
+  subscription_started_at: string | null;
   subscription_expires_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type FixtureAdminUser = {
+  id: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type FixtureProfile = {
+  id: string;
+  email: string;
+};
+
+export type FixtureAdminAuditSnapshot = {
+  is_active: boolean;
+  subscription_status: "active" | "expired" | "blocked";
+  subscription_started_at: string | null;
+  subscription_expires_at: string | null;
+  updated_at?: string;
+};
+
+export type FixtureAdminAuditLog = {
+  id: string;
+  business_id: string;
+  actor_user_id: string;
+  actor_email: string;
+  action: string;
+  before_state: FixtureAdminAuditSnapshot;
+  after_state: FixtureAdminAuditSnapshot;
+  created_at: string;
 };
 
 export type FixtureProduct = {
@@ -101,12 +161,14 @@ export function createInitialFixtures() {
     name: "E2E Test Kebap Salonu",
     slug: FIXTURE_BUSINESS_SLUG,
     description: "Otomasyon ve E2E test işletmesi",
+    category: "Kebap",
     whatsapp_order_number: "905551112233",
     city: "İstanbul",
     district: "Kadıköy",
     neighborhood: "Caferağa",
     address: "Caferağa Mah. Moda Cad. No:42",
     delivery_status: "delivery_and_pickup",
+    logo_text: "EK",
     payment_method_mode: "cash_or_card",
     minimum_order_amount: 150,
     preparation_time_minutes: 25,
@@ -117,10 +179,197 @@ export function createInitialFixtures() {
     cover_image_url: null,
     is_active: true,
     subscription_status: "active",
+    subscription_started_at: "2026-06-01T10:00:00.000Z",
     subscription_expires_at: "2030-01-01T00:00:00.000Z",
     created_at: "2026-06-01T10:00:00.000Z",
     updated_at: "2026-09-21T10:00:00.000Z",
   };
+
+  const business2: FixtureBusiness = {
+    id: FIXTURE_BUSINESS_2_ID,
+    owner_id: "00000000-0000-4000-8000-000000000002",
+    name: "Pasif Pide Sarayı",
+    slug: FIXTURE_BUSINESS_2_SLUG,
+    description: "Leziz Karadeniz pideleri",
+    category: "Pide",
+    whatsapp_order_number: "905552223344",
+    city: "İstanbul",
+    district: "Kadıköy",
+    neighborhood: "Moda",
+    address: "Moda Cad. No:12",
+    delivery_status: "delivery_and_pickup",
+    logo_text: "PP",
+    payment_method_mode: "cash_or_card",
+    minimum_order_amount: 100,
+    preparation_time_minutes: 20,
+    is_open: true,
+    order_note: null,
+    service_radius_km: 3,
+    logo_url: null,
+    cover_image_url: null,
+    is_active: false,
+    subscription_status: "active",
+    subscription_started_at: "2026-06-01T10:00:00.000Z",
+    subscription_expires_at: "2030-01-01T00:00:00.000Z",
+    created_at: "2026-06-02T10:00:00.000Z",
+    updated_at: "2026-09-21T10:00:00.000Z",
+  };
+
+  const business3: FixtureBusiness = {
+    id: FIXTURE_BUSINESS_3_ID,
+    owner_id: "00000000-0000-4000-8000-000000000003",
+    name: "Süresi Dolmuş Çorbacı",
+    slug: FIXTURE_BUSINESS_3_SLUG,
+    description: "Gece çorbaları",
+    category: "Çorba",
+    whatsapp_order_number: "905553334455",
+    city: "Ankara",
+    district: "Çankaya",
+    neighborhood: "Kızılay",
+    address: "Karanfil Sok. No:5",
+    delivery_status: "pickup_only",
+    logo_text: "SÇ",
+    payment_method_mode: "cash",
+    minimum_order_amount: 80,
+    preparation_time_minutes: 15,
+    is_open: false,
+    order_note: null,
+    service_radius_km: 2,
+    logo_url: null,
+    cover_image_url: null,
+    is_active: false,
+    subscription_status: "expired",
+    subscription_started_at: "2025-01-01T10:00:00.000Z",
+    subscription_expires_at: "2026-01-01T00:00:00.000Z",
+    created_at: "2026-01-01T10:00:00.000Z",
+    updated_at: "2026-01-01T10:00:00.000Z",
+  };
+
+  const business4: FixtureBusiness = {
+    id: FIXTURE_BUSINESS_4_ID,
+    owner_id: "00000000-0000-4000-8000-000000000004",
+    name: "Engelli Dönercilik",
+    slug: FIXTURE_BUSINESS_4_SLUG,
+    description: "Yaprak döner",
+    category: "Döner",
+    whatsapp_order_number: "905554445566",
+    city: "İzmir",
+    district: "Konak",
+    neighborhood: "Alsancak",
+    address: "Kıbrıs Şehitleri Cad. No:18",
+    delivery_status: "delivery_only",
+    logo_text: "ED",
+    payment_method_mode: "card",
+    minimum_order_amount: 120,
+    preparation_time_minutes: 20,
+    is_open: false,
+    order_note: null,
+    service_radius_km: 4,
+    logo_url: null,
+    cover_image_url: null,
+    is_active: false,
+    subscription_status: "blocked",
+    subscription_started_at: "2026-01-01T10:00:00.000Z",
+    subscription_expires_at: "2026-05-01T00:00:00.000Z",
+    created_at: "2026-01-01T10:00:00.000Z",
+    updated_at: "2026-05-01T10:00:00.000Z",
+  };
+
+  const business5: FixtureBusiness = {
+    id: FIXTURE_BUSINESS_5_ID,
+    owner_id: "00000000-0000-4000-8000-000000000005",
+    name: "ÇokÖzelGelenekselUzunİsimliÖrnekİşletmeKebapPideVeLahmacunSalonu",
+    slug: FIXTURE_BUSINESS_5_SLUG,
+    description: "Uzun isim testi",
+    category: "Kebap",
+    whatsapp_order_number: "905555556677",
+    city: "Bursa",
+    district: "Nilüfer",
+    neighborhood: "Görükle",
+    address: "Atatürk Cad. No:99",
+    delivery_status: "delivery_and_pickup",
+    logo_text: "ÇÖ",
+    payment_method_mode: "cash_or_card",
+    minimum_order_amount: 150,
+    preparation_time_minutes: 30,
+    is_open: true,
+    order_note: null,
+    service_radius_km: 5,
+    logo_url: null,
+    cover_image_url: null,
+    is_active: true,
+    subscription_status: "active",
+    subscription_started_at: "2026-06-01T10:00:00.000Z",
+    subscription_expires_at: "2030-01-01T00:00:00.000Z",
+    created_at: "2026-06-03T10:00:00.000Z",
+    updated_at: "2026-09-21T10:00:00.000Z",
+  };
+
+  const businesses: FixtureBusiness[] = [business, business2, business3, business4, business5];
+
+  const adminUser = {
+    id: FIXTURE_ADMIN_USER_ID,
+    aud: "authenticated",
+    role: "authenticated",
+    email: FIXTURE_ADMIN_USER_EMAIL,
+    created_at: "2026-01-01T00:00:00.000Z",
+  };
+
+  const inactiveAdminUser = {
+    id: FIXTURE_INACTIVE_ADMIN_USER_ID,
+    aud: "authenticated",
+    role: "authenticated",
+    email: FIXTURE_INACTIVE_ADMIN_EMAIL,
+    created_at: "2026-01-01T00:00:00.000Z",
+  };
+
+  const adminUsers: FixtureAdminUser[] = [
+    {
+      id: FIXTURE_ADMIN_USER_ID,
+      email: FIXTURE_ADMIN_USER_EMAIL,
+      is_active: true,
+      created_at: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      id: FIXTURE_INACTIVE_ADMIN_USER_ID,
+      email: FIXTURE_INACTIVE_ADMIN_EMAIL,
+      is_active: false,
+      created_at: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+
+  const profiles: FixtureProfile[] = [
+    { id: FIXTURE_USER_ID, email: FIXTURE_USER_EMAIL },
+    { id: "00000000-0000-4000-8000-000000000002", email: "pideci@example.invalid" },
+    { id: "00000000-0000-4000-8000-000000000003", email: "corbaci@example.invalid" },
+    { id: "00000000-0000-4000-8000-000000000004", email: "donerci@example.invalid" },
+    { id: "00000000-0000-4000-8000-000000000005", email: "uzunisim@example.invalid" },
+  ];
+
+  const adminAuditLogs: FixtureAdminAuditLog[] = [
+    {
+      id: "00000000-0000-4000-8000-000000004001",
+      business_id: FIXTURE_BUSINESS_ID,
+      actor_user_id: FIXTURE_ADMIN_USER_ID,
+      actor_email: FIXTURE_ADMIN_USER_EMAIL,
+      action: "business.reactivated",
+      before_state: {
+        is_active: false,
+        subscription_status: "active",
+        subscription_started_at: "2026-06-01T10:00:00.000Z",
+        subscription_expires_at: "2030-01-01T00:00:00.000Z",
+        updated_at: "2026-09-20T13:59:00.000Z",
+      },
+      after_state: {
+        is_active: true,
+        subscription_status: "active",
+        subscription_started_at: "2026-06-01T10:00:00.000Z",
+        subscription_expires_at: "2030-01-01T00:00:00.000Z",
+        updated_at: "2026-09-20T14:00:00.000Z",
+      },
+      created_at: "2026-09-20T14:00:00.000Z",
+    },
+  ];
 
   const products: FixtureProduct[] = [
     {
@@ -389,9 +638,15 @@ export function createInitialFixtures() {
 
   return {
     user,
+    adminUser,
+    inactiveAdminUser,
     business,
+    businesses,
     products,
     orders,
     orderItems,
+    profiles,
+    adminUsers,
+    adminAuditLogs,
   };
 }

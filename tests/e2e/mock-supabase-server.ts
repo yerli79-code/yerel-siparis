@@ -3,23 +3,42 @@ import { URL } from "node:url";
 import {
   createInitialFixtures,
   FIXTURE_ACCESS_TOKEN,
+  FIXTURE_ADMIN_ACCESS_TOKEN,
+  FIXTURE_ADMIN_REFRESH_TOKEN,
+  FIXTURE_ADMIN_USER_EMAIL,
+  FIXTURE_ADMIN_USER_ID,
+  FIXTURE_ADMIN_USER_PASSWORD,
   FIXTURE_BUSINESS_ID,
+  FIXTURE_INACTIVE_ADMIN_ACCESS_TOKEN,
+  FIXTURE_INACTIVE_ADMIN_EMAIL,
+  FIXTURE_INACTIVE_ADMIN_PASSWORD,
+  FIXTURE_INACTIVE_ADMIN_REFRESH_TOKEN,
   FIXTURE_REFRESH_TOKEN,
   FIXTURE_USER_EMAIL,
   FIXTURE_USER_ID,
   FIXTURE_USER_PASSWORD,
+  type FixtureAdminAuditLog,
+  type FixtureAdminAuditSnapshot,
+  type FixtureAdminUser,
   type FixtureBusiness,
   type FixtureOrder,
   type FixtureOrderItem,
   type FixtureProduct,
+  type FixtureProfile,
 } from "./fixtures";
 
 export type MockServerState = {
   user: ReturnType<typeof createInitialFixtures>["user"];
+  adminUser: ReturnType<typeof createInitialFixtures>["adminUser"];
+  inactiveAdminUser: ReturnType<typeof createInitialFixtures>["inactiveAdminUser"];
   business: FixtureBusiness;
+  businesses: FixtureBusiness[];
   products: FixtureProduct[];
   orders: FixtureOrder[];
   orderItems: FixtureOrderItem[];
+  profiles: FixtureProfile[];
+  adminUsers: FixtureAdminUser[];
+  adminAuditLogs: FixtureAdminAuditLog[];
 };
 
 export type MockSupabaseServerInstance = {
@@ -147,9 +166,11 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     if (pathname === "/__e2e/state" && method === "GET") {
       sendJson(200, {
         business: state.business,
+        businessesCount: state.businesses.length,
         productsCount: state.products.length,
         ordersCount: state.orders.length,
         orderItemsCount: state.orderItems.length,
+        adminAuditLogsCount: state.adminAuditLogs.length,
       });
       return;
     }
@@ -192,11 +213,13 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
       const body = await readBody<{ email?: string; password?: string; refresh_token?: string }>();
 
       if (grantType === "password") {
+        const email = body?.email?.trim().toLowerCase();
+        const nowSeconds = Math.floor(Date.now() / 1000);
+
         if (
-          body?.email?.trim().toLowerCase() === FIXTURE_USER_EMAIL.toLowerCase() &&
+          email === FIXTURE_USER_EMAIL.toLowerCase() &&
           body?.password === FIXTURE_USER_PASSWORD
         ) {
-          const nowSeconds = Math.floor(Date.now() / 1000);
           sendJson(200, {
             access_token: FIXTURE_ACCESS_TOKEN,
             token_type: "bearer",
@@ -204,6 +227,36 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
             expires_at: nowSeconds + 3600,
             refresh_token: FIXTURE_REFRESH_TOKEN,
             user: state.user,
+          });
+          return;
+        }
+
+        if (
+          email === FIXTURE_ADMIN_USER_EMAIL.toLowerCase() &&
+          body?.password === FIXTURE_ADMIN_USER_PASSWORD
+        ) {
+          sendJson(200, {
+            access_token: FIXTURE_ADMIN_ACCESS_TOKEN,
+            token_type: "bearer",
+            expires_in: 3600,
+            expires_at: nowSeconds + 3600,
+            refresh_token: FIXTURE_ADMIN_REFRESH_TOKEN,
+            user: state.adminUser,
+          });
+          return;
+        }
+
+        if (
+          email === FIXTURE_INACTIVE_ADMIN_EMAIL.toLowerCase() &&
+          body?.password === FIXTURE_INACTIVE_ADMIN_PASSWORD
+        ) {
+          sendJson(200, {
+            access_token: FIXTURE_INACTIVE_ADMIN_ACCESS_TOKEN,
+            token_type: "bearer",
+            expires_in: 3600,
+            expires_at: nowSeconds + 3600,
+            refresh_token: FIXTURE_INACTIVE_ADMIN_REFRESH_TOKEN,
+            user: state.inactiveAdminUser,
           });
           return;
         }
@@ -216,8 +269,8 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
       }
 
       if (grantType === "refresh_token") {
+        const nowSeconds = Math.floor(Date.now() / 1000);
         if (body?.refresh_token === FIXTURE_REFRESH_TOKEN) {
-          const nowSeconds = Math.floor(Date.now() / 1000);
           sendJson(200, {
             access_token: FIXTURE_ACCESS_TOKEN,
             token_type: "bearer",
@@ -225,6 +278,30 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
             expires_at: nowSeconds + 3600,
             refresh_token: FIXTURE_REFRESH_TOKEN,
             user: state.user,
+          });
+          return;
+        }
+
+        if (body?.refresh_token === FIXTURE_ADMIN_REFRESH_TOKEN) {
+          sendJson(200, {
+            access_token: FIXTURE_ADMIN_ACCESS_TOKEN,
+            token_type: "bearer",
+            expires_in: 3600,
+            expires_at: nowSeconds + 3600,
+            refresh_token: FIXTURE_ADMIN_REFRESH_TOKEN,
+            user: state.adminUser,
+          });
+          return;
+        }
+
+        if (body?.refresh_token === FIXTURE_INACTIVE_ADMIN_REFRESH_TOKEN) {
+          sendJson(200, {
+            access_token: FIXTURE_INACTIVE_ADMIN_ACCESS_TOKEN,
+            token_type: "bearer",
+            expires_in: 3600,
+            expires_at: nowSeconds + 3600,
+            refresh_token: FIXTURE_INACTIVE_ADMIN_REFRESH_TOKEN,
+            user: state.inactiveAdminUser,
           });
           return;
         }
@@ -249,7 +326,23 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
         return;
       }
 
+      if (token === FIXTURE_ADMIN_ACCESS_TOKEN) {
+        sendJson(200, state.adminUser);
+        return;
+      }
+
+      if (token === FIXTURE_INACTIVE_ADMIN_ACCESS_TOKEN) {
+        sendJson(200, state.inactiveAdminUser);
+        return;
+      }
+
       sendJson(401, { message: "Invalid JWT token" });
+      return;
+    }
+
+    if (pathname === "/auth/v1/logout") {
+      res.writeHead(204);
+      res.end();
       return;
     }
 
@@ -276,47 +369,248 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     // POSTGREST REST ENDPOINTS
     // ==========================================
 
+    // --- ADMIN USERS ---
+    if (pathname === "/rest/v1/admin_users" && method === "GET") {
+      const emailParam = parsedUrl.searchParams.get("email");
+      const isActiveParam = parsedUrl.searchParams.get("is_active");
+
+      let filtered = [...state.adminUsers];
+      if (emailParam?.startsWith("eq.")) {
+        const targetEmail = decodeURIComponent(emailParam.slice(3)).trim().toLowerCase();
+        filtered = filtered.filter((u) => u.email.toLowerCase() === targetEmail);
+      }
+      if (isActiveParam === "eq.true") {
+        filtered = filtered.filter((u) => u.is_active === true);
+      } else if (isActiveParam === "eq.false") {
+        filtered = filtered.filter((u) => u.is_active === false);
+      }
+
+      sendJson(200, filtered.map((u) => ({ id: u.id, email: u.email, is_active: u.is_active })));
+      return;
+    }
+
+    // --- PROFILES ---
+    if (pathname === "/rest/v1/profiles" && method === "GET") {
+      const idParam = parsedUrl.searchParams.get("id");
+      const emailParam = parsedUrl.searchParams.get("email");
+
+      let filtered = [...state.profiles];
+      if (idParam?.startsWith("eq.")) {
+        const id = idParam.slice(3);
+        filtered = filtered.filter((p) => p.id === id);
+      } else if (idParam?.startsWith("in.(")) {
+        const inside = idParam.slice(4, -1);
+        const ids = inside.split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
+        filtered = filtered.filter((p) => ids.includes(p.id));
+      }
+
+      if (emailParam?.startsWith("ilike.")) {
+        const query = emailParam.slice(6).replaceAll("%", "").toLowerCase();
+        filtered = filtered.filter((p) => p.email.toLowerCase().includes(query));
+      }
+
+      const limit = Number(parsedUrl.searchParams.get("limit") || 0);
+      const offset = Number(parsedUrl.searchParams.get("offset") || 0);
+      if (offset > 0) filtered = filtered.slice(offset);
+      if (limit > 0) filtered = filtered.slice(0, limit);
+
+      sendJson(200, filtered);
+      return;
+    }
+
     // --- BUSINESSES ---
     if (pathname === "/rest/v1/businesses") {
-      if (method === "GET") {
+      function filterBusinesses() {
         const ownerId = parsedUrl.searchParams.get("owner_id");
         const id = parsedUrl.searchParams.get("id");
         const slug = parsedUrl.searchParams.get("slug");
+        const isActive = parsedUrl.searchParams.get("is_active");
+        const subStatus = parsedUrl.searchParams.get("subscription_status");
+        const subExpiresAt = parsedUrl.searchParams.get("subscription_expires_at");
+        const createdAt = parsedUrl.searchParams.get("created_at");
+        const city = parsedUrl.searchParams.get("city");
+        const district = parsedUrl.searchParams.get("district");
+        const orParam = parsedUrl.searchParams.get("or");
 
-        if (ownerId && ownerId !== `eq.${state.business.owner_id}`) {
-          sendJson(200, []);
-          return;
+        let items = [...state.businesses];
+
+        if (id) {
+          if (id.startsWith("eq.")) {
+            items = items.filter((b) => b.id === id.slice(3));
+          }
         }
-        if (id && id !== `eq.${state.business.id}`) {
-          sendJson(200, []);
-          return;
+        if (slug) {
+          if (slug.startsWith("eq.")) {
+            items = items.filter((b) => b.slug === slug.slice(3));
+          }
         }
-        if (slug && slug !== `eq.${state.business.slug}`) {
-          sendJson(200, []);
-          return;
+        if (ownerId) {
+          if (ownerId.startsWith("eq.")) {
+            items = items.filter((b) => b.owner_id === ownerId.slice(3));
+          } else if (ownerId.startsWith("in.(")) {
+            const inside = ownerId.slice(4, -1);
+            const ids = inside.split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
+            items = items.filter((b) => b.owner_id && ids.includes(b.owner_id));
+          }
+        }
+        if (isActive) {
+          if (isActive === "eq.true") items = items.filter((b) => b.is_active === true);
+          else if (isActive === "eq.false") items = items.filter((b) => b.is_active === false);
+        }
+        if (subStatus) {
+          if (subStatus.startsWith("eq.")) {
+            items = items.filter((b) => b.subscription_status === subStatus.slice(3));
+          } else if (subStatus.startsWith("neq.")) {
+            items = items.filter((b) => b.subscription_status !== subStatus.slice(4));
+          }
+        }
+        const andParam = parsedUrl.searchParams.get("and");
+        if (andParam) {
+          if (andParam.includes("subscription_status.neq.blocked")) {
+            items = items.filter((b) => b.subscription_status !== "blocked");
+          }
+          if (andParam.includes("subscription_expires_at.lte.")) {
+            const match = andParam.match(/subscription_expires_at\.lte\.([^,)]+)/);
+            if (match) {
+              const time = Date.parse(match[1]);
+              items = items.filter(
+                (b) =>
+                  !b.subscription_expires_at || Date.parse(b.subscription_expires_at) <= time,
+              );
+            }
+          }
+        }
+        const subExpiresAtList = parsedUrl.searchParams.getAll("subscription_expires_at");
+        for (const subExpiresAt of subExpiresAtList) {
+          if (subExpiresAt.startsWith("gt.")) {
+            const time = Date.parse(subExpiresAt.slice(3));
+            items = items.filter((b) => b.subscription_expires_at && Date.parse(b.subscription_expires_at) > time);
+          } else if (subExpiresAt.startsWith("lte.")) {
+            const time = Date.parse(subExpiresAt.slice(4));
+            items = items.filter((b) => b.subscription_expires_at && Date.parse(b.subscription_expires_at) <= time);
+          }
+        }
+        const createdAtList = parsedUrl.searchParams.getAll("created_at");
+        for (const createdAt of createdAtList) {
+          if (createdAt.startsWith("gte.")) {
+            const time = Date.parse(createdAt.slice(4));
+            items = items.filter((b) => Date.parse(b.created_at) >= time);
+          } else if (createdAt.startsWith("lte.")) {
+            const time = Date.parse(createdAt.slice(4));
+            items = items.filter((b) => Date.parse(b.created_at) <= time);
+          }
+        }
+        if (city && city.startsWith("eq.")) {
+          items = items.filter((b) => b.city?.toLowerCase() === city.slice(3).toLowerCase());
+        }
+        if (district && district.startsWith("eq.")) {
+          items = items.filter((b) => b.district?.toLowerCase() === district.slice(3).toLowerCase());
+        }
+        if (orParam?.startsWith("(") && orParam.endsWith(")")) {
+          const terms = orParam.slice(1, -1).split(",").map((s) => s.trim());
+          const queryMatches = terms
+            .map((term) => {
+              const match = term.match(/^([a-z_]+)\.ilike\.(.*)$/);
+              if (!match) return null;
+              const field = match[1];
+              let pattern = decodeURIComponent(match[2]);
+              pattern = pattern.replace(/^["']|["']$/g, "").replace(/^[%*]+|[%*]+$/g, "");
+              return { field, query: pattern.toLowerCase() };
+            })
+            .filter(Boolean);
+
+          if (queryMatches.length > 0) {
+            items = items.filter((b) => {
+              return queryMatches.some((qm) => {
+                const val = (b as Record<string, unknown>)[qm!.field];
+                return typeof val === "string" && val.toLowerCase().includes(qm!.query);
+              });
+            });
+          }
         }
 
-        sendJson(200, [state.business]);
+        const order = parsedUrl.searchParams.get("order");
+        if (order) {
+          if (order.includes("created_at.desc")) {
+            items.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+          } else if (order.includes("name.asc")) {
+            items.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+          }
+        }
+
+        return items;
+      }
+
+      if (method === "HEAD") {
+        const filtered = filterBusinesses();
+        const count = filtered.length;
+        res.writeHead(200, {
+          "Content-Range": `0-0/${count}`,
+          "Range-Unit": "items",
+        });
+        res.end();
+        return;
+      }
+
+      if (method === "GET") {
+        const filtered = filterBusinesses();
+        const total = filtered.length;
+        let from = 0;
+        let to = total > 0 ? total - 1 : 0;
+
+        const rangeHeader = req.headers.range;
+        if (rangeHeader) {
+          const match = rangeHeader.match(/(\d+)-(\d+)/);
+          if (match) {
+            from = parseInt(match[1], 10);
+            to = parseInt(match[2], 10);
+          }
+        }
+
+        const paged = filtered.slice(from, to + 1);
+        res.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Range": `${from}-${Math.min(to, Math.max(0, total - 1))}/${total}`,
+          "Range-Unit": "items",
+        });
+        res.end(JSON.stringify(paged));
         return;
       }
 
       if (method === "PATCH") {
-        const id = parsedUrl.searchParams.get("id");
-        if (id && id !== `eq.${state.business.id}`) {
-          sendJson(404, { message: "Business not found" });
+        const idParam = parsedUrl.searchParams.get("id");
+        const updatedAtParam = parsedUrl.searchParams.get("updated_at");
+
+        const targetId = idParam?.startsWith("eq.") ? idParam.slice(3) : null;
+        const targetBiz = state.businesses.find((b) => b.id === targetId);
+
+        if (!targetBiz) {
+          sendJson(200, []);
           return;
         }
 
+        if (updatedAtParam?.startsWith("eq.")) {
+          const expected = decodeURIComponent(updatedAtParam.slice(3));
+          if (targetBiz.updated_at !== expected) {
+            sendJson(200, []);
+            return;
+          }
+        }
+
         const body = (await readBody<Partial<FixtureBusiness>>()) || {};
-        state.business = {
-          ...state.business,
+        const updatedBiz: FixtureBusiness = {
+          ...targetBiz,
           ...body,
           updated_at: new Date().toISOString(),
         };
 
+        const idx = state.businesses.findIndex((b) => b.id === targetBiz.id);
+        if (idx !== -1) state.businesses[idx] = updatedBiz;
+        if (state.business.id === updatedBiz.id) state.business = updatedBiz;
+
         const prefer = req.headers.prefer || "";
         if (prefer.includes("return=representation")) {
-          sendJson(200, [state.business]);
+          sendJson(200, [updatedBiz]);
           return;
         }
         res.writeHead(204);
@@ -327,6 +621,20 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
 
     // --- PRODUCTS ---
     if (pathname === "/rest/v1/products") {
+      if (method === "HEAD") {
+        const businessId = parsedUrl.searchParams.get("business_id");
+        let count = state.products.length;
+        if (businessId?.startsWith("eq.")) {
+          count = state.products.filter((p) => p.business_id === businessId.slice(3)).length;
+        }
+        res.writeHead(200, {
+          "Content-Range": `0-0/${count}`,
+          "Range-Unit": "items",
+        });
+        res.end();
+        return;
+      }
+
       if (method === "GET") {
         const idParam = parsedUrl.searchParams.get("id");
         if (idParam?.startsWith("eq.")) {
@@ -523,6 +831,20 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
 
     // --- ORDERS ---
     if (pathname === "/rest/v1/orders") {
+      if (method === "HEAD") {
+        const businessIdParam = parsedUrl.searchParams.get("business_id");
+        let count = state.orders.length;
+        if (businessIdParam?.startsWith("eq.")) {
+          count = state.orders.filter((o) => o.business_id === businessIdParam.slice(3)).length;
+        }
+        res.writeHead(200, {
+          "Content-Range": `0-0/${count}`,
+          "Range-Unit": "items",
+        });
+        res.end();
+        return;
+      }
+
       if (method === "GET") {
         const idParam = parsedUrl.searchParams.get("id");
         if (idParam?.startsWith("eq.")) {
@@ -765,6 +1087,218 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
           delivered_revenue: deliveredRevenue,
         },
       ]);
+      return;
+    }
+
+    // --- ADMIN AUDIT LOGS ---
+    if (pathname === "/rest/v1/admin_audit_logs" && method === "GET") {
+      let items = [...state.adminAuditLogs];
+      const businessId = parsedUrl.searchParams.get("business_id");
+      if (businessId?.startsWith("eq.")) {
+        const id = businessId.slice(3);
+        items = items.filter((log) => log.business_id === id);
+      }
+
+      const order = parsedUrl.searchParams.get("order");
+      if (order?.includes("created_at.desc")) {
+        items.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+      }
+
+      const limit = parsedUrl.searchParams.get("limit");
+      if (limit) {
+        const num = parseInt(limit, 10);
+        if (!isNaN(num) && num > 0) {
+          items = items.slice(0, num);
+        }
+      }
+
+      sendJson(200, items);
+      return;
+    }
+
+    // --- ADMIN CRITICAL ACTION RPC ---
+    if (pathname === "/rest/v1/rpc/admin_apply_business_action" && method === "POST") {
+      const body = await readBody<{
+        p_business_id: string;
+        p_action: string;
+        p_expected_updated_at: string;
+        p_actor_user_id: string;
+        p_actor_email: string;
+        p_extension_days?: number | null;
+        p_expires_on?: string | null;
+      }>();
+
+      if (!body) {
+        sendJson(400, { message: "Body required" });
+        return;
+      }
+
+      const {
+        p_business_id,
+        p_action,
+        p_expected_updated_at,
+        p_actor_user_id,
+        p_actor_email,
+        p_extension_days,
+        p_expires_on,
+      } = body;
+
+      const business = state.businesses.find((b) => b.id === p_business_id);
+      if (!business) {
+        sendJson(200, { ok: false, code: "NOT_FOUND" });
+        return;
+      }
+
+      if (business.updated_at !== p_expected_updated_at) {
+        sendJson(200, { ok: false, code: "CONFLICT" });
+        return;
+      }
+
+      const validActions = [
+        "deactivate",
+        "reactivate",
+        "block",
+        "reset_subscription",
+        "extend_subscription",
+        "set_subscription_date",
+      ];
+      if (!p_action || !validActions.includes(p_action)) {
+        sendJson(200, { ok: false, code: "INVALID_STATE" });
+        return;
+      }
+
+      const beforeState: FixtureAdminAuditSnapshot = {
+        is_active: Boolean(business.is_active),
+        subscription_status: (business.subscription_status || "expired") as "active" | "expired" | "blocked",
+        subscription_started_at: business.subscription_started_at || null,
+        subscription_expires_at: business.subscription_expires_at || null,
+        updated_at: business.updated_at,
+      };
+
+      const now = new Date();
+      let auditAction = "";
+
+      if (p_action === "deactivate") {
+        if (!business.is_active) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        business.is_active = false;
+        auditAction = "business.deactivated";
+      } else if (p_action === "reactivate") {
+        if (
+          business.is_active ||
+          business.subscription_status === "blocked" ||
+          (business.subscription_status !== "active" && business.subscription_status !== "expired") ||
+          !business.subscription_expires_at ||
+          Date.parse(business.subscription_expires_at) <= now.getTime()
+        ) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        business.is_active = true;
+        if (business.subscription_status === "expired") {
+          auditAction = "legacy_subscription.recovered";
+        } else {
+          auditAction = "business.reactivated";
+        }
+        business.subscription_status = "active";
+      } else if (p_action === "block") {
+        if (business.subscription_status === "blocked") {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        business.is_active = false;
+        business.subscription_status = "blocked";
+        auditAction = "business.blocked";
+      } else if (p_action === "reset_subscription") {
+        if (
+          !business.is_active &&
+          business.subscription_status === "expired" &&
+          !business.subscription_started_at &&
+          !business.subscription_expires_at
+        ) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        business.is_active = false;
+        business.subscription_status = "expired";
+        business.subscription_started_at = null;
+        business.subscription_expires_at = null;
+        auditAction = "subscription.reset";
+      } else if (p_action === "extend_subscription") {
+        const allowedDays = [30, 60, 90, 180, 365];
+        if (!p_extension_days || !allowedDays.includes(p_extension_days) || p_expires_on) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        const newExpiry = new Date(now.getTime() + p_extension_days * 24 * 60 * 60 * 1000);
+        business.is_active = true;
+        business.subscription_status = "active";
+        business.subscription_started_at = now.toISOString();
+        business.subscription_expires_at = newExpiry.toISOString();
+        auditAction = "subscription.extended";
+      } else if (p_action === "set_subscription_date") {
+        if (!p_expires_on || p_extension_days) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        // Validate date
+        const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p_expires_on);
+        if (!dateMatch) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        const expiryDate = new Date(`${p_expires_on}T23:59:59.999+03:00`);
+        if (expiryDate.getTime() <= now.getTime()) {
+          sendJson(200, { ok: false, code: "INVALID_STATE" });
+          return;
+        }
+        business.is_active = true;
+        business.subscription_status = "active";
+        business.subscription_started_at = now.toISOString();
+        business.subscription_expires_at = expiryDate.toISOString();
+        auditAction = "subscription.date_changed";
+      }
+
+      business.updated_at = new Date().toISOString();
+      if (state.business.id === business.id) {
+        state.business = business;
+      }
+
+      const afterState: FixtureAdminAuditSnapshot = {
+        is_active: Boolean(business.is_active),
+        subscription_status: (business.subscription_status || "expired") as "active" | "expired" | "blocked",
+        subscription_started_at: business.subscription_started_at || null,
+        subscription_expires_at: business.subscription_expires_at || null,
+        updated_at: business.updated_at,
+      };
+
+      const auditLogEntry: FixtureAdminAuditLog = {
+        id: `00000000-0000-4000-8000-00000000${String(state.adminAuditLogs.length + 5001).padStart(4, "0")}`,
+        business_id: business.id,
+        actor_user_id: p_actor_user_id || FIXTURE_ADMIN_USER_ID,
+        actor_email: p_actor_email || FIXTURE_ADMIN_USER_EMAIL,
+        action: auditAction,
+        before_state: beforeState,
+        after_state: afterState,
+        created_at: new Date().toISOString(),
+      };
+
+      state.adminAuditLogs.unshift(auditLogEntry);
+
+      sendJson(200, {
+        ok: true,
+        business: {
+          id: business.id,
+          isActive: business.is_active,
+          subscriptionStatus: business.subscription_status,
+          subscriptionStartedAt: business.subscription_started_at,
+          subscriptionExpiresAt: business.subscription_expires_at,
+          updatedAt: business.updated_at,
+        },
+        auditAction,
+      });
       return;
     }
 
