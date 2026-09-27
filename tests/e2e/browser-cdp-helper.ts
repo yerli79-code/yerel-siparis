@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 export interface NetworkLogEntry {
+  requestId: string;
   url: string;
   method: string;
   status?: number;
@@ -26,7 +27,9 @@ export interface BlockedRequestEntry {
 export function isAllowedUrl(url: string): boolean {
   if (url === "about:blank") return true;
   if (url.startsWith("data:")) return true;
-  if (url.startsWith("blob:")) return true;
+  if (url.startsWith("blob:")) {
+    return url.startsWith("blob:http://127.0.0.1:3100/") || url.startsWith("blob:http://127.0.0.1:4010/");
+  }
   try {
     const parsed = new URL(url);
     if (parsed.protocol === "http:") {
@@ -38,6 +41,16 @@ export function isAllowedUrl(url: string): boolean {
     return false;
   }
   return false;
+}
+
+export function shouldRewriteAdminOrigin(url: string, method: string, origin: string): boolean {
+  if (origin !== "http://127.0.0.1:3100" || !["POST", "PATCH", "PUT", "DELETE"].includes(method)) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" && parsed.hostname === "127.0.0.1" && parsed.port === "3100" && parsed.pathname.startsWith("/api/admin/");
+  } catch {
+    return false;
+  }
 }
 
 export class BrowserCDPClient {
@@ -131,7 +144,22 @@ export class BrowserCDPClient {
         const { requestId, request } = msg.params;
         const url = request.url as string;
         if (isAllowedUrl(url)) {
-          this.send("Fetch.continueRequest", { requestId }).catch(() => {});
+          let headers: Array<{ name: string; value: string }> | undefined;
+          if (request.headers) {
+            let modified = false;
+            headers = Object.entries(request.headers).map(([name, value]) => {
+              const strVal = String(value);
+              if (name.toLowerCase() === "origin" && shouldRewriteAdminOrigin(url, request.method, strVal)) {
+                modified = true;
+                return { name, value: "http://localhost:3100" };
+              }
+              return { name, value: strVal };
+            });
+            if (!modified) {
+              headers = undefined;
+            }
+          }
+          this.send("Fetch.continueRequest", headers ? { requestId, headers } : { requestId }).catch(() => {});
         } else {
           this.egressViolation = true;
           this.egressViolationUrl = url;
@@ -154,11 +182,7 @@ export class BrowserCDPClient {
           if (!url.startsWith("data:") && !url.startsWith("blob:")) {
             const parsed = new URL(url);
             this.observedHosts.add(parsed.host);
-            if (
-              parsed.hostname !== "127.0.0.1" ||
-              url.includes("supabase.co") ||
-              url.includes("yerelsiparis.com")
-            ) {
+            if (!isAllowedUrl(url)) {
               this.egressViolation = true;
               this.egressViolationUrl = url;
               console.error(`CRITICAL SAFETY ABORT: External egress detected to ${url}`);
@@ -166,6 +190,7 @@ export class BrowserCDPClient {
           }
         } catch {}
         this.networkLogs.push({
+          requestId: msg.params.requestId,
           url,
           method: req.method,
           host: url.startsWith("data:") ? "data:" : url.startsWith("blob:") ? "blob:" : new URL(url).host,
@@ -175,7 +200,7 @@ export class BrowserCDPClient {
       // Event: Network.responseReceived
       if (msg.method === "Network.responseReceived") {
         const resp = msg.params.response;
-        const entry = this.networkLogs.find((n) => n.url === resp.url);
+        const entry = this.networkLogs.findLast((n) => n.requestId === msg.params.requestId);
         if (entry) {
           entry.status = resp.status;
           entry.type = resp.mimeType;

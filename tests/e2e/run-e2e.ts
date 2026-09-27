@@ -175,6 +175,7 @@ export function createSanitizedChildEnv(
   // Explicitly inject ONLY safe local loopback values & synthetic Supabase application variables
   sanitized.NODE_ENV = "development";
   sanitized.PORT = String(NEXT_DEV_PORT);
+  sanitized.HOSTNAME = "127.0.0.1";
   sanitized.NO_PROXY = "127.0.0.1,localhost";
   sanitized.NEXT_TELEMETRY_DISABLED = "1";
 

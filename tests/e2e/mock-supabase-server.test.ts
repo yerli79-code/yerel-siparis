@@ -9,14 +9,20 @@ import {
 } from "./mock-supabase-server";
 import {
   FIXTURE_ACCESS_TOKEN,
+  FIXTURE_ADMIN_ACCESS_TOKEN,
+  FIXTURE_ADMIN_USER_EMAIL,
+  FIXTURE_ADMIN_USER_ID,
+  FIXTURE_ADMIN_USER_PASSWORD,
   FIXTURE_BUSINESS_ID,
+  FIXTURE_BUSINESS_2_ID,
+  FIXTURE_INACTIVE_ADMIN_EMAIL,
   FIXTURE_USER_EMAIL,
   FIXTURE_USER_ID,
   FIXTURE_USER_PASSWORD,
   STALE_ORDER_UPDATED_AT,
   STALE_PRODUCT_UPDATED_AT,
 } from "./fixtures";
-import { isAllowedUrl } from "./browser-cdp-helper";
+import { isAllowedUrl, shouldRewriteAdminOrigin } from "./browser-cdp-helper";
 import {
   ALLOWED_PARENT_SYSTEM_ENV_VARS,
   createSanitizedChildEnv,
@@ -535,6 +541,7 @@ test("27. hostile parent env containment and explicit allowlist test", () => {
   assert.equal(sanitized.SUPABASE_BACKUP_SECRET_KEY, "e2e_local_dummy_backup_secret");
   assert.equal(sanitized.NO_PROXY, "127.0.0.1,localhost");
   assert.equal(sanitized.NEXT_TELEMETRY_DISABLED, "1");
+  assert.equal(sanitized.HOSTNAME, "127.0.0.1");
 
   // Must pass real validateEffectiveChildEnv
   assert.equal(validateEffectiveChildEnv(sanitized), undefined);
@@ -622,7 +629,203 @@ test("30. browser egress pre-network interceptor allows only safe loopback targe
   assert.equal(isAllowedUrl("http://127.0.0.1:8080/evil"), false);
   assert.equal(isAllowedUrl("http://127.0.0.1:5432/"), false);
   assert.equal(isAllowedUrl("http://localhost:3100/"), false);
+  assert.equal(isAllowedUrl("blob:http://localhost:3100/uuid"), false);
+  assert.equal(isAllowedUrl("blob:https://yerelsiparis.com/uuid"), false);
+  assert.equal(isAllowedUrl("blob:http://127.0.0.1:9222/uuid"), false);
   assert.equal(isAllowedUrl("ftp://127.0.0.1:3100"), false);
+});
+
+test("30a. Admin Origin normalization is limited to local Admin mutations", () => {
+  const origin = "http://127.0.0.1:3100";
+  assert.equal(shouldRewriteAdminOrigin("http://127.0.0.1:3100/api/admin/auth/login", "POST", origin), true);
+  assert.equal(shouldRewriteAdminOrigin("http://127.0.0.1:3100/api/admin/businesses/123", "PATCH", origin), true);
+  assert.equal(shouldRewriteAdminOrigin("http://127.0.0.1:3100/api/admin/auth/session", "GET", origin), false);
+  assert.equal(shouldRewriteAdminOrigin("http://127.0.0.1:4010/api/admin/auth/login", "POST", origin), false);
+  assert.equal(shouldRewriteAdminOrigin("http://localhost:3100/api/admin/auth/login", "POST", origin), false);
+  assert.equal(shouldRewriteAdminOrigin("https://yerelsiparis.com/api/admin/auth/login", "POST", origin), false);
+  assert.equal(shouldRewriteAdminOrigin("http://127.0.0.1:3100/api/admin/auth/login", "POST", "https://evil.example"), false);
+  assert.equal(shouldRewriteAdminOrigin("http://127.0.0.1:3100/api/adminish", "POST", origin), false);
+});
+
+test("31. synthetic Admin auth succeeds via /auth/v1/token and /auth/v1/user", async () => {
+  const loginRes = await fetch(`${mockServer.baseUrl}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: FIXTURE_ADMIN_USER_EMAIL,
+      password: FIXTURE_ADMIN_USER_PASSWORD,
+    }),
+  });
+  assert.equal(loginRes.status, 200);
+  const loginData = (await loginRes.json()) as { access_token: string; user: { id: string; email: string } };
+  assert.equal(loginData.access_token, FIXTURE_ADMIN_ACCESS_TOKEN);
+  assert.equal(loginData.user.id, FIXTURE_ADMIN_USER_ID);
+  assert.equal(loginData.user.email, FIXTURE_ADMIN_USER_EMAIL);
+
+  const userRes = await fetch(`${mockServer.baseUrl}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${FIXTURE_ADMIN_ACCESS_TOKEN}` },
+  });
+  assert.equal(userRes.status, 200);
+  const userData = (await userRes.json()) as { id: string; email: string };
+  assert.equal(userData.id, FIXTURE_ADMIN_USER_ID);
+  assert.equal(userData.email, FIXTURE_ADMIN_USER_EMAIL);
+});
+
+test("32. non-admin synthetic identity is denied from admin_users", async () => {
+  const res = await fetch(
+    `${mockServer.baseUrl}/rest/v1/admin_users?select=id,email,is_active&email=eq.${FIXTURE_USER_EMAIL}&is_active=eq.true`,
+  );
+  assert.equal(res.status, 200);
+  const rows = (await res.json()) as unknown[];
+  assert.equal(rows.length, 0);
+});
+
+test("33. inactive admin identity is denied from active admin_users check", async () => {
+  // Found in admin_users if unfiltered
+  const allRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/admin_users?select=id,email,is_active&email=eq.${FIXTURE_INACTIVE_ADMIN_EMAIL}`,
+  );
+  assert.equal(allRes.status, 200);
+  const allRows = (await allRes.json()) as { is_active: boolean }[];
+  assert.equal(allRows.length, 1);
+  assert.equal(allRows[0].is_active, false);
+
+  // Filtered by is_active=eq.true returns empty
+  const activeRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/admin_users?select=id,email,is_active&email=eq.${FIXTURE_INACTIVE_ADMIN_EMAIL}&is_active=eq.true`,
+  );
+  assert.equal(activeRes.status, 200);
+  const activeRows = (await activeRes.json()) as unknown[];
+  assert.equal(activeRows.length, 0);
+});
+
+test("34. Admin list and profiles mock contracts match production access patterns", async () => {
+  // HEAD count
+  const headRes = await fetch(`${mockServer.baseUrl}/rest/v1/businesses?is_active=eq.true`, {
+    method: "HEAD",
+  });
+  assert.equal(headRes.status, 200);
+  const cr = headRes.headers.get("content-range");
+  assert(cr?.startsWith("0-0/"));
+
+  // GET businesses with pagination
+  const getRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/businesses?order=created_at.desc`,
+    {
+      headers: { Range: "0-2" },
+    },
+  );
+  assert.equal(getRes.status, 200);
+  const bizRows = (await getRes.json()) as { id: string }[];
+  assert.equal(bizRows.length, 3);
+  assert(getRes.headers.get("content-range")?.includes("/"));
+
+  // Profiles lookup by owner ids
+  const profilesRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/profiles?select=id,email&id=in.(${FIXTURE_USER_ID})`,
+  );
+  assert.equal(profilesRes.status, 200);
+  const profiles = (await profilesRes.json()) as { id: string; email: string }[];
+  assert.equal(profiles.length, 1);
+  assert.equal(profiles[0].email, FIXTURE_USER_EMAIL);
+});
+
+test("35. optimistic concurrency conflict on businesses PATCH can be simulated", async () => {
+  const state = mockServer.getState();
+  const target = state.businesses.find((b) => b.id === FIXTURE_BUSINESS_ID)!;
+  const currentUpdatedAt = target.updated_at;
+  const staleUpdatedAt = "2020-01-01T00:00:00.000Z";
+
+  // Stale patch returns [] (0 rows updated)
+  const staleRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/businesses?id=eq.${FIXTURE_BUSINESS_ID}&updated_at=eq.${encodeURIComponent(staleUpdatedAt)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+      body: JSON.stringify({ name: "Conflict Attempt" }),
+    },
+  );
+  assert.equal(staleRes.status, 200);
+  const staleBody = (await staleRes.json()) as unknown[];
+  assert.equal(staleBody.length, 0);
+
+  // Fresh patch succeeds and updates updatedAt
+  const freshRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/businesses?id=eq.${FIXTURE_BUSINESS_ID}&updated_at=eq.${encodeURIComponent(currentUpdatedAt)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+      body: JSON.stringify({ name: "Updated Kebap Salonu" }),
+    },
+  );
+  assert.equal(freshRes.status, 200);
+  const freshBody = (await freshRes.json()) as { name: string; updated_at: string }[];
+  assert.equal(freshBody.length, 1);
+  assert.equal(freshBody[0].name, "Updated Kebap Salonu");
+  assert.notEqual(freshBody[0].updated_at, currentUpdatedAt);
+});
+
+test("36. critical action mutation changes only target business", async () => {
+  const state = mockServer.getState();
+  const target = state.businesses.find((b) => b.id === FIXTURE_BUSINESS_ID)!;
+  const other = state.businesses.find((b) => b.id === FIXTURE_BUSINESS_2_ID)!;
+  const otherBeforeActive = other.is_active;
+
+  const res = await fetch(`${mockServer.baseUrl}/rest/v1/rpc/admin_apply_business_action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      p_business_id: target.id,
+      p_action: "deactivate",
+      p_expected_updated_at: target.updated_at,
+      p_actor_user_id: FIXTURE_ADMIN_USER_ID,
+      p_actor_email: FIXTURE_ADMIN_USER_EMAIL,
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  const result = (await res.json()) as { ok: boolean; business: { isActive: boolean } };
+  assert.equal(result.ok, true);
+  assert.equal(result.business.isActive, false);
+
+  // Target business in state is deactivated
+  assert.equal(target.is_active, false);
+  // Other business untouched
+  assert.equal(other.is_active, otherBeforeActive);
+});
+
+test("37. critical action RPC produces structured audit event in admin_audit_logs", async () => {
+  const auditRes = await fetch(
+    `${mockServer.baseUrl}/rest/v1/admin_audit_logs?business_id=eq.${FIXTURE_BUSINESS_ID}&order=created_at.desc&limit=5`,
+  );
+  assert.equal(auditRes.status, 200);
+  const logs = (await auditRes.json()) as { action: string; actor_email: string; business_id: string }[];
+  assert(logs.length > 0);
+  assert.equal(logs[0].action, "business.deactivated");
+  assert.equal(logs[0].actor_email, FIXTURE_ADMIN_USER_EMAIL);
+  assert.equal(logs[0].business_id, FIXTURE_BUSINESS_ID);
+});
+
+test("38. critical action RPC rejects stale expected_updated_at with CONFLICT", async () => {
+  const state = mockServer.getState();
+  const target = state.businesses.find((b) => b.id === FIXTURE_BUSINESS_ID)!;
+
+  const res = await fetch(`${mockServer.baseUrl}/rest/v1/rpc/admin_apply_business_action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      p_business_id: target.id,
+      p_action: "reactivate",
+      p_expected_updated_at: "2019-01-01T00:00:00.000Z",
+      p_actor_user_id: FIXTURE_ADMIN_USER_ID,
+      p_actor_email: FIXTURE_ADMIN_USER_EMAIL,
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  const result = (await res.json()) as { ok: boolean; code: string };
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "CONFLICT");
 });
 
 test("teardown: close mock supabase server", async () => {
