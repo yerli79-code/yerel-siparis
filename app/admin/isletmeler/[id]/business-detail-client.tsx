@@ -24,7 +24,6 @@ import {
   AdminBusinessRequestError,
   blockAdminBusiness,
   deactivateAdminBusiness,
-  deleteBusinessInSupabase,
   extendAdminBusinessSubscription,
   fetchAdminBusinessAuditHistory,
   fetchAdminBusinessDetail,
@@ -469,18 +468,6 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
     }
   }
 
-  async function deleteBusiness() {
-    if (!legacyBusiness?.id || busy) return;
-    setBusy(true);
-    try {
-      await deleteBusinessInSupabase(legacyBusiness.id);
-      router.push("/admin?section=businesses");
-    } catch {
-      setMutationError("İşletme silinemedi. Lütfen tekrar deneyin.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function runConfirmedAction() {
     if (!confirmAction || busy) return;
@@ -866,7 +853,6 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
                 ) : null}
                 <button disabled={busy || conflict} type="button" onClick={() => setConfirmAction({ title: "Engelle", description: "İşletme engellenecek ve erişimi kapatılacak.", critical: true, run: () => commitCriticalAction(blockAdminBusiness, `${legacyBusiness.name} engellendi.`) })}>Engelle</button>
                 <button disabled={busy || conflict} type="button" onClick={() => setConfirmAction({ title: "Aboneliği sıfırla", description: "Abonelik tarihleri temizlenecek ve işletme pasife alınacak.", critical: true, run: () => commitCriticalAction(resetAdminBusinessSubscription, `${legacyBusiness.name} aboneliği sıfırlandı.`) })}>Aboneliği Sıfırla</button>
-                <button disabled={busy} type="button" onClick={() => setConfirmAction({ title: "Kalıcı sil", description: "Bu işlem işletme ve ürün kayıtlarını geri alınamaz şekilde kaldıracak.", critical: true, run: deleteBusiness })}>Kalıcı Sil</button>
               </div>
             </section>
           </>

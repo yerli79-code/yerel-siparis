@@ -349,14 +349,14 @@ test("adds no business delete guard or audit foreign key in this phase", () => {
   assert.doesNotMatch(normalizedSql, /references public\.businesses/);
 });
 
-test("keeps the legacy hard-delete route and UI in this phase", () => {
+test("keeps the legacy hard-delete route while UI action is retired", () => {
   assert.equal(existsSync(resolve("app/api/admin/delete-business/route.ts")), true);
   const detailClient = readFileSync(
     resolve("app/admin/isletmeler/[id]/business-detail-client.tsx"),
     "utf8",
   );
-  assert.match(detailClient, /Kalıcı Sil/);
-  assert.match(detailClient, /deleteBusinessInSupabase/);
+  assert.doesNotMatch(detailClient, /Kalıcı Sil/);
+  assert.doesNotMatch(detailClient, /deleteBusinessInSupabase/);
 });
 
 test("ships a disposable-only SQL integration suite for every required DB scenario", () => {

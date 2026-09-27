@@ -36,17 +36,6 @@ export type AdminCreateBusinessInput = {
   isActive: boolean;
 };
 
-export type AdminUpdateBusinessInput = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  whatsappOrderNumber: string;
-  city: string;
-  district: string;
-  neighborhood: string;
-  address: string;
-};
 
 type SupabaseBusinessRow = {
   id?: string;
@@ -471,67 +460,4 @@ export async function createBusinessWithAccount(
   }
 
   return mergeSupabaseBusiness(createdRow);
-}
-
-export type DeleteBusinessResult = {
-  deleted: boolean;
-  notFound?: boolean;
-  message?: string;
-};
-
-export async function deleteBusinessInSupabase(
-  businessId: string,
-): Promise<DeleteBusinessResult> {
-  if (!businessId.trim()) {
-    throw new Error("Silinecek işletme ID bilgisi eksik.");
-  }
-
-  const response = await requestAdminApi("/api/admin/delete-business", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ businessId }),
-  });
-  const text = await response.text();
-  const body = parseSupabaseBody(text);
-
-  if (!response.ok) {
-    throw new Error("İşletme silinemedi. Lütfen tekrar deneyin.");
-  }
-
-  return {
-    deleted: Boolean(body?.deleted),
-    notFound: Boolean(body?.notFound),
-    message: body?.message,
-  };
-}
-
-export async function updateBusinessInSupabase(
-  input: AdminUpdateBusinessInput,
-) {
-  if (!input.id.trim()) {
-    throw new Error("Guncellenecek isletme ID bilgisi eksik.");
-  }
-
-  const response = await requestAdminApi("/api/admin/update-business", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  const text = await response.text();
-  const body = parseSupabaseBody(text);
-
-  if (!response.ok) {
-    throw new Error("İşletme kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.");
-  }
-
-  const updatedRow = body?.business as SupabaseBusinessRow | undefined;
-  if (!updatedRow?.slug) {
-    throw new Error("Isletme guncellendi ancak kayit bilgisi donmedi.");
-  }
-
-  return mergeSupabaseBusiness(updatedRow);
 }

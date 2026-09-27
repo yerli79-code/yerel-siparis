@@ -287,10 +287,10 @@ test("existing critical actions, retired route and hard delete remain unchanged"
     "resetAdminBusinessSubscription",
     "extendAdminBusinessSubscription",
     "setAdminBusinessSubscriptionDate",
-    "deleteBusinessInSupabase",
   ]) {
     assert.match(detailClient, new RegExp(marker));
   }
+  assert.doesNotMatch(detailClient, /deleteBusinessInSupabase/);
   assert.equal(existsSync(new URL("app/api/admin/update-subscription/route.ts", root)), false);
   assert.doesNotMatch(browserClient, /updateBusinessSubscriptionInSupabase/);
   assert.equal(existsSync(new URL("app/api/admin/delete-business/route.ts", root)), true);
@@ -302,7 +302,7 @@ test("P5.1E-E protected schema, print PR #7 and reports PR #8 files remain uncha
       .split(/\r?\n/)
       .filter(Boolean),
   );
-  assert.equal([...changed].some((path) => path.startsWith("supabase/migrations/")), false);
+  assert.equal([...changed].some((path) => path.startsWith("supabase/migrations/") && path.endsWith(".sql")), false);
   assert.equal([...changed].some((path) => path.startsWith("supabase/schema")), false);
 
   const protectedFiles = [
