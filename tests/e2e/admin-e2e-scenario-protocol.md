@@ -4,7 +4,7 @@ This harness runs only on the developer machine with synthetic identities and a 
 
 ## Scope and result semantics
 
-The runner executes 50 browser scenarios in 10 suites: Authentication (8), Overview (4), Business List (6), Business Detail (5), Safe Profile Update (4), Critical Operations (7), Phase 1 Regression (4), Responsive Viewports (5), Accessibility (4), and Network & Console (3). The final clean run returned 50 PASS, 0 FAIL, 0 SKIP, and 0 INCONCLUSIVE.
+The runner executes 51 browser scenarios in 11 suites: Authentication (8), Overview (4), Business List (6), Business Detail (5), Safe Profile Update (4), Critical Operations (7), Phase 1 Regression (4), Responsive Viewports (5), Accessibility (4), Business Creation (1), and Network & Console (3). The final clean run returned 51 PASS, 0 FAIL, 0 SKIP, and 0 INCONCLUSIVE. Business Creation uses an authenticated browser request to create a synthetic owner and business against the local mock, then verifies list/detail visibility and one `business.created` timeline entry with an initial state.
 
 `PASS` means the browser executed the scenario and its asserted result was observed. `FAIL` means an assertion failed or the scenario raised an exception. `SKIP — TOOL LIMITATION` means the runner could not execute a check because of a genuine tool limitation; it is never counted as PASS. `INCONCLUSIVE` means the evidence did not support a determination. The final run had no skips or inconclusive checks.
 

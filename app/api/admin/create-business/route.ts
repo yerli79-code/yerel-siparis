@@ -1,6 +1,11 @@
 import { isValidStandardBusinessLocation } from "../../../../lib/locations/server";
 import { requireAdmin } from "../../../../lib/admin/auth";
 import {
+  createBusinessWithAudit,
+  reconcileBusinessCreation,
+} from "../../../../lib/admin/business-creation";
+import { AdminError } from "../../../../lib/admin/errors";
+import {
   adminServiceFetch,
   readJsonBody as readJson,
 } from "../../../../lib/admin/dal";
@@ -86,7 +91,7 @@ async function checkSlugAvailability(slug: string) {
     throw new Error(safeSupabaseError("Slug kontrolü yapılamadı", body));
   }
   if (Array.isArray(body) && body.length > 0) {
-    throw new Error("Bu slug zaten kullanılıyor.");
+    throw new AdminError("DUPLICATE_SLUG", "Bu slug zaten kullanılıyor.", 409);
   }
 }
 
@@ -173,51 +178,27 @@ async function deleteProfile(userId: string) {
   }
 }
 
-async function createBusiness(
-  payload: CreateBusinessPayload,
-  ownerId: string,
-) {
-  const subscriptionStatus = payload.subscriptionStatus || "active";
-  const response = await adminServiceFetch("/rest/v1/businesses?select=id,owner_id,slug,name,description,whatsapp_order_number,created_at,category,city,district,neighborhood,address,delivery_status,logo_text,subscription_status,subscription_started_at,subscription_expires_at,is_active", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify({
-      slug: payload.slug,
-      name: payload.name,
-      description: payload.description || "",
-      whatsapp_order_number: payload.whatsappOrderNumber || "",
-      city: payload.city || "",
-      district: payload.district || "",
-      neighborhood: payload.neighborhood || "",
-      address: payload.address || "",
-      owner_id: ownerId,
-      subscription_status: subscriptionStatus,
-      subscription_started_at: payload.subscriptionStartedAt || null,
-      subscription_expires_at: payload.subscriptionExpiresAt || null,
-      is_active: typeof payload.isActive === "boolean" ? payload.isActive : false,
-    }),
-  });
-  const body = await readJson(response);
-
-  if (!response.ok) {
-    throw new Error(safeSupabaseError("İşletme kaydı oluşturulamadı", body));
+async function compensateOwner(ownerId: string, error: AdminError): Promise<never> {
+  let rollbackMessage = "";
+  try {
+    await deleteProfile(ownerId);
+  } catch {
+    rollbackMessage +=
+      " Oluşturulan profil kaydı otomatik geri silinemedi; Supabase profiles tablosunu manuel kontrol edin.";
   }
-
-  const createdBusiness = Array.isArray(body) ? body[0] : body;
-  if (!createdBusiness?.slug) {
-    throw new Error("İşletme kaydı oluşturuldu ancak kayıt bilgisi dönmedi.");
+  try {
+    await deleteOwnerUser(ownerId);
+  } catch {
+    rollbackMessage +=
+      " Oluşturulan Auth kullanıcısı otomatik geri silinemedi; Supabase Auth üzerinden manuel kontrol edin.";
   }
-
-  return createdBusiness;
+  throw new AdminError(error.code, `${error.message}${rollbackMessage}`, error.status);
 }
 
 export async function POST(request: Request) {
   try {
     assertSameOriginAdminMutation(request);
-    await requireAdmin();
+    const actor = await requireAdmin();
 
     let payload: CreateBusinessPayload;
     try {
@@ -243,37 +224,59 @@ export async function POST(request: Request) {
     if (password.length < 6) {
       return jsonError("Geçici şifre en az 6 karakter olmalıdır.");
     }
+    if (payload.subscriptionStatus && !["active", "expired", "blocked"].includes(payload.subscriptionStatus)) {
+      return jsonError("Geçersiz abonelik durumu.");
+    }
 
     await checkSlugAvailability(payload.slug.trim());
 
     const ownerId = await createOwnerUser(email, password);
-
     try {
       await upsertProfile(
         ownerId,
         email,
         payload.name.trim(),
       );
-      const business = await createBusiness(payload, ownerId);
-      return adminJson({ business });
     } catch (error) {
-      let rollbackMessage = "";
-      try {
-        await deleteProfile(ownerId);
-      } catch {
-        rollbackMessage +=
-          " Oluşturulan profil kaydı otomatik geri silinemedi; Supabase profiles tablosunu manuel kontrol edin.";
-      }
-      try {
-        await deleteOwnerUser(ownerId);
-      } catch {
-        rollbackMessage +=
-          " Oluşturulan Auth kullanıcısı otomatik geri silinemedi; Supabase Auth üzerinden manuel kontrol edin.";
-      }
-      const message =
-        error instanceof Error ? error.message : "İşletme kaydı oluşturulamadı.";
-      throw new Error(`${message}${rollbackMessage}`);
+      const message = error instanceof Error ? error.message : "Profil kaydı oluşturulamadı.";
+      return await compensateOwner(ownerId, new AdminError("ADMIN_UNAVAILABLE", message, 503));
     }
+
+    const businessId = crypto.randomUUID();
+    const outcome = await createBusinessWithAudit({
+      businessId,
+      ownerId,
+      slug: payload.slug.trim(),
+      name: payload.name.trim(),
+      description: payload.description || "",
+      whatsappOrderNumber: payload.whatsappOrderNumber || "",
+      city: payload.city || "",
+      district: payload.district || "",
+      neighborhood: payload.neighborhood || "",
+      address: payload.address || "",
+      subscriptionStatus: payload.subscriptionStatus || "active",
+      subscriptionStartedAt: payload.subscriptionStartedAt || null,
+      subscriptionExpiresAt: payload.subscriptionExpiresAt || null,
+      isActive: typeof payload.isActive === "boolean" ? payload.isActive : false,
+      actor,
+    });
+    if (outcome.kind === "success") return adminJson({ business: outcome.business });
+    if (outcome.kind === "known-failure") {
+      return await compensateOwner(ownerId, outcome.error);
+    }
+
+    const reconciled = await reconcileBusinessCreation(businessId);
+    if (reconciled.kind === "committed") return adminJson({ business: reconciled.business });
+    if (reconciled.kind === "not-committed") {
+      return await compensateOwner(ownerId, new AdminError(
+        "ADMIN_UNAVAILABLE", "İşletme kaydı oluşturulamadı.", 503,
+      ));
+    }
+    throw new AdminError(
+      "ADMIN_UNAVAILABLE",
+      "İşletme oluşturma sonucu doğrulanamadı. Hesapları silmeden manuel inceleme gereklidir.",
+      503,
+    );
   } catch (error) {
     return adminErrorResponse(error, "İşletme kaydedilemedi.");
   }

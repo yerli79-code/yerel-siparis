@@ -57,7 +57,10 @@ function mapSnapshot(value: unknown): AdminBusinessAuditSnapshot | null {
 }
 
 function mapAuditRow(row: AuditRow): AdminBusinessAuditItem | null {
-  const before = mapSnapshot(row.before_state);
+  const before = row.action === "business.created"
+    ? (isRecord(row.before_state) && Object.keys(row.before_state).length === 0
+      ? null : undefined)
+    : mapSnapshot(row.before_state);
   const after = mapSnapshot(row.after_state);
   if (
     typeof row.id !== "string" ||
@@ -67,7 +70,8 @@ function mapAuditRow(row: AuditRow): AdminBusinessAuditItem | null {
     typeof row.actor_email !== "string" ||
     !row.actor_email.trim() ||
     !isTimestamp(row.created_at) ||
-    !before ||
+    before === undefined ||
+    (row.action !== "business.created" && !before) ||
     !after
   ) {
     return null;
