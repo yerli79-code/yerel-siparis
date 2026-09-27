@@ -252,6 +252,7 @@ test("browser DTO validator rejects extra PII and malformed snapshots", () => {
 
 test("all known actions have Turkish labels and unknown actions stay controlled", () => {
   const labels: Record<string, string> = {
+    "business.created": "İşletme oluşturuldu",
     "business.deactivated": "Pasife alındı",
     "business.reactivated": "Aktife alındı",
     "legacy_subscription.recovered": "Eski abonelik aktifleştirildi",
@@ -264,6 +265,26 @@ test("all known actions have Turkish labels and unknown actions stay controlled"
     assert.equal(getAdminAuditActionLabel(action), label);
   }
   assert.equal(getAdminAuditActionLabel("future.action"), "Diğer kritik işlem");
+});
+
+test("creation audit maps empty before state to null and rejects invented history", async () => {
+  const creation = { ...auditRow, action: "business.created", before_state: {} };
+  const { auditDal } = loadAuditDal([
+    Response.json([{ id: businessId }]), Response.json([creation]),
+  ]);
+  const items = await auditDal.fetchAdminBusinessAuditHistory(businessId);
+  assert.equal(items?.[0].before, null);
+  assert.equal(items?.[0].action, "business.created");
+  const dto = { items };
+  assert.deepEqual(parseAdminBusinessAuditHistoryResponse(dto), dto);
+  assert.equal(parseAdminBusinessAuditHistoryResponse({ items: [{
+    ...items?.[0], before: safeDto().items[0].before,
+  }] }), null);
+  const malformed = loadAuditDal([
+    Response.json([{ id: businessId }]), Response.json([{ ...creation, before_state: state }]),
+  ]);
+  await assert.rejects(() => malformed.auditDal.fetchAdminBusinessAuditHistory(businessId));
+  assert.match(detailClient, /İlk durum:/);
 });
 
 test("audit UI uses Istanbul time, readable state summaries and never dumps raw JSON", () => {
@@ -302,7 +323,10 @@ test("P5.1E-E protected schema, print PR #7 and reports PR #8 files remain uncha
       .split(/\r?\n/)
       .filter(Boolean),
   );
-  assert.equal([...changed].some((path) => path.startsWith("supabase/migrations/") && path.endsWith(".sql")), false);
+  assert.deepEqual(
+    [...changed].filter((path) => path.startsWith("supabase/migrations/") && path.endsWith(".sql")),
+    ["supabase/migrations/20260927111432_admin_business_creation_audit.sql"],
+  );
   assert.equal([...changed].some((path) => path.startsWith("supabase/schema")), false);
 
   const protectedFiles = [

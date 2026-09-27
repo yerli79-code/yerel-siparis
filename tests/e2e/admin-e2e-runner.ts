@@ -1555,7 +1555,79 @@ async function runAdminSuites() {
     }
 
     // ==================================================
-    // SUITE 10: NETWORK & CONSOLE EGRESS (NET.1 - NET.3)
+    // SUITE 10: SYNTHETIC BUSINESS CREATION (CREATE.1)
+    // ==================================================
+    console.log("\n--- SUITE 10: SYNTHETIC BUSINESS CREATION ---");
+    try {
+      await client.navigate("http://127.0.0.1:3100/admin");
+      await waitForDashboard(client);
+      const creation = await client.evaluate<{ status: number; id?: string; error?: string }>(`
+        (async () => {
+          const response = await fetch('/api/admin/create-business', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              name: 'E2E Audit Creation', slug: 'e2e-audit-creation',
+              city: 'İstanbul', district: 'Kadıköy', neighborhood: 'Caferağa (Mahalle)',
+              whatsappOrderNumber: '905551234567',
+              ownerEmail: 'creation-owner@example.invalid', temporaryPassword: 'Synthetic123!',
+              subscriptionStatus: 'active', isActive: true
+            })
+          });
+          const body = await response.json();
+          return { status: response.status, id: body.business?.id, error: body.error?.message };
+        })()
+      `);
+      if (creation.status !== 200 || !creation.id) throw new Error(`Create failed: ${creation.status} ${creation.error || ''}`);
+
+      await client.navigate("http://127.0.0.1:3100/admin?section=businesses");
+      await client.waitForSelector("#adminBusinessSearch", 6000);
+      let listed = false;
+      for (let attempt = 0; attempt < 20 && !listed; attempt += 1) {
+        listed = await client.evaluate<boolean>(
+          "Array.from(document.querySelectorAll('.admin-business-card strong')).some((item) => item.textContent?.includes('E2E Audit Creation'))",
+        );
+        if (!listed) await delay(150);
+      }
+      await client.navigate(`http://127.0.0.1:3100/admin/isletmeler/${creation.id}`);
+      await waitForDetail(client);
+      await client.waitForSelector("[class*='auditList'] article", 7000);
+      const detail = await client.evaluate<{ name: boolean; audits: string[] }>(`
+        ({
+          name: document.body.innerText.includes('E2E Audit Creation'),
+          audits: Array.from(document.querySelectorAll("[class*='auditList'] article"))
+            .map((item) => item.textContent || '')
+        })
+      `);
+      const creationAudits = detail.audits.filter((text) => text.includes("İşletme oluşturuldu"));
+      const passed = listed && detail.name && creationAudits.length === 1 &&
+        creationAudits[0].includes(FIXTURE_ADMIN_USER_EMAIL) &&
+        creationAudits[0].includes("İlk durum:") &&
+        !creationAudits[0].includes("→");
+      recordResult({
+        id: "CREATE.1",
+        name: "Synthetic Admin creation appears in list and detail with one initial-state audit",
+        suite: "Business Creation",
+        status: passed ? "PASS" : "FAIL",
+        browserExecuted: true,
+        networkEvidence: `POST /api/admin/create-business -> ${creation.status}; GET detail/audit for ${creation.id}`,
+        domEvidence: `list=${listed}, detail=${detail.name}, creationAudits=${creationAudits.length}, initialState=${creationAudits[0]?.includes("İlk durum:") || false}`,
+      });
+    } catch (err: any) {
+      recordResult({
+        id: "CREATE.1",
+        name: "Synthetic Admin creation appears in list and detail with one initial-state audit",
+        suite: "Business Creation",
+        status: "FAIL",
+        browserExecuted: true,
+        networkEvidence: "Local synthetic creation attempt",
+        domEvidence: err.message,
+      });
+    }
+
+    // ==================================================
+    // SUITE 11: NETWORK & CONSOLE EGRESS (NET.1 - NET.3)
     // ==================================================
     console.log("\n--- SUITE 10: NETWORK & CONSOLE EGRESS ---");
 
@@ -1683,8 +1755,8 @@ ADMIN PANEL AUTHENTICATED LOCAL E2E — FINAL REPORT
 ================================================================================
 
 Environment:
-- branch: test/admin-authenticated-e2e-harness
-- base HEAD: e83b69438e78488eab1cdaf924431b23301a3a52
+- branch: feature/admin-business-creation-audit
+- base HEAD: 1dcb43c9a134fff26bce55ef10012450abd096e6
 - Next URL: http://127.0.0.1:3100
 - mock Supabase URL: http://127.0.0.1:4010
 - browser: Google Chrome (Headless CDP via native Node WebSocket)
@@ -1709,6 +1781,7 @@ Suites:
 - Phase 1 Regression: ${results.filter((r) => r.suite === "Phase 1 Regression" && r.status === "PASS").length}/${results.filter((r) => r.suite === "Phase 1 Regression").length} PASS
 - Responsive Viewports: ${results.filter((r) => r.suite === "Responsive" && r.status === "PASS").length}/${results.filter((r) => r.suite === "Responsive").length} PASS
 - Accessibility & Keyboard: ${results.filter((r) => r.suite === "Accessibility" && r.status === "PASS").length}/${results.filter((r) => r.suite === "Accessibility").length} PASS
+- Business Creation: ${results.filter((r) => r.suite === "Business Creation" && r.status === "PASS").length}/${results.filter((r) => r.suite === "Business Creation").length} PASS
 - Network & Console Egress: ${results.filter((r) => r.suite === "Network & Console" && r.status === "PASS").length}/${results.filter((r) => r.suite === "Network & Console").length} PASS
 
 Network Hard Egress Gate:
@@ -1725,7 +1798,7 @@ Safety Verification:
 - production mutation: NO
 - production deploy: NO
 - .env.local modified: NO
-- production app source modified: NO
+- production app source modified: YES (local branch only)
 
 ================================================================================
 EXPLICIT SCENARIO EVIDENCE TABLE

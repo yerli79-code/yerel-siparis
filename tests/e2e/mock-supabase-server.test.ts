@@ -828,6 +828,42 @@ test("38. critical action RPC rejects stale expected_updated_at with CONFLICT", 
   assert.equal(result.code, "CONFLICT");
 });
 
+test("39. local creation RPC adds one business and creation audit with empty before state", async () => {
+  const businessId = "99999999-9999-4999-8999-999999999999";
+  const response = await fetch(`${mockServer.baseUrl}/rest/v1/rpc/admin_create_business_with_audit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      p_business_id: businessId,
+      p_owner_id: "88888888-8888-4888-8888-888888888888",
+      p_slug: "mock-created-business",
+      p_name: "Mock Created Business",
+      p_description: "",
+      p_whatsapp_order_number: "905551234567",
+      p_city: "İstanbul",
+      p_district: "Kadıköy",
+      p_neighborhood: "Caferağa (Mahalle)",
+      p_address: "",
+      p_subscription_status: "active",
+      p_subscription_started_at: null,
+      p_subscription_expires_at: null,
+      p_is_active: true,
+      p_actor_user_id: FIXTURE_ADMIN_USER_ID,
+      p_actor_email: FIXTURE_ADMIN_USER_EMAIL,
+    }),
+  });
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as { business: { id: string; slug: string } };
+  assert.equal(body.business.id, businessId);
+  assert.equal(body.business.slug, "mock-created-business");
+  assert.equal(mockServer.getState().businesses.filter((business) => business.id === businessId).length, 1);
+  const audits = mockServer.getState().adminAuditLogs.filter((audit) =>
+    audit.business_id === businessId && audit.action === "business.created");
+  assert.equal(audits.length, 1);
+  assert.deepEqual(audits[0].before_state, {});
+  assert.equal(audits[0].actor_email, FIXTURE_ADMIN_USER_EMAIL);
+});
+
 test("teardown: close mock supabase server", async () => {
   await mockServer.close();
 });

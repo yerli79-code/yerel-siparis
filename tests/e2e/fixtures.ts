@@ -93,7 +93,7 @@ export type FixtureAdminAuditLog = {
   actor_user_id: string;
   actor_email: string;
   action: string;
-  before_state: FixtureAdminAuditSnapshot;
+  before_state: FixtureAdminAuditSnapshot | Record<string, never>;
   after_state: FixtureAdminAuditSnapshot;
   created_at: string;
 };

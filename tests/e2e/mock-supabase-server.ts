@@ -208,6 +208,21 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     // ==========================================
     // SUPABASE AUTH ENDPOINTS
     // ==========================================
+    if (pathname === "/auth/v1/admin/users" && method === "POST") {
+      const body = await readBody<{ email?: string }>();
+      if (!body?.email) return sendJson(400, { message: "Email required" });
+      if (state.profiles.some((profile) => profile.email === body.email)) {
+        return sendJson(422, { message: "User exists" });
+      }
+      return sendJson(200, { id: crypto.randomUUID() });
+    }
+
+    if (pathname.startsWith("/auth/v1/admin/users/") && method === "DELETE") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     if (pathname === "/auth/v1/token") {
       const grantType = parsedUrl.searchParams.get("grant_type");
       const body = await readBody<{ email?: string; password?: string; refresh_token?: string }>();
@@ -390,6 +405,22 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     }
 
     // --- PROFILES ---
+    if (pathname === "/rest/v1/profiles" && method === "POST") {
+      const body = await readBody<FixtureProfile>();
+      if (!body?.id || !body.email) return sendJson(400, { message: "Invalid profile" });
+      state.profiles = state.profiles.filter((profile) => profile.id !== body.id);
+      state.profiles.push({ id: body.id, email: body.email });
+      return sendJson(201, [{ id: body.id }]);
+    }
+
+    if (pathname === "/rest/v1/profiles" && method === "DELETE") {
+      const id = parsedUrl.searchParams.get("id")?.replace(/^eq\./, "");
+      state.profiles = state.profiles.filter((profile) => profile.id !== id);
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     if (pathname === "/rest/v1/profiles" && method === "GET") {
       const idParam = parsedUrl.searchParams.get("id");
       const emailParam = parsedUrl.searchParams.get("email");
@@ -1098,6 +1129,8 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
         const id = businessId.slice(3);
         items = items.filter((log) => log.business_id === id);
       }
+      const action = parsedUrl.searchParams.get("action");
+      if (action?.startsWith("eq.")) items = items.filter((log) => log.action === action.slice(3));
 
       const order = parsedUrl.searchParams.get("order");
       if (order?.includes("created_at.desc")) {
@@ -1117,6 +1150,67 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     }
 
     // --- ADMIN CRITICAL ACTION RPC ---
+    if (pathname === "/rest/v1/rpc/admin_create_business_with_audit" && method === "POST") {
+      const body = await readBody<Record<string, unknown>>();
+      if (!body || typeof body.p_business_id !== "string" ||
+          typeof body.p_owner_id !== "string" ||
+          typeof body.p_slug !== "string" ||
+          typeof body.p_name !== "string") {
+        return sendJson(400, { code: "22023" });
+      }
+      if (state.businesses.some((business) => business.slug === body.p_slug)) {
+        return sendJson(409, { code: "23505" });
+      }
+      const now = new Date().toISOString();
+      const business: FixtureBusiness = {
+        id: body.p_business_id,
+        owner_id: body.p_owner_id,
+        slug: body.p_slug,
+        name: body.p_name,
+        description: String(body.p_description || ""),
+        category: null,
+        whatsapp_order_number: String(body.p_whatsapp_order_number || ""),
+        city: String(body.p_city || ""),
+        district: String(body.p_district || ""),
+        neighborhood: String(body.p_neighborhood || ""),
+        address: String(body.p_address || ""),
+        delivery_status: null,
+        logo_text: null,
+        payment_method_mode: null,
+        minimum_order_amount: null,
+        preparation_time_minutes: null,
+        is_open: false,
+        order_note: null,
+        service_radius_km: null,
+        logo_url: null,
+        cover_image_url: null,
+        is_active: body.p_is_active === true,
+        subscription_status: String(body.p_subscription_status || "active"),
+        subscription_started_at: typeof body.p_subscription_started_at === "string" ? body.p_subscription_started_at : null,
+        subscription_expires_at: typeof body.p_subscription_expires_at === "string" ? body.p_subscription_expires_at : null,
+        created_at: now,
+        updated_at: now,
+      };
+      state.businesses.push(business);
+      state.adminAuditLogs.push({
+        id: crypto.randomUUID(),
+        business_id: business.id,
+        actor_user_id: String(body.p_actor_user_id),
+        actor_email: String(body.p_actor_email),
+        action: "business.created",
+        before_state: {},
+        after_state: {
+          is_active: business.is_active === true,
+          subscription_status: business.subscription_status as "active" | "expired" | "blocked",
+          subscription_started_at: business.subscription_started_at,
+          subscription_expires_at: business.subscription_expires_at,
+          updated_at: business.updated_at,
+        },
+        created_at: now,
+      });
+      return sendJson(200, { ok: true, business });
+    }
+
     if (pathname === "/rest/v1/rpc/admin_apply_business_action" && method === "POST") {
       const body = await readBody<{
         p_business_id: string;

@@ -16,13 +16,16 @@ export type AdminBusinessAuditSnapshot = {
   subscriptionExpiresAt: string | null;
 };
 
-export type AdminBusinessAuditItem = {
+type AdminBusinessAuditItemBase = {
   id: string;
-  action: string;
   actorEmail: string;
   createdAt: string;
-  before: AdminBusinessAuditSnapshot;
   after: AdminBusinessAuditSnapshot;
+};
+
+export type AdminBusinessAuditItem = AdminBusinessAuditItemBase & {
+  action: string;
+  before: AdminBusinessAuditSnapshot | null;
 };
 
 export type AdminBusinessAuditHistoryResponse = {
@@ -30,6 +33,7 @@ export type AdminBusinessAuditHistoryResponse = {
 };
 
 const ACTION_LABELS: Readonly<Record<string, string>> = {
+  "business.created": "İşletme oluşturuldu",
   "business.deactivated": "Pasife alındı",
   "business.reactivated": "Aktife alındı",
   "legacy_subscription.recovered": "Eski abonelik aktifleştirildi",
@@ -103,7 +107,9 @@ function parseSnapshot(value: unknown): AdminBusinessAuditSnapshot | null {
 
 function parseItem(value: unknown): AdminBusinessAuditItem | null {
   if (!isRecord(value) || !hasExactKeys(value, ITEM_KEYS)) return null;
-  const before = parseSnapshot(value.before);
+  const before = value.action === "business.created"
+    ? (value.before === null ? null : undefined)
+    : parseSnapshot(value.before);
   const after = parseSnapshot(value.after);
   if (
     typeof value.id !== "string" ||
@@ -113,7 +119,8 @@ function parseItem(value: unknown): AdminBusinessAuditItem | null {
     typeof value.actorEmail !== "string" ||
     !value.actorEmail ||
     !isTimestamp(value.createdAt) ||
-    !before ||
+    before === undefined ||
+    (value.action !== "business.created" && !before) ||
     !after
   ) {
     return null;

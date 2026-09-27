@@ -152,7 +152,7 @@ function orderTypeLabel(value: string) {
   return value === "delivery" ? "Teslimat" : value === "pickup" ? "Gel-al" : value;
 }
 
-function auditSubscriptionStatusLabel(value: AdminBusinessAuditItem["before"]["subscriptionStatus"]) {
+function auditSubscriptionStatusLabel(value: AdminBusinessAuditItem["after"]["subscriptionStatus"]) {
   return {
     active: "Aktif",
     expired: "Süresi dolmuş",
@@ -161,6 +161,14 @@ function auditSubscriptionStatusLabel(value: AdminBusinessAuditItem["before"]["s
 }
 
 function getAuditChangeSummaries(item: AdminBusinessAuditItem) {
+  if (item.before === null) {
+    return [
+      `İlk durum: ${item.after.isActive ? "Aktif" : "Pasif"}`,
+      `Abonelik: ${auditSubscriptionStatusLabel(item.after.subscriptionStatus)}`,
+      `Başlangıç: ${formatDate(item.after.subscriptionStartedAt)}`,
+      `Bitiş: ${formatDate(item.after.subscriptionExpiresAt)}`,
+    ];
+  }
   const changes: string[] = [];
   if (item.before.isActive !== item.after.isActive) {
     changes.push(
@@ -784,7 +792,7 @@ export default function BusinessDetailClient({ businessId }: { businessId: strin
             <section className={styles.card}>
               <span className={styles.eyebrow}>Denetim kaydı</span>
               <h3>İşlem Geçmişi</h3>
-              <p className={styles.help}>En yeni 20 kritik erişim ve abonelik işlemi gösterilir.</p>
+              <p className={styles.help}>En yeni 20 işletme ve abonelik işlemi gösterilir.</p>
               {auditLoading && !auditItems.length ? (
                 <p className={styles.auditState} aria-live="polite">İşlem geçmişi yükleniyor...</p>
               ) : null}
