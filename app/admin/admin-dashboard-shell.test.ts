@@ -206,9 +206,10 @@ test("admin visual system follows canonical brand tokens without duplicate overv
   assert.doesNotMatch(overviewSource, /<h[1-6][^>]*>Genel Bakış<\/h[1-6]>/);
 
   assert.match(adminPageSource, /function submitNewBusiness\(/);
-  for (const handler of ["saveEdit", "deleteBusiness", "commitCriticalAction"]) {
+  for (const handler of ["saveEdit", "commitCriticalAction"]) {
     assert.match(businessDetailSource, new RegExp(`function ${handler}\\(`));
   }
+  assert.doesNotMatch(businessDetailSource, /function deleteBusiness\(/);
 });
 
 test("passive access preserves active subscription state and dates", () => {

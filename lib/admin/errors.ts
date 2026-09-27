@@ -10,6 +10,7 @@ export type AdminErrorCode =
   | "DUPLICATE_SLUG"
   | "SESSION_EXPIRED"
   | "CSRF_REJECTED"
+  | "LEGACY_ENDPOINT_RETIRED"
   | "ADMIN_UNAVAILABLE";
 
 export class AdminError extends Error {

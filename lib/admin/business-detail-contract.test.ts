@@ -353,15 +353,15 @@ test("access, audited subscription and legacy delete capabilities remain on the 
     "Aktife Al",
     "Engelle",
     "Aboneliği Sıfırla",
-    "Kalıcı Sil",
   ]) {
     assert.match(client, new RegExp(label.replace("+", "\\+")));
   }
+  assert.doesNotMatch(client, /Kalıcı Sil/);
   assert.match(client, /const extensionDays = \[30, 60, 90, 180, 365\]/);
   assert.match(client, /deactivateAdminBusiness/);
   assert.match(client, /extendAdminBusinessSubscription/);
   assert.doesNotMatch(client, /updateBusinessSubscriptionInSupabase/);
-  assert.match(client, /deleteBusinessInSupabase/);
+  assert.doesNotMatch(client, /deleteBusinessInSupabase/);
 });
 
 test("detail layout includes all required read-only and operational sections", () => {

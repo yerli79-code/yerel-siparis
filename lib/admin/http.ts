@@ -65,6 +65,7 @@ export function isAdminErrorCode(value: unknown): value is AdminErrorCode {
       "DUPLICATE_SLUG",
       "SESSION_EXPIRED",
       "CSRF_REJECTED",
+      "LEGACY_ENDPOINT_RETIRED",
       "ADMIN_UNAVAILABLE",
     ].includes(value)
   );

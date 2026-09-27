@@ -279,7 +279,7 @@ test("INVALID_STATE is surfaced once as controlled 409 and never retried", async
 test("detail UI uses current updatedAt and authoritative response merge without a detail reload", () => {
   const commitBlock = detailSource.slice(
     detailSource.indexOf("async function commitCriticalAction"),
-    detailSource.indexOf("async function deleteBusiness"),
+    detailSource.indexOf("async function runConfirmedAction"),
   );
   assert.match(commitBlock, /mutate\(detail\.business\.id, detail\.business\.updatedAt\)/);
   assert.match(commitBlock, /mergeAdminBusinessCriticalState\([\s\S]*result\.business/);
@@ -329,10 +329,10 @@ test("all critical confirmations and duplicate-click busy guard remain", () => {
   assert.match(detailSource, /disabled=\{busy\} type="button" onClick=\{runConfirmedAction\}/);
 });
 
-test("hard delete and safe legacy business update remain while subscription mutation is retired", () => {
-  assert.match(detailSource, /deleteBusinessInSupabase/);
-  assert.match(detailSource, /Kalıcı Sil/);
-  assert.match(clientSource, /requestAdminApi\("\/api\/admin\/delete-business"/);
+test("hard delete action is retired from UI while legacy endpoints remain non-mutating", () => {
+  assert.doesNotMatch(detailSource, /deleteBusinessInSupabase/);
+  assert.doesNotMatch(detailSource, /Kalıcı Sil/);
+  assert.doesNotMatch(clientSource, /deleteBusinessInSupabase/);
   assert.equal(existsSync(new URL("app/api/admin/update-subscription/route.ts", root)), false);
   for (const path of [
     "app/api/admin/update-business/route.ts",
@@ -345,7 +345,8 @@ test("hard delete and safe legacy business update remain while subscription muta
 test("P5.1E-C critical UI remains intact alongside the later audit-history section", () => {
   assert.match(detailSource, /İşlem Geçmişi/);
   assert.doesNotMatch(detailSource, /admin_audit_logs/);
-  for (const label of ["Pasife Al", "Aktife Al", "Engelle", "Aboneliği Sıfırla", "Kalıcı Sil"]) {
+  for (const label of ["Pasife Al", "Aktife Al", "Engelle", "Aboneliği Sıfırla"]) {
     assert.match(detailSource, new RegExp(label));
   }
+  assert.doesNotMatch(detailSource, /Kalıcı Sil/);
 });

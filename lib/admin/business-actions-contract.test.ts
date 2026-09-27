@@ -945,7 +945,7 @@ test("safe legacy update and hard delete remain while legacy subscription mutati
     assert.equal(existsSync(new URL(path, root)), true);
   }
   for (const marker of ["Kalıcı Sil", "deleteBusinessInSupabase"]) {
-    assert.match(detailClient, new RegExp(marker));
+    assert.doesNotMatch(detailClient, new RegExp(marker));
   }
   assert.doesNotMatch(detailClient, /updateBusinessSubscriptionInSupabase/);
 });

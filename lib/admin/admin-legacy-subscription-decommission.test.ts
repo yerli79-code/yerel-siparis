@@ -120,32 +120,17 @@ test("every RPC actor comes from requireAdmin and optimistic concurrency remains
   assert.match(detailClient, /mutate\(detail\.business\.id, detail\.business\.updatedAt\)/);
 });
 
-test("legacy update-business endpoint remains but can patch only safe profile fields", () => {
+test("legacy update-business endpoint is retired and non-mutating", () => {
   assert.equal(existsSync(new URL("app/api/admin/update-business/route.ts", root)), true);
-  const patchBlock = legacyBusinessRoute.slice(
-    legacyBusinessRoute.indexOf("async function updateBusiness"),
-    legacyBusinessRoute.indexOf("export async function POST"),
-  );
-  const patchBody = patchBlock.slice(
-    patchBlock.indexOf("body: JSON.stringify"),
-    patchBlock.indexOf("}),", patchBlock.indexOf("body: JSON.stringify")),
-  );
-  assert.match(patchBlock, /method: "PATCH"/);
-  for (const field of [
-    "subscription_status",
-    "subscription_started_at",
-    "subscription_expires_at",
-    "is_active",
-    "subscriptionStatus",
-    "subscriptionStartedAt",
-    "subscriptionExpiresAt",
-    "isActive",
-  ]) {
-    assert.doesNotMatch(patchBody, new RegExp(field));
-  }
+  assert.match(legacyBusinessRoute, /POST\(request:\s*Request\)/);
+  assert.match(legacyBusinessRoute, /requireAdmin\(\)/);
+  assert.match(legacyBusinessRoute, /assertSameOriginAdminMutation\(request\)/);
+  assert.match(legacyBusinessRoute, /LEGACY_ENDPOINT_RETIRED/);
+  assert.match(legacyBusinessRoute, /PATCH \/api\/admin\/businesses\/\[id\]/);
+  assert.doesNotMatch(legacyBusinessRoute, /adminServiceFetch/);
 });
 
-test("dedicated safe edit and hard delete remain intact", () => {
+test("dedicated safe edit remains intact while hard delete is retired", () => {
   assert.match(safeBusinessRoute, /export async function PATCH/);
   assert.match(safeBusinessRoute, /parseAdminBusinessSafePatch\(body\)/);
   assert.match(safeBusinessAdapter, /buildAdminBusinessSafePatchParams\(businessId, patch\.expectedUpdatedAt\)/);
@@ -163,7 +148,7 @@ test("dedicated safe edit and hard delete remain intact", () => {
     assert.match(safeBusinessAdapter, new RegExp(`${field}: patch\\.`));
   }
   assert.equal(existsSync(new URL("app/api/admin/delete-business/route.ts", root)), true);
-  assert.match(detailClient, /deleteBusinessInSupabase/);
+  assert.doesNotMatch(detailClient, /deleteBusinessInSupabase/);
 });
 
 test("successful explicit refresh clears stale conflict while initial and failed loads do not", () => {

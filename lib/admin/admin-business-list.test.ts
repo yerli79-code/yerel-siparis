@@ -150,7 +150,7 @@ test("list creation refreshes list and overview while detail mutations update de
 test("list no longer carries inline deletion and links to the UUID detail page", () => {
   assert.doesNotMatch(adminPage, /deleteBusinessInSupabase/);
   assert.match(adminPage, /href=\{`\/admin\/isletmeler\/\$\{business\.id\}`\}/);
-  assert.match(businessDetailPage, /deleteBusinessInSupabase/);
+  assert.doesNotMatch(businessDetailPage, /deleteBusinessInSupabase/);
 });
 
 test("pagination UI exposes totals, disabled boundaries and responsive controls", () => {
