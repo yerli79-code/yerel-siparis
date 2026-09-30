@@ -17,7 +17,7 @@ import {
   toProfileInput,
   type ProfileForm,
 } from "../../../panel/profile-form";
-import type { BusinessPanelBusiness } from "../../../../lib/supabase-business";
+import { updateBusinessProfile, type BusinessPanelBusiness } from "../../../../lib/supabase-business";
 
 const root = new URL("../../../../", import.meta.url);
 const readSource = (path: string) => readFileSync(new URL(path, root), "utf8");
@@ -215,7 +215,7 @@ test("C2: toProfileForm preserves valid custom delivery text", () => {
   assert.equal(form.deliveryStatus, "Paket servis ve gel-al");
 });
 
-test("C3: toProfileInput converts empty, whitespace or legacy sentinel to null", () => {
+test("C3: toProfileInput serializes empty, whitespace or legacy sentinel as empty string", () => {
   const baseForm: ProfileForm = {
     name: "Test Restoran",
     description: "",
@@ -236,19 +236,19 @@ test("C3: toProfileInput converts empty, whitespace or legacy sentinel to null",
   };
 
   const inputEmpty = toProfileInput({ ...baseForm, deliveryStatus: "" });
-  assert.equal(inputEmpty.deliveryStatus, null);
+  assert.equal(inputEmpty.deliveryStatus, "");
 
   const inputWhitespace = toProfileInput({
     ...baseForm,
     deliveryStatus: "    ",
   });
-  assert.equal(inputWhitespace.deliveryStatus, null);
+  assert.equal(inputWhitespace.deliveryStatus, "");
 
   const inputSentinel = toProfileInput({
     ...baseForm,
     deliveryStatus: "Teslimat bilgisi eklenmedi",
   });
-  assert.equal(inputSentinel.deliveryStatus, null);
+  assert.equal(inputSentinel.deliveryStatus, "");
 
   const inputValid = toProfileInput({
     ...baseForm,
@@ -270,20 +270,20 @@ test("C4: Panel UI includes placeholder and help text for delivery status", () =
 // D. API Validation & Route Hardening Tests
 // ==================================================
 
-test("D1: buildProfilePayload normalizes delivery_status to null when empty or legacy sentinel", () => {
+test("D1: buildProfilePayload normalizes delivery_status to empty string when empty or legacy sentinel", () => {
   const emptyPayload = buildProfilePayload({ delivery_status: "" });
-  assert.equal(emptyPayload.delivery_status, null);
+  assert.equal(emptyPayload.delivery_status, "");
 
   const whitespacePayload = buildProfilePayload({ delivery_status: "   " });
-  assert.equal(whitespacePayload.delivery_status, null);
+  assert.equal(whitespacePayload.delivery_status, "");
 
   const sentinelPayload = buildProfilePayload({
     delivery_status: "Teslimat bilgisi eklenmedi",
   });
-  assert.equal(sentinelPayload.delivery_status, null);
+  assert.equal(sentinelPayload.delivery_status, "");
 
   const nullPayload = buildProfilePayload({ delivery_status: null });
-  assert.equal(nullPayload.delivery_status, null);
+  assert.equal(nullPayload.delivery_status, "");
 
   const validPayload = buildProfilePayload({
     delivery_status: "  Paket servis ve gel-al  ",
@@ -417,10 +417,12 @@ type Scenario = {
   businessExists?: boolean;
   businessOwnerId?: string;
   updateSucceeds?: boolean;
+  updateError?: Record<string, unknown>;
 };
 
 function createProfileScenarioFetch(scenario: Scenario = {}) {
   const originalFetch = globalThis.fetch;
+  const patches: Record<string, unknown>[] = [];
   const mockFetch: typeof fetch = async (input, init = {}) => {
     const url = new URL(String(input));
 
@@ -454,9 +456,13 @@ function createProfileScenarioFetch(scenario: Scenario = {}) {
       init.method === "PATCH"
     ) {
       if (scenario.updateSucceeds === false) {
-        return Response.json({ error: "db_fail" }, { status: 500 });
+        return Response.json(scenario.updateError ?? { error: "db_fail" }, { status: 500 });
       }
       const parsedBody = JSON.parse(String(init.body || "{}"));
+      patches.push(parsedBody);
+      if (parsedBody.delivery_status === null) {
+        return Response.json({ code: "23502", message: "NOT NULL violation" }, { status: 400 });
+      }
       return Response.json([
         {
           id: validBusinessId,
@@ -469,6 +475,7 @@ function createProfileScenarioFetch(scenario: Scenario = {}) {
   };
 
   return {
+    patches,
     enable: () => {
       globalThis.fetch = mockFetch;
     },
@@ -600,7 +607,7 @@ test("D11: POST handler normalizes legacy sentinel in update request without err
     const res = await POST(req);
     assert.equal(res.status, 200);
     const json = await res.json();
-    assert.equal(json.business.delivery_status, null);
+    assert.equal(json.business.delivery_status, "");
   } finally {
     env.restore();
   }
@@ -632,5 +639,85 @@ test("D12: POST handler preserves valid custom delivery status", async () => {
     assert.equal(json.business.delivery_status, "Paket servis ve gel-al");
   } finally {
     env.restore();
+  }
+});
+
+test("full settings form saves minimum order 100 with blank delivery against NOT NULL storage", async () => {
+  const originalFetch = globalThis.fetch;
+  const env = createProfileScenarioFetch();
+  env.enable();
+  const storageFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    if (input === "/api/business/update-profile") {
+      return POST(new Request("http://localhost:3000" + input, init));
+    }
+    return storageFetch(input, init);
+  };
+  try {
+    for (const deliveryStatus of ["", "   ", LEGACY_DELIVERY_STATUS_SENTINEL]) {
+      const form = toProfileForm(createMockBusiness({ deliveryStatus, minimumOrderAmount: null }));
+      assert.equal(form.deliveryStatus, "");
+      assert.equal(form.minimumOrderAmount, "");
+      form.minimumOrderAmount = "100";
+      const saved = await updateBusinessProfile(validBusinessId, toProfileInput(form), "valid_token");
+      assert.equal(saved?.minimumOrderAmount, 100);
+      assert.equal(saved?.deliveryStatus, "");
+      const patch = env.patches.at(-1)!;
+      assert.equal(patch.delivery_status, "");
+      assert.equal(patch.minimum_order_amount, 100);
+      assert.equal(Object.keys(patch).length, 16);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("POST safely accepts client null and uses empty string in DB PATCH", async () => {
+  const env = createProfileScenarioFetch();
+  env.enable();
+  try {
+    const res = await POST(new Request("http://localhost:3000/api/business/update-profile", {
+      method: "POST",
+      headers: { Authorization: "Bearer valid_token", "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId: validBusinessId, input: { delivery_status: null, minimum_order_amount: 100 } }),
+    }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(env.patches, [{ delivery_status: "", minimum_order_amount: 100 }]);
+  } finally {
+    env.restore();
+  }
+});
+
+test("delivery validation rejects invalid types and preserves omitted fields", () => {
+  for (const delivery_status of [false, 123, {}, []]) {
+    assert.throws(() => buildProfilePayload({ delivery_status }));
+  }
+  assert.deepEqual(buildProfilePayload({ minimum_order_amount: 100 }), { minimum_order_amount: 100 });
+});
+
+test("downstream error retains only safe internal diagnostic and generic client response", async () => {
+  for (const code of ["23502", "server-secret-key"]) {
+    const env = createProfileScenarioFetch({ updateSucceeds: false, updateError: {
+      code, message: "server-secret-key", details: "private row data", hint: "valid_token",
+    } });
+    const originalError = console.error;
+    const logs: unknown[][] = [];
+    console.error = (...args) => { logs.push(args); };
+    env.enable();
+    try {
+      const res = await POST(new Request("http://localhost:3000/api/business/update-profile", {
+        method: "POST",
+        headers: { Authorization: "Bearer valid_token", "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: validBusinessId, input: { delivery_status: null } }),
+      }));
+      assert.equal(res.status, 400);
+      assert.deepEqual(await res.json(), { error: "Profil güncellenemedi. Lütfen tekrar deneyin." });
+      assert.deepEqual(logs, [["Business profile storage update failed", {
+        upstreamStatus: 500, databaseCode: code === "23502" ? code : null,
+      }]]);
+    } finally {
+      console.error = originalError;
+      env.restore();
+    }
   }
 });

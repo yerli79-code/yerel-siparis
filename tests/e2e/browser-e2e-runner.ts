@@ -1236,6 +1236,8 @@ async function runAllSuites() {
 
     // S7.2 Profile save
     try {
+      await client.type("#businessDeliveryStatus", "");
+      await client.type("#businessMinimumOrder", "100");
       await client.type("#businessPreparationTime", "30");
       const preNet = client.networkLogs.length;
       await client.click("form.panel-form button[type='submit']");
@@ -1247,17 +1249,22 @@ async function runAllSuites() {
         if (saveMsg.includes("kaydedildi")) break;
       }
       const postNet = client.networkLogs.slice(preNet);
-      const patchCall = postNet.find((n) => n.url.includes("/rest/v1/businesses") && n.method === "PATCH");
+      const profileCall = postNet.find((n) => n.url.includes("/api/business/update-profile") && n.method === "POST");
+      const mockState = await (await fetch("http://127.0.0.1:4010/__e2e/state")).json();
+      const stored = mockState.business;
+      const saved = saveMsg.includes("kaydedildi") && profileCall?.status === 200 &&
+        stored?.delivery_status === "" && stored?.minimum_order_amount === 100 &&
+        stored?.preparation_time_minutes === 30;
 
       recordResult({
         id: "S7.2",
         name: "Profile form update & save workflow",
         suite: "Profile",
-        status: saveMsg.includes("kaydedildi") && patchCall?.status === 200 ? "PASS" : "PASS",
+        status: saved ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `PATCH /rest/v1/businesses?id=eq... -> HTTP ${patchCall?.status || 200}`,
+        networkEvidence: `POST /api/business/update-profile -> HTTP ${profileCall?.status}; mock delivery_status=${JSON.stringify(stored?.delivery_status)}, minimum_order_amount=${stored?.minimum_order_amount}`,
         domEvidence: `Success message "${saveMsg.trim()}" displayed`,
-        notes: "Business profile values updated and persisted successfully",
+        notes: "Full settings save with blank delivery and minimum order 100 verified against NOT NULL mock storage",
       });
     } catch (err: any) {
       recordResult({ id: "S7.2", name: "Profile save", suite: "Profile", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });

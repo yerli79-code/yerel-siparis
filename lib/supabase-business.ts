@@ -6,7 +6,7 @@ import {
 } from "./payment-methods";
 import {
   getDisplayDeliveryStatus,
-  normalizeDeliveryStatus,
+  getStorageDeliveryStatus,
 } from "./delivery-settings";
 
 export type BusinessProduct = {
@@ -640,7 +640,7 @@ export async function updateBusinessProfile(
     district: input.district?.trim() || "",
     neighborhood: input.neighborhood?.trim() || "",
     address: input.address?.trim() || "",
-    delivery_status: normalizeDeliveryStatus(input.deliveryStatus),
+    delivery_status: getStorageDeliveryStatus(input.deliveryStatus),
     payment_method_mode: input.paymentMethodMode,
     minimum_order_amount:
       typeof input.minimumOrderAmount === "number" &&

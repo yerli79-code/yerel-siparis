@@ -1,4 +1,4 @@
-import { normalizeDeliveryStatus } from "../../../../lib/delivery-settings";
+import { getStorageDeliveryStatus } from "../../../../lib/delivery-settings";
 import { isSupabasePublishableKey } from "../../../../lib/supabase-publishable-key";
 import { privateBusinessJson } from "../_response";
 import {
@@ -66,8 +66,8 @@ const forbiddenFields = new Set([
   "longitude",
 ]);
 
-type ProfileUpdatePayload = Partial<
-  Record<(typeof allowedProfileFields)[number], boolean | string | number | null>
+type ProfileUpdatePayload = { delivery_status?: string } & Partial<
+  Record<Exclude<(typeof allowedProfileFields)[number], "delivery_status">, boolean | string | number | null>
 >;
 
 type OwnedBusinessRow = BusinessLocationInput & {
@@ -85,6 +85,12 @@ class PublicRouteError extends Error {
 }
 
 class ServerConfigError extends Error {}
+
+class ProfileStorageError extends Error {
+  constructor(readonly upstreamStatus: number, readonly databaseCode: string | null) {
+    super("Isletme profili guncellenemedi");
+  }
+}
 
 function jsonError(message: string, status = 400, detail?: unknown) {
   return privateBusinessJson({ error: message, detail }, status);
@@ -185,7 +191,7 @@ function addDeliveryStatusField(
 
   const value = input.delivery_status;
   if (value === null) {
-    payload.delivery_status = null;
+    payload.delivery_status = getStorageDeliveryStatus(value);
     return;
   }
   if (typeof value !== "string") {
@@ -200,7 +206,7 @@ function addDeliveryStatusField(
     );
   }
 
-  payload.delivery_status = normalizeDeliveryStatus(trimmed);
+  payload.delivery_status = getStorageDeliveryStatus(trimmed);
 }
 
 function addLimitedStringField(
@@ -459,7 +465,11 @@ async function updateBusinessProfile(
   const body = await readJson(response);
 
   if (!response.ok) {
-    throw new Error(safeSupabaseError("Isletme profili guncellenemedi"));
+    // Retain only a recognized SQLSTATE, never upstream message/detail/hint.
+    const databaseCode = typeof body?.code === "string" && /^[0-9A-Z]{5}$/.test(body.code)
+      ? body.code
+      : null;
+    throw new ProfileStorageError(response.status, databaseCode);
   }
 
   const business = Array.isArray(body) ? body[0] : body;
@@ -537,6 +547,12 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof PublicRouteError) {
       return jsonError(error.publicMessage, error.status);
+    }
+    if (error instanceof ProfileStorageError) {
+      console.error("Business profile storage update failed", {
+        upstreamStatus: error.upstreamStatus,
+        databaseCode: error.databaseCode,
+      });
     }
     const status = error instanceof ServerConfigError ? 500 : 400;
     return jsonError("Profil güncellenemedi. Lütfen tekrar deneyin.", status);

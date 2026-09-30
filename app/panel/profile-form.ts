@@ -8,7 +8,7 @@ import type {
 } from "../../lib/supabase-business";
 import {
   getDisplayDeliveryStatus,
-  normalizeDeliveryStatus,
+  getStorageDeliveryStatus,
 } from "../../lib/delivery-settings";
 
 export type ProfileForm = {
@@ -79,7 +79,7 @@ export function toProfileInput(form: ProfileForm): BusinessProfileInput {
     district: form.district.trim() || null,
     neighborhood: form.neighborhood.trim() || null,
     address: form.address.trim() || null,
-    deliveryStatus: normalizeDeliveryStatus(form.deliveryStatus),
+    deliveryStatus: getStorageDeliveryStatus(form.deliveryStatus),
     paymentMethodMode: form.paymentMethodMode,
     minimumOrderAmount,
     preparationTimeMinutes,

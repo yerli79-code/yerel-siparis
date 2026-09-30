@@ -3,9 +3,17 @@ import { test } from "node:test";
 import {
   LEGACY_DELIVERY_STATUS_SENTINEL,
   getDisplayDeliveryStatus,
+  getStorageDeliveryStatus,
   isLegacyDeliveryStatusSentinel,
   normalizeDeliveryStatus,
 } from "./delivery-settings";
+
+test("storage delivery value is never null and keeps nonblank text", () => {
+  for (const value of [null, undefined, "", "  ", LEGACY_DELIVERY_STATUS_SENTINEL]) {
+    assert.equal(getStorageDeliveryStatus(value), "");
+  }
+  assert.equal(getStorageDeliveryStatus("Paket servis ve gel-al"), "Paket servis ve gel-al");
+});
 
 test("isLegacyDeliveryStatusSentinel identifies legacy sentinel variants", () => {
   assert.equal(isLegacyDeliveryStatusSentinel("Teslimat bilgisi eklenmedi"), true);

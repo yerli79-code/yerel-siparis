@@ -25,3 +25,8 @@ export function normalizeDeliveryStatus(value: unknown): string | null {
 export function getDisplayDeliveryStatus(value: unknown): string {
   return normalizeDeliveryStatus(value) ?? "";
 }
+
+// businesses.delivery_status is NOT NULL; semantic absence is stored as "".
+export function getStorageDeliveryStatus(value: unknown): string {
+  return normalizeDeliveryStatus(value) ?? "";
+}

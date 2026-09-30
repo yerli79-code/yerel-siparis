@@ -629,6 +629,10 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
         }
 
         const body = (await readBody<Partial<FixtureBusiness>>()) || {};
+        if (body.delivery_status === null) {
+          sendJson(400, { code: "23502", message: "delivery_status violates NOT NULL constraint" });
+          return;
+        }
         const updatedBiz: FixtureBusiness = {
           ...targetBiz,
           ...body,
