@@ -864,6 +864,27 @@ test("39. local creation RPC adds one business and creation audit with empty bef
   assert.equal(audits[0].actor_email, FIXTURE_ADMIN_USER_EMAIL);
 });
 
+test("business PATCH enforces delivery_status NOT NULL without changing stored data", async () => {
+  const before = structuredClone(mockServer.getState().business);
+  const res = await fetch(`${mockServer.baseUrl}/rest/v1/businesses?id=eq.${before.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+    body: JSON.stringify({ delivery_status: null, minimum_order_amount: 100 }),
+  });
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).code, "23502");
+  assert.deepEqual(mockServer.getState().business, before);
+
+  const saved = await fetch(`${mockServer.baseUrl}/rest/v1/businesses?id=eq.${before.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+    body: JSON.stringify({ delivery_status: "", minimum_order_amount: 100 }),
+  });
+  assert.equal(saved.status, 200);
+  assert.equal(mockServer.getState().business.delivery_status, "");
+  assert.equal(mockServer.getState().business.minimum_order_amount, 100);
+});
+
 test("teardown: close mock supabase server", async () => {
   await mockServer.close();
 });
