@@ -5645,7 +5645,7 @@ img.public-order-product-image {
 }
 
 .menu-category-tab.selected:hover,
-.order-type-button.selected:hover,
+.order-type-button.selected:not(.public-order-type-button):hover,
 .panel-section-tabs button.active:hover,
 .admin-section-tabs button.active:hover,
 .panel-category-chip.selected:hover,
@@ -8101,6 +8101,10 @@ img.public-order-product-image {
   font-size: 10.5px;
   color: #6b7280;
   margin-top: 2px;
+}
+
+.public-order-type-button.selected .public-order-type-copy small {
+  color: #68707d;
 }
 
 .public-order-type-check {
