@@ -708,10 +708,10 @@ export default function PanelPage() {
           const activeView = activeOrdersViewRef.current;
           if (activeView?.section === "orders" && inFlightOrderMutationsRef.current.size === 0) {
             void refreshOrders(activeView.query);
-          } else if (activeView?.section === "orders") {
-            pendingPolledOrderRefreshRef.current = true;
+          } else {
+            if (activeView?.section === "orders") pendingPolledOrderRefreshRef.current = true;
+            void refreshNewOrderCount();
           }
-          void refreshNewOrderCount();
         }
         return "success";
       } catch (caughtError) {
@@ -1235,6 +1235,7 @@ export default function PanelPage() {
       setConflictedOrderIds(conflictedOrderIdsRef.current);
       setOrderMutationMessages({});
       setOrdersError("");
+      // Only an accepted authoritative list result may trigger count revalidation.
       void refreshNewOrderCount();
       return result;
     } catch (caughtError) {

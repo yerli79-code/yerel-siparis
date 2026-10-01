@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { BrowserCDPClient } from "./browser-cdp-helper";
 
 // Reuses the existing isolated loopback harness and pre-network egress gate.
-export type BadgeRegressionCase = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+export type BadgeRegressionCase = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H";
 export async function runNewOrderBadgeRegression(
   onPass: (id: BadgeRegressionCase, evidence: string, browserExecuted: boolean) => void =
     (id, evidence) => console.log(`PASS BADGE.${id}: ${evidence}`),
@@ -95,6 +95,51 @@ try {
   for (let i = 0; i < 20; i++) await inject("new", `Global New ${i}`);
   await until(badges(25));
   onPass("G", "Global count 25 exceeds overview's 20-record limit", true);
+  // Independent fixture/document: hold watcher reads before they reach the mock.
+  // Count reads have status=new; list reads have pageSize=20 and stay enabled.
+  assert.equal((await fetch("http://127.0.0.1:4010/__e2e/reset", { method: "POST" })).status, 200);
+  for (let i = 0; i < 22; i++) await inject("new", `Manual baseline ${i}`);
+  await client.send("Page.addScriptToEvaluateOnNewDocument", { source: `
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+      if (url.pathname === '/api/business/orders' && url.searchParams.get('pageSize') === '10' && !url.searchParams.get('status')) {
+        return new Promise((_, reject) => {
+          const signal = init?.signal;
+          const abort = () => reject(new DOMException('Aborted', 'AbortError'));
+          if (signal?.aborted) abort();
+          else signal?.addEventListener('abort', abort, { once: true });
+        });
+      }
+      return originalFetch(input, init);
+    };
+  ` });
+  await client.navigate("http://127.0.0.1:3100/panel");
+  await until(badges(23));
+  await button("Siparişler23");
+  await until("document.querySelectorAll('.panel-order-card').length === 20");
+  await button("Yeni");
+  await until("document.querySelector('.business-panel-workspace')?.textContent.includes('23 kayıt') && [...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Sonraki' && !b.disabled)");
+  await button("Sonraki");
+  await until("document.querySelectorAll('.panel-order-card').length === 3 && document.querySelector('.panel-order-pagination')?.textContent.includes('Sayfa 2 / 2')");
+  await client.click(".panel-order-row");
+  await until("Boolean(document.querySelector('.panel-order-detail'))");
+  const manualDrawer = await client.evaluate<string>("document.querySelector('.panel-order-detail')?.textContent || ''");
+  const beforeRefresh = client.networkLogs.length;
+  await inject("new", "Manual refresh only order");
+  assert.equal(await client.evaluate(badges(23)), true);
+  await button("Listeyi Yenile");
+  await until(badges(24) + " && document.querySelectorAll('.panel-order-card').length === 4 && document.querySelector('.panel-order-pagination')?.textContent.includes('Sayfa 2 / 2')");
+  assert.equal(await client.evaluate<string>("document.querySelector('.panel-order-detail')?.textContent || ''"), manualDrawer);
+  assert.equal(await client.evaluate("Boolean(document.querySelector('.new-order-alert'))"), false);
+  const countReads = client.networkLogs.slice(beforeRefresh).filter(log => {
+    const url = new URL(log.url);
+    return url.pathname === "/api/business/orders" && url.searchParams.get("status") === "new" && url.searchParams.get("pageSize") === "10";
+  });
+  assert.equal(countReads.length, 1);
+  await button("Önceki");
+  await until("[...document.querySelectorAll('.panel-order-card')].some(e => e.textContent.includes('Manual refresh only order')) && " + badges(24));
+  onPass("H", "Manual refresh alone updates both global badges 23→24 and list; New filter/page 2/drawer retained, one count GET, watcher held", true);
   assert.equal(client.egressViolation, false);
   assert.equal(client.blockedRequests.length, 0);
   console.log("PASS: isolated browser egress gate; production access 0");

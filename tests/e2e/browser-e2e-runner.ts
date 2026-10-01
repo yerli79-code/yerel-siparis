@@ -1628,7 +1628,7 @@ async function runAllSuites() {
   }
 
   // Own reset/browser lifecycle after the original suites, before report totals.
-  console.log("\n--- POLLING BADGE REGRESSION (A–G) ---");
+  console.log("\n--- POLLING BADGE REGRESSION (A–H) ---");
   try {
     await runNewOrderBadgeRegression((id, evidence, browserExecuted) => {
       recordResult({
