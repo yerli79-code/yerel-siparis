@@ -8,6 +8,7 @@ import QRCode from "qrcode";
 import LocationSelector from "../../components/LocationSelector";
 import PlatformBrand from "../../components/PlatformBrand";
 import NewOrderAlert from "./NewOrderAlert";
+import { createNewOrderCountRequest } from "./new-order-count";
 import PanelOrders from "./PanelOrders";
 import PanelIcon from "./PanelIcon";
 import { useModalFocusTrap } from "./useModalFocusTrap";
@@ -352,6 +353,7 @@ export default function PanelPage() {
   const [products, setProducts] = useState<BusinessProduct[]>([]);
   const [orders, setOrders] = useState<BusinessOrder[]>([]);
   const [overviewOrders, setOverviewOrders] = useState<BusinessOrder[]>([]);
+  const [newOrderCount, setNewOrderCount] = useState(0);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
   const [editingProductId, setEditingProductId] = useState("");
@@ -437,6 +439,9 @@ export default function PanelPage() {
   const conflictedOrderIdsRef = useRef(new Set<string>());
   const orderListAbortControllerRef = useRef<AbortController | null>(null);
   const orderListRequestGenerationRef = useRef(0);
+  const newOrderCountRequestRef = useRef(createNewOrderCountRequest());
+  const activeOrdersViewRef = useRef<{ section: PanelSection; query: BusinessOrderPageQuery } | null>(null);
+  const pendingPolledOrderRefreshRef = useRef(false);
 
   function endBusinessSession() {
     clearBrowserAuthSession(sessionKey);
@@ -456,6 +461,7 @@ export default function PanelPage() {
 
   useEffect(() => {
     return () => {
+      newOrderCountRequestRef.current.invalidate();
       orderListRequestGenerationRef.current += 1;
       orderListAbortControllerRef.current?.abort();
       orderListAbortControllerRef.current = null;
@@ -521,9 +527,6 @@ export default function PanelPage() {
   const hasAnyProductConflict = conflictedProductIds.size > 0;
   const isProductOrderingFiltered =
     Boolean(productSearch.trim()) || selectedCategoryFilter !== "Tüm ürünler";
-  const newOrderCount = overviewOrders.filter(
-    (order) => order.status === "new",
-  ).length;
   const recentOrders = overviewOrders.slice(0, 3);
   const activeOrderQuery: BusinessOrderPageQuery = {
     status:
@@ -537,6 +540,7 @@ export default function PanelPage() {
     pageSize: orderPageSize,
   };
   const activePendingNewOrder = pendingNewOrders[0];
+  activeOrdersViewRef.current = { section: activePanelSection, query: activeOrderQuery };
 
   function playNewOrderSound() {
     const audioContext = audioContextRef.current;
@@ -700,6 +704,15 @@ export default function PanelPage() {
         watcherStateRef.current = completed.state;
         setPendingNewOrders(completed.state.pendingNewOrders);
         if (completed.newOrders.length > 0) playNewOrderSound();
+        if (completed.newOrders.length > 0) {
+          const activeView = activeOrdersViewRef.current;
+          if (activeView?.section === "orders" && inFlightOrderMutationsRef.current.size === 0) {
+            void refreshOrders(activeView.query);
+          } else {
+            if (activeView?.section === "orders") pendingPolledOrderRefreshRef.current = true;
+            void refreshNewOrderCount();
+          }
+        }
         return "success";
       } catch (caughtError) {
         if (!isActive) return "stop";
@@ -857,9 +870,11 @@ export default function PanelPage() {
     }
 
     void loadOverviewOrders();
+    void refreshNewOrderCount();
 
     return () => {
       isCancelled = true;
+      newOrderCountRequestRef.current.invalidate();
     };
   }, [business?.id, isLoading]);
 
@@ -1102,6 +1117,26 @@ export default function PanelPage() {
     setIsLoadingOrders(false);
   }
 
+  async function refreshNewOrderCount() {
+    try {
+      await newOrderCountRequestRef.current.refresh(async (signal) => {
+        const token = await getFreshAccessToken();
+        if (!token || signal.aborted) return null;
+        const result = await fetchBusinessOrdersPage(
+          token,
+          { status: "new", page: 1, pageSize: 10 },
+          { signal },
+        );
+        return result.pagination.total;
+      }, setNewOrderCount);
+    } catch (caughtError) {
+      if (caughtError instanceof BusinessOrdersRequestError && caughtError.status === 401) {
+        endBusinessSession();
+      }
+      // Keep the last confirmed count on transient read failures.
+    }
+  }
+
   function mergeAuthoritativeOrder(updatedOrder: BusinessOrder) {
     const nextOrders = ordersRef.current.map((order) =>
       order.id === updatedOrder.id ? updatedOrder : order,
@@ -1200,6 +1235,8 @@ export default function PanelPage() {
       setConflictedOrderIds(conflictedOrderIdsRef.current);
       setOrderMutationMessages({});
       setOrdersError("");
+      // Only an accepted authoritative list result may trigger count revalidation.
+      void refreshNewOrderCount();
       return result;
     } catch (caughtError) {
       if (
@@ -1237,6 +1274,7 @@ export default function PanelPage() {
 
     inFlightOrderMutationsRef.current.add(orderId);
     cancelActiveOrderListRequest();
+    newOrderCountRequestRef.current.invalidate();
 
     setUpdatingOrderId(orderId);
     setError("");
@@ -1259,6 +1297,7 @@ export default function PanelPage() {
       );
       cancelActiveOrderListRequest();
       mergeAuthoritativeOrder(updatedOrder);
+      void refreshNewOrderCount();
       setMessage("Sipariş durumu güncellendi.");
       void refreshDashboardSummary();
       if (
@@ -1293,6 +1332,11 @@ export default function PanelPage() {
     } finally {
       inFlightOrderMutationsRef.current.delete(orderId);
       setUpdatingOrderId((current) => (current === orderId ? "" : current));
+      if (pendingPolledOrderRefreshRef.current && inFlightOrderMutationsRef.current.size === 0) {
+        pendingPolledOrderRefreshRef.current = false;
+        const activeView = activeOrdersViewRef.current;
+        if (activeView?.section === "orders") void refreshOrders(activeView.query);
+      }
     }
   }
 
