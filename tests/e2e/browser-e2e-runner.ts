@@ -1,4 +1,5 @@
 import { BrowserCDPClient } from "./browser-cdp-helper";
+import { runNewOrderBadgeRegression } from "./new-order-badge-e2e";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -496,6 +497,7 @@ async function runAllSuites() {
 
     // S3.5 Status transition (new -> preparing)
     try {
+      const newCountBefore = await client.evaluate<number>("Number(document.querySelector('.business-panel-nav-badge')?.textContent || '0')");
       const preNet = client.networkLogs.length;
       await client.select(".panel-order-detail-status select", "preparing");
 
@@ -507,12 +509,18 @@ async function runAllSuites() {
       }
       const postNet = client.networkLogs.slice(preNet);
       const patchCall = postNet.find((n) => n.url.includes("/rest/v1/orders") && n.method === "PATCH");
+      let countRevalidated = false;
+      for (let i = 0; i < 40; i++) {
+        countRevalidated = await client.evaluate<boolean>(`Number(document.querySelector('.business-panel-nav-badge')?.textContent || '0') === ${newCountBefore - 1} && Number(document.querySelector('.business-panel-mobile-badge')?.textContent || '0') === ${newCountBefore - 1}`);
+        if (countRevalidated) break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
 
       recordResult({
         id: "S3.5",
         name: "Order status transition workflow (new -> preparing)",
         suite: "Orders",
-        status: updatedBadge.includes("Hazırlanıyor") ? "PASS" : "FAIL",
+        status: updatedBadge.includes("Hazırlanıyor") && countRevalidated ? "PASS" : "FAIL",
         browserExecuted: true,
         networkEvidence: `PATCH /rest/v1/orders?id=eq...&updated_at=eq... -> HTTP ${patchCall?.status || 200}`,
         domEvidence: `Status badge updated to "${updatedBadge.trim()}"`,
@@ -1619,6 +1627,29 @@ async function runAllSuites() {
     await client.close();
   }
 
+  // Own reset/browser lifecycle after the original suites, before report totals.
+  console.log("\n--- POLLING BADGE REGRESSION (A–G) ---");
+  try {
+    await runNewOrderBadgeRegression((id, evidence, browserExecuted) => {
+      recordResult({
+        id: `BADGE.${id}`,
+        name: `Polling badge regression ${id}`,
+        suite: "Polling badge",
+        status: "PASS",
+        browserExecuted,
+        networkEvidence: browserExecuted ? "Isolated loopback GET/polling with pre-network egress gate" : "Local unit regression; no network",
+        domEvidence: evidence,
+      });
+    });
+  } catch (error) {
+    recordResult({
+      id: "BADGE.FAILURE", name: "Polling badge regression failure",
+      suite: "Polling badge", status: "FAIL", browserExecuted: true,
+      networkEvidence: "Isolated loopback harness",
+      domEvidence: error instanceof Error ? error.message : "Unknown regression failure",
+    });
+  }
+
   // ==================================================
   // COMPILE DETAILED REPORT & SCENARIO TABLE
   // ==================================================
@@ -1681,6 +1712,7 @@ Suites:
 - Subscription gating: PASS (S8.1 mutation controls blocked on expired, restored on active)
 - Accessibility: PASS (S9.1, S9.2, S9.3, S9.4, S9.5)
 - Console/network: PASS (S10.1 Hard Egress Gate, S10.2 Console Audit)
+- Polling badge: ${results.filter(r => r.suite === "Polling badge").map(r => `${r.id} ${r.status}`).join(", ")} (F reuses local race unit tests)
 
 Phase 4 Readiness Verification:
 - F1 result: ${f1} (dense orders layout activates strictly at >=1200px breakpoint, not prematurely at 1024-1199px)
@@ -1725,6 +1757,7 @@ FINAL CLASSIFICATION: ${finalClass}
   fs.writeFileSync("business-panel-browser-e2e-report.txt", reportText, "utf8");
   console.log("\nReport written to business-panel-browser-e2e-report.txt");
   console.log(reportText);
+  if (failCount > 0) process.exitCode = 1;
 }
 
 runAllSuites().catch((err) => {
