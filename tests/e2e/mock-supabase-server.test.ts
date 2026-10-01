@@ -588,6 +588,21 @@ test("28. hardened scanner detects dot notation, bracket notation, root files, a
 test("29. storage upload and public URL contract matches production client", async () => {
   const objectPath = `${FIXTURE_BUSINESS_ID}/test-image.png`;
   const uploadUrl = `${mockServer.baseUrl}/storage/v1/object/product-images/${objectPath}`;
+  const preflight = await fetch(uploadUrl, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "http://127.0.0.1:3100",
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": "apikey,authorization,content-type,x-upsert",
+    },
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), "*");
+  assert(preflight.headers.get("access-control-allow-methods")?.split(/\s*,\s*/).includes("POST"));
+  const allowedHeaders = preflight.headers.get("access-control-allow-headers")?.toLowerCase().split(/\s*,\s*/) ?? [];
+  for (const name of ["content-type", "authorization", "apikey", "prefer", "range", "x-client-info", "x-upsert"]) {
+    assert(allowedHeaders.includes(name), `CORS header missing: ${name}`);
+  }
   const uploadRes = await fetch(uploadUrl, {
     method: "POST",
     headers: {
