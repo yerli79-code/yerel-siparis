@@ -4,6 +4,101 @@ import { BrowserCDPClient, type NetworkLogEntry } from "./browser-cdp-helper";
 import { REDACTED, redactEvidenceText, redactNetworkHeaders, stringifyRedactedEvidence } from "./network-evidence-redaction";
 import { assessUpload } from "./upload-network-assertion";
 
+for (const [name, input, expected] of [
+  ["session", "session=synthetic-session-secret", `session=${REDACTED}`],
+  ["auth", "auth=synthetic-auth-secret", `auth=${REDACTED}`],
+  ["authentication", "authentication=synthetic-authentication-secret", `authentication=${REDACTED}`],
+  ["credentials", "credentials=synthetic-credentials-secret", `credentials=${REDACTED}`],
+  ["URL query session", "https://example.invalid/?session=synthetic-url-session", `https://example.invalid/?session=${REDACTED}`],
+] as const) {
+  test(`plaintext ${name} never retains its credential value`, () => {
+    assert.equal(redactEvidenceText(input), expected);
+  });
+}
+
+test("plaintext and structured evidence use the same credential-name vocabulary", () => {
+  for (const name of [
+    "authorization", "authentication", "auth", "apikey", "api-key", "api_key",
+    "cookie", "cookies", "password", "secret", "token", "credential", "credentials", "session",
+    "authentication-info", "www-authenticate", "protection-bypass", "service-role-key",
+    "X-Auth", "X-Session-ID", "sessionId", "accessToken", "serviceRoleKey", "wwwAuthenticate",
+  ]) {
+    const value = `synthetic-${name}-value`;
+    assert.equal(redactNetworkHeaders({ [name]: value })?.[name], REDACTED, name);
+    assert.equal(redactEvidenceText(`${name}=${value}`), `${name}=${REDACTED}`, name);
+    assert.equal(redactEvidenceText(`${name}: '${value}'`), `${name}: '${REDACTED}'`, name);
+    assert(!stringifyRedactedEvidence({ message: `${name}=${value}` }).includes(value), name);
+  }
+});
+
+test("nested plaintext, adjacent assignments and URL keys redact values while retaining correlation data", () => {
+  assert.equal(redactEvidenceText("message=auth=synthetic-auth requestId=req-123"), `message=auth=${REDACTED} requestId=req-123`);
+  assert.equal(redactEvidenceText('message="session=synthetic-session"'), `message="session=${REDACTED}"`);
+  assert.equal(redactEvidenceText("url=https://example.invalid/?status=200&session=synthetic-session&requestId=req-123#result"),
+    `url=https://example.invalid/?status=200&session=${REDACTED}&requestId=req-123#result`);
+  assert.equal(redactEvidenceText("auth=synthetic-auth session=synthetic-session requestId=req-123"),
+    `auth=${REDACTED} session=${REDACTED} requestId=req-123`);
+  assert.equal(redactEvidenceText("https://example.invalid/?access%5Ftoken=synthetic-token&mode=debug"),
+    `https://example.invalid/?access%5Ftoken=${REDACTED}&mode=debug`);
+  assert.equal(redactEvidenceText('auth="synthetic with \\"quoted\\" spaces", status=403'), `auth="${REDACTED}", status=403`);
+});
+
+test("opaque cookie/challenge values and quoted auth schemes cannot leak their remaining attributes", () => {
+  assert.equal(redactEvidenceText("Set-Cookie: session=synthetic-session; other=synthetic-other; Expires=Wed, 21 Oct 2030 07:28:00 GMT\nstatus=403"),
+    `Set-Cookie: ${REDACTED}\nstatus=403`);
+  assert.equal(redactEvidenceText("cookies=session=synthetic-session; other=synthetic-other"), `cookies=${REDACTED}`);
+  assert.equal(redactEvidenceText("WWW-Authenticate: Digest realm=synthetic-realm, nonce=synthetic-nonce\nstatus=401"),
+    `WWW-Authenticate: ${REDACTED}\nstatus=401`);
+  assert.equal(redactEvidenceText("https://example.invalid/?cookie=synthetic-cookie&requestId=req-123"),
+    `https://example.invalid/?cookie=${REDACTED}&requestId=req-123`);
+  assert.equal(redactEvidenceText('HTTP 401 Bearer "synthetic with spaces"'), `HTTP 401 ${REDACTED}`);
+  assert.equal(redactEvidenceText("HTTP 401 Basic 'synthetic with spaces'"), `HTTP 401 ${REDACTED}`);
+});
+
+test("benign CORS names and cookie-like suffixes remain unchanged in plaintext and headers", () => {
+  const cors = [
+    "Access-Control-Allow-Credentials: true",
+    "Access-Control-Allow-Headers: apikey,authorization,x-upsert",
+    "Access_Control_Allow_Credentials=true",
+    "AccessControlAllowCredentials=true",
+  ];
+  for (const text of cors) assert.equal(redactEvidenceText(text), text);
+  const evidence = `${cors[0]}\n${cors[1]}\nsession=synthetic-session`;
+  assert.equal(redactEvidenceText(evidence), `${cors[0]}\n${cors[1]}\nsession=${REDACTED}`);
+  assert.equal(redactNetworkHeaders({ AccessControlAllowCredentials: "true" })?.AccessControlAllowCredentials, "true");
+  assert.equal(redactEvidenceText("mycookie=dark; requestId=req-123"), "mycookie=dark; requestId=req-123");
+});
+
+test("URL delimiters do not expose tails of ordinary cookie, challenge or credential values", () => {
+  for (const name of ["Cookie", "Set-Cookie", "WWW-Authenticate", "Authentication-Info", "session"]) {
+    assert.equal(redactEvidenceText(`${name}: synthetic-head&synthetic-tail#synthetic-fragment`), `${name}: ${REDACTED}`, name);
+  }
+  assert.equal(redactEvidenceText("https://example.invalid/?cookie=synthetic-cookie&requestId=req-123"),
+    `https://example.invalid/?cookie=${REDACTED}&requestId=req-123`);
+});
+
+test("unterminated quoted credentials and auth schemes fail closed", () => {
+  assert.equal(redactEvidenceText('session="synthetic-unclosed'), `session=${REDACTED}`);
+  assert.equal(redactEvidenceText("auth='synthetic-unclosed"), `auth=${REDACTED}`);
+  assert.equal(redactEvidenceText('HTTP 401 Bearer "synthetic-unclosed'), `HTTP 401 ${REDACTED}`);
+  assert.equal(redactEvidenceText("HTTP 401 Basic 'synthetic-unclosed"), `HTTP 401 ${REDACTED}`);
+});
+
+test("sensitive structured values are masked whole, including malformed unfinished values", () => {
+  assert.equal(redactEvidenceText('credentials={"value":"synthetic-nested","nested":["synthetic-array"]} requestId=req-123'),
+    `credentials=${REDACTED} requestId=req-123`);
+  assert.equal(redactEvidenceText('session=[{"value":"synthetic-with-} bracket"}] status=403'),
+    `session=${REDACTED} status=403`);
+  assert.equal(redactEvidenceText('credentials={"value":"synthetic-unclosed"'), `credentials=${REDACTED}`);
+});
+
+test("escaped quoted JSON inside benign plaintext message fields is still redacted", () => {
+  const payload = JSON.stringify({ session: "synthetic-escaped", auth: "synthetic-escaped-auth", requestId: "req-123" });
+  const expected = JSON.stringify({ session: REDACTED, auth: REDACTED, requestId: "req-123" });
+  assert.equal(redactEvidenceText(`message=${JSON.stringify(payload)} status=403`), `message=${JSON.stringify(expected)} status=403`);
+  assert.equal(redactEvidenceText(`message='${payload.replace(/"/g, '\\"')}' status=403`), `message='${expected}' status=403`);
+});
+
 test("credential header values are redacted regardless of casing or synthetic value shape", () => {
   const sensitive = {
     aUtHoRiZaTiOn: "Bearer synthetic-own-account",
