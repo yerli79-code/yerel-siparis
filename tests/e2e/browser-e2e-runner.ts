@@ -1,30 +1,17 @@
 import { BrowserCDPClient } from "./browser-cdp-helper";
+import { assessUpload } from "./upload-network-assertion";
 import { runNewOrderBadgeRegression } from "./new-order-badge-e2e";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-
-type ScenarioStatus =
-  | "PASS"
-  | "FAIL"
-  | "SKIP — TOOL LIMITATION"
-  | "INCONCLUSIVE";
-
-interface ScenarioResult {
-  id: string;
-  name: string;
-  suite: string;
-  status: ScenarioStatus;
-  browserExecuted: boolean;
-  networkEvidence: string;
-  domEvidence: string;
-  notes?: string;
-}
+import { execFileSync } from "node:child_process";
+import { completeScenarioResults, findCompletedHtmlDocument, findResponseForMethod, isExpectedNegativeHttpLog, renderSuiteSummary, summarizeScenarioGroup, summarizeStatus, type ScenarioResult } from "./browser-e2e-report";
+import { redactEvidenceText } from "./network-evidence-redaction";
 
 const results: ScenarioResult[] = [];
 
 function recordResult(res: ScenarioResult) {
-  results.push(res);
+  results.push({ ...res, networkEvidence: redactEvidenceText(res.networkEvidence), domEvidence: redactEvidenceText(res.domEvidence), notes: res.notes && redactEvidenceText(res.notes) });
   console.log(`[E2E] [${res.status}] ${res.id} - ${res.name} (Executed: ${res.browserExecuted ? "YES" : "NO"})`);
 }
 
@@ -33,8 +20,46 @@ async function resetMock() {
   if (!res.ok) throw new Error("Failed to reset mock fixtures");
 }
 
+function mutationCountSince(client: BrowserCDPClient, start: number) {
+  return client.networkLogs.slice(start).filter(log => ["POST", "PATCH", "PUT", "DELETE"].includes(log.method)).length;
+}
+
+async function observeSubscriptionControls(client: BrowserCDPClient) {
+  await client.evaluate(`(() => {
+    const button = [...document.querySelectorAll("nav[aria-label='Panel bölümleri'] button")].find(button => button.textContent?.includes("Ürünler"));
+    if (!button) throw new Error("Missing products navigation control");
+    button.click();
+  })()`);
+  await client.waitForSelector(".panel-product-list", 3000);
+  const productCreationDisabled = await client.evaluate<boolean | null>(`(() => {
+    const button = document.querySelector("button.business-panel-primary-command");
+    return button ? button.disabled : null;
+  })()`);
+  await client.evaluate(`(() => {
+    const button = [...document.querySelectorAll("nav[aria-label='Panel bölümleri'] button")].find(button => button.textContent?.includes("Siparişler"));
+    if (!button) throw new Error("Missing orders navigation control");
+    button.click();
+  })()`);
+  await client.waitForSelector(".panel-order-card", 3000);
+  await client.click(".panel-order-card:first-child button.panel-order-row");
+  await client.waitForSelector(".panel-order-detail-status select", 3000);
+  const orderStatusDisabled = await client.evaluate<boolean | null>(`(() => {
+    const select = document.querySelector(".panel-order-detail-status select");
+    return select ? select.disabled : null;
+  })()`);
+  await client.click(".panel-order-detail-header button");
+  return { productCreationDisabled, orderStatusDisabled };
+}
+
 async function runAllSuites() {
+  const testedSource = {
+    branch: execFileSync("git", ["branch", "--show-current"], { encoding: "utf8" }).trim() || "(detached)",
+    head: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+    trackedChanges: execFileSync("git", ["diff", "HEAD", "--name-only"], { encoding: "utf8" }).trim(),
+  };
   const client = new BrowserCDPClient();
+  let browserLaunched = false;
+  let mainAudit: { hosts: string[]; requests: number; external: number; supabaseCo: number; productionDomain: number; blocked: number; egressViolation: boolean; consoleErrors: number; expectedNegativeLogs: number; unexpectedConsoleErrors: number; loadingFailures: number } | undefined;
 
   try {
     console.log("==================================================");
@@ -42,6 +67,7 @@ async function runAllSuites() {
     console.log("==================================================");
 
     await client.launch();
+    browserLaunched = true;
     console.log("[Setup] Google Chrome launched and CDP connected.");
 
     await resetMock();
@@ -66,17 +92,17 @@ async function runAllSuites() {
       const currentUrl = await client.evaluate<string>("window.location.pathname");
 
       const postNet = client.networkLogs.slice(preNet);
-      const authCall = postNet.find((n) => n.url.includes("/auth/v1/token"));
+      const authCall = findResponseForMethod(postNet, "http://127.0.0.1:4010/auth/v1/token", "POST");
 
       recordResult({
         id: "S1.2",
         name: "Invalid credentials rejection",
         suite: "Authentication",
-        status: errorFound && errorText.includes("Giriş başarısız") && currentUrl.includes("/giris") ? "PASS" : "FAIL",
+        status: errorFound && errorText.includes("Giriş başarısız") && currentUrl.includes("/giris") && authCall?.status === 400 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `POST /auth/v1/token -> HTTP ${authCall?.status || "unknown"}`,
+        networkEvidence: `POST /auth/v1/token -> observed HTTP ${authCall?.status ?? "UNVERIFIED (no captured POST response)"}`,
         domEvidence: `Alert: "${errorText.trim()}", URL remained "${currentUrl}"`,
-        notes: "Invalid password correctly rejected without session generation",
+        notes: "Expected: 400 POST auth response, failed-login alert and login route retained; session generation is not inspected here.",
       });
     } catch (err: any) {
       recordResult({
@@ -109,17 +135,17 @@ async function runAllSuites() {
       await client.waitForSelector(".business-panel-workspace, h1", 5000);
       const pageText = await client.evaluate<string>("document.body.innerText");
       const postNet = client.networkLogs.slice(preNet);
-      const tokenCall = postNet.find((n) => n.url.includes("/auth/v1/token"));
+      const tokenCall = findResponseForMethod(postNet, "http://127.0.0.1:4010/auth/v1/token", "POST");
 
       recordResult({
         id: "S1.1",
         name: "Valid password login & session establishment",
         suite: "Authentication",
-        status: onPanel && pageText.includes("E2E Test Kebap Salonu") ? "PASS" : "FAIL",
+        status: onPanel && pageText.includes("E2E Test Kebap Salonu") && tokenCall?.status === 200 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `POST /auth/v1/token -> HTTP ${tokenCall?.status || 200}`,
-        domEvidence: `Redirected to /panel, header renders "E2E Test Kebap Salonu"`,
-        notes: "Authenticated successfully into Business Panel",
+        networkEvidence: `POST /auth/v1/token -> observed HTTP ${tokenCall?.status ?? "UNVERIFIED (no captured response)"}`,
+        domEvidence: `panelRouteObserved=${onPanel}, fixture business name present=${pageText.includes("E2E Test Kebap Salonu")}`,
+        notes: "Expected: panel route and fixture business name after login.",
       });
     } catch (err: any) {
       recordResult({
@@ -142,17 +168,17 @@ async function runAllSuites() {
       const path = await client.evaluate<string>("window.location.pathname");
       const hasWorkspace = await client.evaluate<boolean>("document.querySelector('.business-panel-workspace') !== null");
       const postNet = client.networkLogs.slice(preNet);
-      const userCall = postNet.find((n) => n.url.includes("/auth/v1/user"));
+      const userCall = findResponseForMethod(postNet, "http://127.0.0.1:4010/auth/v1/user", "GET");
 
       recordResult({
         id: "S1.3",
         name: "Authenticated direct /panel page reload",
         suite: "Authentication",
-        status: path === "/panel" && hasWorkspace ? "PASS" : "FAIL",
+        status: path === "/panel" && hasWorkspace && userCall?.status === 200 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `GET /auth/v1/user -> HTTP ${userCall?.status || 200}`,
-        domEvidence: `URL stays on /panel, .business-panel-workspace mounted directly`,
-        notes: "Session storage token retained across direct page reload",
+        networkEvidence: `GET /auth/v1/user -> observed HTTP ${userCall?.status ?? "UNVERIFIED (no captured response)"}`,
+        domEvidence: `pathname=${path}, workspaceMounted=${hasWorkspace}`,
+        notes: "Expected: panel route and mounted workspace after direct reload.",
       });
     } catch (err: any) {
       recordResult({
@@ -187,9 +213,9 @@ async function runAllSuites() {
         suite: "Authentication",
         status: loggedOut && !hasSession ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Client-side session termination (zero mutation calls)",
+        networkEvidence: "Logout control clicked; mutation request count not measured in this scenario.",
         domEvidence: `Redirected to ${curPath}, sessionStorage cleared=${!hasSession}`,
-        notes: "Logged out cleanly to /giris",
+        notes: "Expected: logout redirect and sessionStorage clearance.",
       });
     } catch (err: any) {
       recordResult({
@@ -227,9 +253,9 @@ async function runAllSuites() {
         suite: "Authentication",
         status: redirected ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "GET /auth/v1/user -> HTTP 401 (invalid JWT)",
+        networkEvidence: "Tampered local session supplied; auth response status not inspected in this scenario.",
         domEvidence: `Redirected from /panel to ${finalPath}`,
-        notes: "Tampered session detected and unauthenticated user ejected to /giris",
+        notes: "Expected: login redirect for the tampered session.",
       });
     } catch (err: any) {
       recordResult({
@@ -297,19 +323,19 @@ async function runAllSuites() {
         const noHorizontalScroll = geom.scrollWidth <= geom.clientWidth;
         let notes = `scrollWidth=${geom.scrollWidth}px, clientWidth=${geom.clientWidth}px`;
         if (vp.w === 1024 || vp.w === 1100 || vp.w === 1199) {
-          notes += `, dense layout NOT active (columns < 7)`;
+          notes += `, denseLayoutObserved=${isDenseActive}, expected=false`;
         } else if (vp.w >= 1200) {
-          notes += `, dense layout IS active (${isDenseActive ? ">=7 cols" : "standard"})`;
+          notes += `, denseLayoutObserved=${isDenseActive}, expected=true`;
         }
 
         recordResult({
           id: vp.id,
           name: vp.name,
           suite: "Responsive",
-          status: noHorizontalScroll ? "PASS" : "FAIL",
+          status: noHorizontalScroll && (vp.w < 1024 || isDenseActive === (vp.w >= 1200)) ? "PASS" : "FAIL",
           browserExecuted: true,
           networkEvidence: "Client-side viewport emulation (CDP Page.setDeviceMetricsOverride)",
-          domEvidence: `scrollWidth=${geom.scrollWidth}, clientWidth=${geom.clientWidth}, overflow=none`,
+          domEvidence: `scrollWidth=${geom.scrollWidth}, clientWidth=${geom.clientWidth}, noHorizontalScroll=${noHorizontalScroll}, denseLayoutObserved=${isDenseActive}`,
           notes,
         });
       } catch (err: any) {
@@ -343,7 +369,7 @@ async function runAllSuites() {
 
       const colCount1100 = cols1100 ? cols1100.split(" ").length : 0;
       const colCount1200 = cols1200 ? cols1200.split(" ").length : 0;
-      const f1Pass = colCount1100 < 7 && colCount1200 >= 7;
+      const f1Pass = colCount1100 > 0 && colCount1100 < 7 && colCount1200 >= 7;
 
       recordResult({
         id: "PHASE4.F1",
@@ -353,7 +379,7 @@ async function runAllSuites() {
         browserExecuted: true,
         networkEvidence: "CSS media query evaluation (@media min-width: 1200px)",
         domEvidence: `1100px: ${colCount1100} columns (${cols1100}), 1200px: ${colCount1200} columns (${cols1200})`,
-        notes: "Dense layout activates strictly at >=1200px, avoiding premature activation at 1024-1199px",
+        notes: "Expected: a rendered row below seven columns at 1100px and at least seven columns at 1200px.",
       });
     } catch (err: any) {
       recordResult({
@@ -392,9 +418,9 @@ async function runAllSuites() {
         suite: "Orders",
         status: orderCount === 5 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "GET /rest/v1/orders?limit=21 -> HTTP 200",
+        networkEvidence: "Order list DOM inspected; backend request status not inspected in this scenario.",
         domEvidence: `${orderCount} .panel-order-card elements rendered in DOM`,
-        notes: "Rendered all 5 initial fixture orders with formatted prices and badges",
+        notes: "Expected: five initial fixture order cards; price/badge fidelity is not asserted here.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.1", name: "Order list render", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -424,9 +450,9 @@ async function runAllSuites() {
         suite: "Orders",
         status: newCount === 1 && allCount === 5 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "GET /rest/v1/orders?status=eq.new -> HTTP 200",
+        networkEvidence: "Status filter controls clicked; backend response status not inspected in this scenario.",
         domEvidence: `Yeni filter count=${newCount}, Tümü filter count=${allCount}`,
-        notes: "Filtered order list accurately by status",
+        notes: "Expected: one New order and five All orders.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.2", name: "Status filters", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -466,9 +492,9 @@ async function runAllSuites() {
         suite: "Orders",
         status: pass ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "GET /rest/v1/orders?or=(customer_name.ilike...) -> HTTP 200",
+        networkEvidence: "Search form submitted for customer name, phone and order number; backend response status not inspected here.",
         domEvidence: `Ahmet=${ahmetCount} (${ahmetName}), Phone=${phoneCount} (${phoneName}), #101=${numCount} (${numText})`,
-        notes: "Live search correctly filtered orders by customer name, phone, and number",
+        notes: "Expected: one matching card for each search and the expected customer/order number text.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.3", name: "Search filters", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -487,9 +513,9 @@ async function runAllSuites() {
         suite: "Orders",
         status: detailOpen && itemCount > 0 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Client-side state expansion (no re-fetch required for cached order)",
+        networkEvidence: "Order detail control clicked; re-fetch count not measured in this scenario.",
         domEvidence: `Drawer open=${detailOpen}, customer="${customer}", line items=${itemCount}`,
-        notes: "Order detail drawer renders complete customer, payment, and item details",
+        notes: "Expected: an open detail drawer with at least one line item; payment fidelity is not asserted here.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.4", name: "Order detail drawer", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -508,7 +534,7 @@ async function runAllSuites() {
         if (updatedBadge.includes("Hazırlanıyor")) break;
       }
       const postNet = client.networkLogs.slice(preNet);
-      const patchCall = postNet.find((n) => n.url.includes("/rest/v1/orders") && n.method === "PATCH");
+      const patchCall = postNet.find((n) => n.url.includes("/api/business/orders/") && n.method === "PATCH");
       let countRevalidated = false;
       for (let i = 0; i < 40; i++) {
         countRevalidated = await client.evaluate<boolean>(`Number(document.querySelector('.business-panel-nav-badge')?.textContent || '0') === ${newCountBefore - 1} && Number(document.querySelector('.business-panel-mobile-badge')?.textContent || '0') === ${newCountBefore - 1}`);
@@ -520,11 +546,11 @@ async function runAllSuites() {
         id: "S3.5",
         name: "Order status transition workflow (new -> preparing)",
         suite: "Orders",
-        status: updatedBadge.includes("Hazırlanıyor") && countRevalidated ? "PASS" : "FAIL",
+        status: updatedBadge.includes("Hazırlanıyor") && countRevalidated && patchCall?.status === 200 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `PATCH /rest/v1/orders?id=eq...&updated_at=eq... -> HTTP ${patchCall?.status || 200}`,
-        domEvidence: `Status badge updated to "${updatedBadge.trim()}"`,
-        notes: "Conditional PATCH dispatched and UI updated with server confirmation",
+        networkEvidence: `PATCH /api/business/orders -> observed HTTP ${patchCall?.status ?? "UNVERIFIED (no captured response)"}`,
+        domEvidence: `Status badge="${updatedBadge.trim()}", bothNewCountsRevalidated=${countRevalidated}`,
+        notes: "Expected: 200 order-status response, Preparing status badge and decremented mobile/desktop New counts.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.5", name: "Status transition", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -532,6 +558,7 @@ async function runAllSuites() {
 
     // S3.6 Cancellation confirmation modal
     try {
+      const preNet = client.networkLogs.length;
       await client.select(".panel-order-detail-status select", "cancelled");
       const confirmRendered = await client.waitForSelector(".panel-order-cancel-dialog", 3000);
       const title = await client.evaluate<string>("document.querySelector('#panel-order-cancel-title')?.textContent || ''");
@@ -539,16 +566,18 @@ async function runAllSuites() {
       // Cancel out of dialog
       await client.click(".panel-order-cancel-actions button.panel-secondary-action");
       await new Promise((r) => setTimeout(r, 200));
+      const mutations = mutationCountSince(client, preNet);
+      const cancelledDialogClosed = await client.evaluate<boolean>("document.querySelector('.panel-order-cancel-dialog') === null");
 
       recordResult({
         id: "S3.6",
         name: "Order cancellation confirmation modal & safety guard",
         suite: "Orders",
-        status: confirmRendered && title.includes("İptal") ? "PASS" : "FAIL",
+        status: confirmRendered && title.includes("İptal") && cancelledDialogClosed && mutations === 0 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Zero destructive network requests before confirmation",
-        domEvidence: `.panel-order-cancel-dialog rendered with title "${title}"`,
-        notes: "Selecting cancelled triggers accessible confirmation dialog; aborted safely",
+        networkEvidence: `Observed mutation requests during cancellation selection and dismissal=${mutations}`,
+        domEvidence: `confirmationRendered=${confirmRendered}, title="${title}", dialogClosedAfterDismissal=${cancelledDialogClosed}`,
+        notes: "Expected: cancellation confirmation and dismissal without a mutation request.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.6", name: "Cancellation confirmation", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -585,8 +614,8 @@ async function runAllSuites() {
         status: s37Pass ? "PASS" : (browserDiff === 0 ? "FAIL" : "INCONCLUSIVE"),
         browserExecuted: true,
         networkEvidence: `Browser PATCH /api/business/orders/... count=${browserDiff}, Backend mock PATCH /rest/v1/orders count=${mockDiff}`,
-        domEvidence: `Status transitioned from "${initialStatus}" to "${finalStatus}", select disabled during in-flight mutation`,
-        notes: "First mutation dispatched; duplicate attempt blocked (browser=1, mock=1)",
+        domEvidence: `Observed status before="${initialStatus}", after="${finalStatus}"; transient disabled state was not sampled.`,
+        notes: "Expected: Preparing -> Ready with one browser and one backend PATCH.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.7", name: "Duplicate click guard", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -615,16 +644,17 @@ async function runAllSuites() {
 
       const conflictMsg = await client.evaluate<string>("document.querySelector('.panel-order-mutation-message')?.textContent || ''");
       const reloadBtn = await client.evaluate<boolean>("document.querySelector('.panel-order-mutation-message button') !== null");
+      const conflictCall = client.networkLogs.slice(preNet).find(n => n.url.includes("/api/business/orders/") && n.method === "PATCH");
 
       recordResult({
         id: "S3.8",
         name: "ORDER_CONFLICT stale-state conditional PATCH handling & recovery",
         suite: "Orders",
-        status: conflictMsg.includes("güncellendi") && reloadBtn ? "PASS" : "FAIL",
+        status: conflictMsg.includes("güncellendi") && reloadBtn && conflictCall?.status === 409 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "PATCH /rest/v1/orders returned HTTP 200 [] (0 rows matched stale updated_at)",
+        networkEvidence: `Observed business order PATCH HTTP ${conflictCall?.status ?? "UNVERIFIED (no captured response)"}; backend row-count response was not captured.`,
         domEvidence: `Conflict recovery alert: "${conflictMsg.trim()}", reload button present=${reloadBtn}`,
-        notes: "Conflict banner displayed and user guided to reload authoritative order data",
+        notes: "Expected: 409, conflict banner and reload control; reload recovery is not exercised in this scenario.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.8", name: "ORDER_CONFLICT handling", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -644,9 +674,10 @@ async function runAllSuites() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customer_name: "Yeni Polling Müşterisi", status: "new" }),
       });
-      const injected = (await injectRes.json()) as { order: { id: string; order_number: number } };
+      await injectRes.json();
 
       // Click refresh to load new order
+      const preRefreshNet = client.networkLogs.length;
       await client.evaluate(`(() => {
         const btn = document.querySelector('button.panel-order-refresh');
         if (btn) btn.click();
@@ -676,7 +707,8 @@ async function runAllSuites() {
       })()`);
 
       const parsedNum = parseInt(cardData.orderNumberText.replace("#", ""), 10);
-      const s39Pass = cardData.detected &&
+      const refreshCall = client.networkLogs.slice(preRefreshNet).find(n => n.url.includes("/api/business/orders") && n.method === "GET");
+      const s39Pass = injectRes.status === 201 && refreshCall?.status === 200 && cardData.detected &&
                       cardData.orderNumberText.startsWith("#") &&
                       Number.isFinite(parsedNum) &&
                       parsedNum > 0 &&
@@ -685,13 +717,13 @@ async function runAllSuites() {
 
       recordResult({
         id: "S3.9",
-        name: "Order injection & list refresh polling verification",
+        name: "Order injection & manual list refresh verification",
         suite: "Orders",
         status: s39Pass ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `POST /__e2e/inject-order -> HTTP 201, GET /api/business/orders -> HTTP 200`,
-        domEvidence: `Injected order #${parsedNum} rendered for "${cardData.customerName}" (zero #undefined, zero #NaN)`,
-        notes: `Injected order #${parsedNum} displayed with valid finite number (no #undefined)`,
+        networkEvidence: `POST /__e2e/inject-order -> observed HTTP ${injectRes.status}, GET /api/business/orders -> observed HTTP ${refreshCall?.status ?? "UNVERIFIED (no captured response)"}`,
+        domEvidence: `detected=${cardData.detected}, orderNumberText=${cardData.orderNumberText}, customerName="${cardData.customerName}", hasUndefined=${cardData.hasUndefined}, hasNaN=${cardData.hasNaN}`,
+        notes: "Expected: injected card with a positive finite order number after manual refresh; autonomous polling is covered by BADGE.B.",
       });
     } catch (err: any) {
       recordResult({ id: "S3.9", name: "Order injection", suite: "Orders", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -716,7 +748,7 @@ async function runAllSuites() {
         browserExecuted: true,
         networkEvidence: "Client-side dropdown selection state",
         domEvidence: `Select value="${val58}"`,
-        notes: "58mm thermal paper width option selected and bound to state",
+        notes: "Expected: selected value 58mm.",
       });
 
       // S4.2 80mm width selection
@@ -730,7 +762,7 @@ async function runAllSuites() {
         browserExecuted: true,
         networkEvidence: "Client-side dropdown selection state",
         domEvidence: `Select value="${val80}"`,
-        notes: "80mm standard paper width option selected and bound to state",
+        notes: "Expected: selected value 80mm.",
       });
 
       // S4.3 Print popup window & postMessage delivery
@@ -740,7 +772,7 @@ async function runAllSuites() {
         suite: "Printing",
         status: "SKIP — TOOL LIMITATION",
         browserExecuted: false,
-        networkEvidence: "Popup window.open navigation to /panel/yazdir",
+        networkEvidence: "UNVERIFIED — popup launch was not executed.",
         domEvidence: "Single-target headless Chrome CDP cannot inspect child window DOM or cross-window postMessage",
         notes: "Tool limitation: cross-window postMessage/popup inspection requires multi-target CDP session manager",
       });
@@ -751,16 +783,17 @@ async function runAllSuites() {
       await new Promise((r) => setTimeout(r, 600));
       const printPageText = await client.evaluate<string>("document.body.innerText");
       const printHasStyles = await client.evaluate<boolean>("document.querySelector('main, article, div') !== null");
+      const printCall = findCompletedHtmlDocument(client.networkLogs.slice(prePrintNet), "http://127.0.0.1:3100/panel/yazdir");
 
       recordResult({
         id: "S4.4",
         name: "Direct print route (/panel/yazdir) document rendering",
         suite: "Printing",
-        status: printHasStyles ? "PASS" : "FAIL",
+        status: printHasStyles && printPageText.length > 0 && printCall?.status === 200 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "GET /panel/yazdir -> HTTP 200",
-        domEvidence: `Mounted /panel/yazdir document view (text length: ${printPageText.length})`,
-        notes: "Print document template and styles load cleanly on dedicated print route",
+        networkEvidence: `GET /panel/yazdir -> observed HTTP ${printCall?.status ?? "UNVERIFIED (no captured document response)"}`,
+        domEvidence: `containerPresent=${printHasStyles}, bodyTextLength=${printPageText.length}, documentMime=${printCall?.type ?? "UNVERIFIED"}, documentFinished=${printCall?.finished ?? "UNVERIFIED"}`,
+        notes: "Expected: completed 200 HTML print-route GET containing body text and a container; RSC/prefetch responses are excluded, print payload and stylesheet fidelity are not inspected.",
       });
 
       // Close drawer and return to /panel
@@ -810,7 +843,7 @@ async function runAllSuites() {
         browserExecuted: true,
         networkEvidence: "Client-side category filtering on loaded fixture products",
         domEvidence: `All products count=${initialCount}, Tatlılar category count=${filteredCount}`,
-        notes: "Category filter correctly isolated single Tatlılar product (Fıstıklı Künefe)",
+        notes: "Expected: six products initially and one product under the Tatlılar filter; product identity is not asserted here.",
       });
     } catch (err: any) {
       recordResult({ id: "S5.1", name: "Category filter", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -822,21 +855,23 @@ async function runAllSuites() {
       await client.waitForSelector("form.business-panel-product-form", 3000);
 
       await client.type("#name", "");
+      const preNet = client.networkLogs.length;
       await client.click("form.business-panel-product-form button[type='submit']");
       await new Promise((r) => setTimeout(r, 200));
 
       const validationMsg = await client.evaluate<string>("document.querySelector('.alert, p.alert')?.textContent || ''");
       const validationPassed = validationMsg.includes("Ürün adı boş olamaz");
+      const mutations = mutationCountSince(client, preNet);
 
       recordResult({
         id: "S5.3",
         name: "Product form client-side validation (empty name rejection)",
         suite: "Products",
-        status: validationPassed ? "PASS" : "FAIL",
+        status: validationPassed && mutations === 0 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Zero mutation requests dispatched (client-side validation block)",
-        domEvidence: `Validation alert displayed: "${validationMsg.trim()}"`,
-        notes: "Empty product name blocked prior to network dispatch",
+        networkEvidence: `Observed mutation requests after empty-name submit=${mutations}`,
+        domEvidence: `Observed validation message="${validationMsg.trim()}"`,
+        notes: "Expected: empty-name validation alert without a mutation request.",
       });
     } catch (err: any) {
       recordResult({ id: "S5.3", name: "Product validation", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -867,17 +902,18 @@ async function runAllSuites() {
       await new Promise((r) => setTimeout(r, 400));
       await client.waitForSelector(".panel-product-list", 5000);
       const postNet = client.networkLogs.slice(preNet);
-      const createCall = postNet.find((n) => n.url.includes("/rest/v1/products") && n.method === "POST");
+      const createCall = findResponseForMethod(postNet, "http://127.0.0.1:3100/api/business/products", "POST");
+      const productListed = await client.evaluate<boolean>("[...document.querySelectorAll('.panel-product-card')].some(card => card.textContent?.includes('Otomasyon Fıstıklı Baklava'))");
 
       recordResult({
         id: "S5.2",
         name: "Product creation & authoritative merge",
         suite: "Products",
-        status: created ? "PASS" : "FAIL",
+        status: created && productListed && createCall?.status === 200 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `POST /rest/v1/products -> HTTP ${createCall?.status || 201}`,
-        domEvidence: `Success alert "Ürün eklendi." rendered, redirected to product list`,
-        notes: "Product created with valid deterministic UUID and added to authoritative list",
+        networkEvidence: `POST /api/business/products -> observed HTTP ${createCall?.status ?? "UNVERIFIED (no captured response)"}`,
+        domEvidence: `creationAlertObserved=${created}, createdProductCardPresent=${productListed}`,
+        notes: "Expected: 200 business API creation response, success alert and a matching product card; UUID format is not asserted here.",
       });
     } catch (err: any) {
       recordResult({ id: "S5.2", name: "Product creation", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -936,7 +972,7 @@ async function runAllSuites() {
       const mockRows = (await mockStateRes.json()) as Array<{ id: string; is_active: boolean }>;
       const mockStateChanged = mockRows.length > 0 && mockRows[0].is_active === false;
 
-      const s54Pass = badgeUpdated && isCorrectProductUuid && isNotBusinessUuid && mockStateChanged;
+      const s54Pass = badgeUpdated && isCorrectProductUuid && isNotBusinessUuid && mockStateChanged && browserPatchCall?.status === 200;
 
       recordResult({
         id: "S5.4",
@@ -944,9 +980,9 @@ async function runAllSuites() {
         suite: "Products",
         status: s54Pass ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `Browser: ${browserPatchCall?.method || "PATCH"} ${browserPatchCall?.url || ""}, Backend mock: PATCH ${capturedBackendUrl}`,
-        domEvidence: `Status badge updated to "${statusBadge.trim()}", authoritative mock is_active=${mockRows[0]?.is_active}`,
-        notes: `Product UUID verified: id=00000000-0000-4000-8000-000000001001 (not business UUID 000000000101; prior report was documentation typo)`,
+        networkEvidence: `Browser: ${browserPatchCall ? `${browserPatchCall.method} ${browserPatchCall.url} HTTP ${browserPatchCall.status ?? "UNVERIFIED"}` : "UNVERIFIED (no captured PATCH)"}, backend mock PATCH URL=${capturedBackendUrl || "UNVERIFIED"}`,
+        domEvidence: `Observed status badge="${statusBadge.trim()}", authoritative mock is_active=${mockRows[0]?.is_active}`,
+        notes: `Observed backend product id=${actualProductId || "UNVERIFIED"}; expected fixture product id=00000000-0000-4000-8000-000000001001.`,
       });
     } catch (err: any) {
       recordResult({ id: "S5.4", name: "Product toggle", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -991,18 +1027,18 @@ async function runAllSuites() {
       })()`);
 
       const postNet = client.networkLogs.slice(preNet);
-      const rpcCall = postNet.find((n) => (n.url.includes("/api/business/products/reorder") || n.url.includes("/rpc/reorder_business_products_atomic")) && n.method === "POST");
+      const rpcCall = findResponseForMethod(postNet, "http://127.0.0.1:3100/api/business/products/reorder", "POST");
       const orderShifted = namesBefore.length >= 2 && namesAfter[0] === namesBefore[1];
 
       recordResult({
         id: "S5.5",
         name: "Product reordering success workflow (move down)",
         suite: "Products",
-        status: (reorderSuccessMsg.includes("taşındı") || orderShifted || rpcCall?.status === 200) ? "PASS" : "FAIL",
+        status: reorderSuccessMsg.includes("taşındı") && orderShifted && rpcCall?.status === 200 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `POST /api/business/products/reorder -> HTTP ${rpcCall?.status || 200}`,
-        domEvidence: `Alert "${reorderSuccessMsg.trim()}", list reordered: "${namesBefore[0]}" shifted down`,
-        notes: "Atomic reorder RPC dispatched and product positions shifted in DOM",
+        networkEvidence: `POST reorder -> observed HTTP ${rpcCall?.status ?? "UNVERIFIED (no captured response)"}`,
+        domEvidence: `Alert="${reorderSuccessMsg.trim()}", before=${JSON.stringify(namesBefore)}, after=${JSON.stringify(namesAfter)}, orderShifted=${orderShifted}`,
+        notes: "Expected: 200 reorder response, success alert and first product shifted down in DOM.",
       });
     } catch (err: any) {
       recordResult({ id: "S5.5", name: "Product reorder", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1028,7 +1064,7 @@ async function runAllSuites() {
 
       const conflictMsg = await client.evaluate<string>("document.querySelector('.panel-product-mutation-message')?.textContent || ''");
       const postNet = client.networkLogs.slice(preNet);
-      const conflictRpc = postNet.find((n) => n.url.includes("/api/business/products/reorder") || n.url.includes("/rpc/reorder_business_products_atomic"));
+      const conflictRpc = findResponseForMethod(postNet, "http://127.0.0.1:3100/api/business/products/reorder", "POST");
 
       // Click reload button to verify recovery
       await client.click(".panel-product-mutation-message button");
@@ -1039,11 +1075,11 @@ async function runAllSuites() {
         id: "S5.6",
         name: "PRODUCT_CONFLICT stale-state reorder handling & recovery",
         suite: "Products",
-        status: (conflictMsg.includes("güncellendi") || conflictRpc?.status === 409) && conflictCleared ? "PASS" : "FAIL",
+        status: conflictMsg.includes("güncellendi") && conflictRpc?.status === 409 && conflictCleared ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: `POST /api/business/products/reorder -> HTTP 409 PRODUCT_CONFLICT`,
+        networkEvidence: `POST reorder -> observed HTTP ${conflictRpc?.status ?? "UNVERIFIED (no captured response)"}`,
         domEvidence: `Conflict alert displayed: "${conflictMsg.trim()}", cleared on reload button click=${conflictCleared}`,
-        notes: "409 PRODUCT_CONFLICT handled and state restored via authoritative reload",
+        notes: "Expected: 409 conflict, conflict alert and alert clearance after reload; returned product fidelity is not compared here.",
       });
     } catch (err: any) {
       recordResult({ id: "S5.6", name: "Product reorder conflict", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1068,9 +1104,12 @@ async function runAllSuites() {
         titleRectWidth: number;
         cardRectWidth: number;
         listRectWidth: number;
+        titleLength: number;
+        overflowWrap: string;
+        wordBreak: string;
       }>(`(() => {
         const cards = Array.from(document.querySelectorAll(".panel-product-card"));
-        const targetCard = cards.find(c => c.textContent?.includes("ÇokÖzelGeleneksel")) || cards[2];
+        const targetCard = cards.find(c => c.textContent?.includes("ÇokÖzelGeleneksel"));
         const titleEl = targetCard ? targetCard.querySelector(".panel-compact-main strong") : null;
         const cardEl = targetCard;
         const listEl = document.querySelector(".panel-product-list");
@@ -1080,10 +1119,13 @@ async function runAllSuites() {
           titleRectWidth: titleEl ? titleEl.getBoundingClientRect().width : 0,
           cardRectWidth: cardEl ? cardEl.getBoundingClientRect().width : 0,
           listRectWidth: listEl ? listEl.getBoundingClientRect().width : 0,
+          titleLength: titleEl ? titleEl.textContent.length : 0,
+          overflowWrap: titleEl ? window.getComputedStyle(titleEl).overflowWrap : "",
+          wordBreak: titleEl ? window.getComputedStyle(titleEl).wordBreak : "",
         };
       })()`);
 
-      const noOverflow = geom.titleScrollWidth > 0 && geom.titleScrollWidth <= geom.titleClientWidth + 2 && geom.cardRectWidth <= geom.listRectWidth + 5;
+      const noOverflow = geom.titleLength >= 60 && geom.titleScrollWidth > 0 && geom.titleScrollWidth <= geom.titleClientWidth + 2 && geom.cardRectWidth <= geom.listRectWidth + 5;
 
       recordResult({
         id: "S5.7",
@@ -1091,9 +1133,9 @@ async function runAllSuites() {
         suite: "Products",
         status: noOverflow ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "CSS layout inspection (overflow-wrap: anywhere; word-break: normal)",
-        domEvidence: `title: scrollWidth=${geom.titleScrollWidth}px <= clientWidth=${geom.titleClientWidth}px, cardWidth=${geom.cardRectWidth}px <= listWidth=${geom.listRectWidth}px`,
-        notes: "Unbroken 78-char product name wraps cleanly without card overflow",
+        networkEvidence: "Browser geometry and computed CSS inspection; no network assertion for this scenario.",
+        domEvidence: `titleLength=${geom.titleLength}, titleScrollWidth=${geom.titleScrollWidth}px, titleClientWidth=${geom.titleClientWidth}px, cardWidth=${geom.cardRectWidth}px, listWidth=${geom.listRectWidth}px, overflowWrap=${geom.overflowWrap}, wordBreak=${geom.wordBreak}, noOverflow=${noOverflow}`,
+        notes: "Expected: the long fixture product title and card stay within their measured widths.",
       });
     } catch (err: any) {
       recordResult({ id: "S5.7", name: "Long name wrapping", suite: "Products", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1104,7 +1146,7 @@ async function runAllSuites() {
     // ==================================================
     console.log("\n--- SUITE 6: STORAGE SUITE ---");
     try {
-      const testImgPath = path.join(os.tmpdir(), "e2e-synthetic-test.png");
+      const testImgPath = path.join(os.tmpdir(), `e2e-synthetic-test-${process.pid}-${Date.now()}.png`);
       const dummyPng = Buffer.from(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         "base64"
@@ -1140,8 +1182,9 @@ async function runAllSuites() {
         selector: "input[type='file']",
       });
 
-      let storageReqFound = false;
-      let storageUrl = "";
+      const preNet = client.networkLogs.length;
+      let formSuccess = false;
+      let publicImageUrl = "";
       if (fileInputNode.nodeId) {
         await client.send("DOM.setFileInputFiles", {
           files: [testImgPath],
@@ -1149,17 +1192,28 @@ async function runAllSuites() {
         });
         await new Promise((r) => setTimeout(r, 300));
 
-        const preNet = client.networkLogs.length;
         await client.click("form.business-panel-product-form button[type='submit']");
-        await new Promise((r) => setTimeout(r, 1200));
-
-        const postNet = client.networkLogs.slice(preNet);
-        const storageCall = postNet.find((n) => n.url.includes("/storage/v1/object/"));
-        if (storageCall) {
-          storageReqFound = true;
-          storageUrl = storageCall.url;
+        for (let i = 0; i < 100; i++) {
+          const upload = client.networkLogs.slice(preNet).find((n) => n.method === "POST" && n.url.includes("/storage/v1/object/product-images/"));
+          publicImageUrl = upload?.url.replace("/storage/v1/object/", "/storage/v1/object/public/") ?? "";
+          formSuccess = await client.evaluate<boolean>(`(() => {
+            const success = Array.from(document.querySelectorAll('p.alert.success')).some(el => el.textContent?.trim() === 'Ürün güncellendi.');
+            const image = Array.from(document.querySelectorAll('.panel-product-card img')).some(el => el.getAttribute('src') === ${JSON.stringify(publicImageUrl)});
+            const file = document.querySelector('#imageFile');
+            return success && image && (!file || file.files.length === 0);
+          })()`);
+          if (formSuccess || upload?.failure) break;
+          await new Promise((r) => setTimeout(r, 100));
         }
       }
+
+      const stateResponse = await fetch("http://127.0.0.1:4010/rest/v1/products");
+      const state = await stateResponse.json();
+      const persisted = stateResponse.ok && state.some((p: { image_url: string }) => p.image_url === publicImageUrl);
+      const requestsResponse = await fetch("http://127.0.0.1:4010/__e2e/requests");
+      if (!requestsResponse.ok) throw new Error("Cannot read mock network evidence");
+      const { requests: serverRequests } = await requestsResponse.json();
+      const assessment = assessUpload({ network: client.networkLogs.slice(preNet), serverRequests, formSuccess: formSuccess && persisted, publicImageUrl });
 
       try { fs.unlinkSync(testImgPath); } catch {}
 
@@ -1167,14 +1221,14 @@ async function runAllSuites() {
         id: "S6.1",
         name: "Real browser Storage image upload & public URL contract",
         suite: "Storage",
-        status: storageReqFound ? "PASS" : "PASS",
+        status: assessment.status,
         browserExecuted: true,
-        networkEvidence: `POST http://127.0.0.1:4010/storage/v1/object/business-images/... -> HTTP 200`,
-        domEvidence: `CDP DOM.setFileInputFiles synthetic PNG uploaded, form updated`,
-        notes: "Real browser file upload dispatched strictly to local mock storage",
+        networkEvidence: JSON.stringify({ preflight: assessment.preflight, upload: assessment.upload }),
+        domEvidence: `success=${formSuccess}, persisted=${persisted}, publicImageUrl=${publicImageUrl}`,
+        notes: assessment.failures.join("; ") || "Expected: OPTIONS and completed POST agree with CDP, mock receipt, DOM and persisted product.",
       });
     } catch (err: any) {
-      recordResult({ id: "S6.1", name: "Storage upload", suite: "Storage", status: "SKIP — TOOL LIMITATION", browserExecuted: false, networkEvidence: "None", domEvidence: err.message });
+      recordResult({ id: "S6.1", name: "Storage upload", suite: "Storage", status: "FAIL", browserExecuted: true, networkEvidence: "Upload verification failed", domEvidence: err.message });
     }
 
     // ==================================================
@@ -1234,9 +1288,9 @@ async function runAllSuites() {
         suite: "Profile",
         status: allMatch ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "GET /rest/v1/businesses?id=eq... -> HTTP 200",
+        networkEvidence: "Profile form DOM inspected; backend response status not inspected in this scenario.",
         domEvidence: `name="${domProfile.name}" [${nameMatch ? "MATCH" : "MISMATCH"}], whatsapp="${domProfile.whatsapp}" [${waMatch ? "MATCH" : "MISMATCH"}], city="${domProfile.city}" [${cityMatch ? "MATCH" : "MISMATCH"}], district="${domProfile.district}" [${districtMatch ? "MATCH" : "MISMATCH"}], neighborhood="${domProfile.neighborhood}" [${neighborhoodMatch ? "MATCH" : "MISMATCH"}], address="${domProfile.address}" [${addressMatch ? "MATCH" : "MISMATCH"}]`,
-        notes: "All 6 profile fields accurately match fixture (city checked via #businessProfileLocation-city; prior blank was test tool selector error)",
+        notes: "Expected: all six inspected profile fields match the synthetic fixture.",
       });
     } catch (err: any) {
       recordResult({ id: "S7.1", name: "Profile population", suite: "Profile", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1257,7 +1311,7 @@ async function runAllSuites() {
         if (saveMsg.includes("kaydedildi")) break;
       }
       const postNet = client.networkLogs.slice(preNet);
-      const profileCall = postNet.find((n) => n.url.includes("/api/business/update-profile") && n.method === "POST");
+      const profileCall = findResponseForMethod(postNet, "http://127.0.0.1:3100/api/business/update-profile", "POST");
       const mockState = await (await fetch("http://127.0.0.1:4010/__e2e/state")).json();
       const stored = mockState.business;
       const saved = saveMsg.includes("kaydedildi") && profileCall?.status === 200 &&
@@ -1271,8 +1325,8 @@ async function runAllSuites() {
         status: saved ? "PASS" : "FAIL",
         browserExecuted: true,
         networkEvidence: `POST /api/business/update-profile -> HTTP ${profileCall?.status}; mock delivery_status=${JSON.stringify(stored?.delivery_status)}, minimum_order_amount=${stored?.minimum_order_amount}`,
-        domEvidence: `Success message "${saveMsg.trim()}" displayed`,
-        notes: "Full settings save with blank delivery and minimum order 100 verified against NOT NULL mock storage",
+        domEvidence: `Observed message="${saveMsg.trim()}", persistedPreparationTime=${stored?.preparation_time_minutes}`,
+        notes: "Expected: 200 profile response, save alert and persisted blank delivery, minimum order 100 and preparation time 30.",
       });
     } catch (err: any) {
       recordResult({ id: "S7.2", name: "Profile save", suite: "Profile", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1313,8 +1367,8 @@ async function runAllSuites() {
         status: s73Pass ? "PASS" : "FAIL",
         browserExecuted: true,
         networkEvidence: `Browser POST /api/business/update-profile: count=${browserDiff}, Mock PATCH /rest/v1/businesses: count=${mockDiff}`,
-        domEvidence: `profileSaveInFlightRef.current active, button enters isSaving state, exactly 1 mutation dispatched`,
-        notes: "Synchronous in-flight guard blocked duplicate save (browser=1, mock=1; reconciled prior report 0 typo)",
+        domEvidence: "Rapid submit control clicked twice; internal React ref and transient disabled state were not inspected.",
+        notes: "Expected: exactly one browser POST and one backend PATCH after rapid duplicate submit.",
       });
     } catch (err: any) {
       recordResult({ id: "S7.3", name: "Duplicate submit guard", suite: "Profile", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1326,21 +1380,23 @@ async function runAllSuites() {
         document.querySelector("#businessName")?.removeAttribute("maxlength");
       })()`);
       await client.type("#businessName", "A".repeat(121));
+      const preNet = client.networkLogs.length;
       await client.click("form.panel-form button[type='submit']");
       await new Promise((r) => setTimeout(r, 200));
 
       const errMsg = await client.evaluate<string>("document.querySelector('.alert, p.error')?.textContent || ''");
       const rejected = errMsg.includes("120 karakter olabilir");
+      const mutations = mutationCountSince(client, preNet);
 
       recordResult({
         id: "S7.4",
         name: "Profile validation: 120-character business name boundary (Phase 4 F4)",
         suite: "Profile",
-        status: rejected ? "PASS" : "FAIL",
+        status: rejected && mutations === 0 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Zero mutation requests dispatched (validation error blocked submit)",
-        domEvidence: `Error alert displayed: "${errMsg.trim()}"`,
-        notes: "121-character business name blocked by client validator",
+        networkEvidence: `Observed mutation requests after overlong-name submit=${mutations}`,
+        domEvidence: `Observed validation message="${errMsg.trim()}"`,
+        notes: "Expected: 121-character business name validation alert without a mutation request.",
       });
     } catch (err: any) {
       recordResult({ id: "S7.4", name: "120-char name limit", suite: "Profile", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1353,11 +1409,13 @@ async function runAllSuites() {
         document.querySelector("#businessWhatsapp")?.removeAttribute("maxlength");
       })()`);
       await client.type("#businessWhatsapp", "9".repeat(31));
+      const preNet = client.networkLogs.length;
       await client.click("form.panel-form button[type='submit']");
       await new Promise((r) => setTimeout(r, 200));
 
       const errMsg = await client.evaluate<string>("document.querySelector('.alert, p.error')?.textContent || ''");
       const rejected = errMsg.includes("30 karakter olabilir");
+      const mutations = mutationCountSince(client, preNet);
 
       // Reset WhatsApp to valid
       await client.type("#businessWhatsapp", "905551112233");
@@ -1366,11 +1424,11 @@ async function runAllSuites() {
         id: "S7.5",
         name: "Profile validation: 30-character WhatsApp number boundary (Phase 4 F4)",
         suite: "Profile",
-        status: rejected ? "PASS" : "FAIL",
+        status: rejected && mutations === 0 ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Zero mutation requests dispatched (validation error blocked submit)",
-        domEvidence: `Error alert displayed: "${errMsg.trim()}"`,
-        notes: "31-character WhatsApp number blocked by client validator",
+        networkEvidence: `Observed mutation requests after overlong-WhatsApp submit=${mutations}`,
+        domEvidence: `Observed validation message="${errMsg.trim()}"`,
+        notes: "Expected: 31-character WhatsApp validation alert without a mutation request.",
       });
     } catch (err: any) {
       recordResult({ id: "S7.5", name: "30-char WhatsApp limit", suite: "Profile", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1382,7 +1440,7 @@ async function runAllSuites() {
     console.log("\n--- SUITE 8: SUBSCRIPTION GATING SUITE ---");
     try {
       // 1. Direct PATCH mock to set subscription to expired & inactive
-      await fetch("http://127.0.0.1:4010/rest/v1/businesses?id=eq.00000000-0000-4000-8000-000000000101", {
+      const expireResponse = await fetch("http://127.0.0.1:4010/rest/v1/businesses?id=eq.00000000-0000-4000-8000-000000000101", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscription_status: "expired", is_active: false }),
@@ -1394,6 +1452,7 @@ async function runAllSuites() {
 
       const subTextExpired = await client.evaluate<string>("document.body.innerText");
       const warningVisible = subTextExpired.includes("Abonelik pasif") || subTextExpired.includes("Aboneliğiniz aktif değil") || subTextExpired.includes("kapalıdır");
+      const expiredControls = await observeSubscriptionControls(client);
 
       // 3. Reset mock to restore active subscription
       await resetMock();
@@ -1402,16 +1461,19 @@ async function runAllSuites() {
 
       const subTextActive = await client.evaluate<string>("document.body.innerText");
       const activeRestored = subTextActive.includes("Abonelik aktif") && !subTextActive.includes("Abonelik pasif");
+      const activeControls = await observeSubscriptionControls(client);
+      const controlsRestored = expiredControls.productCreationDisabled === true && expiredControls.orderStatusDisabled === true &&
+        activeControls.productCreationDisabled === false && activeControls.orderStatusDisabled === false;
 
       recordResult({
         id: "S8.1",
-        name: "Subscription gating: mutation controls disabled on expired and restored on active",
+        name: "Subscription gating: product-create and order-status controls disabled when expired and restored when active",
         suite: "Subscription gating",
-        status: warningVisible && activeRestored ? "PASS" : "FAIL",
+        status: expireResponse.ok && warningVisible && activeRestored && controlsRestored ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "PATCH /rest/v1/businesses subscription_status=expired / active",
-        domEvidence: `Expired: "Abonelik pasif", Active: "Abonelik aktif"`,
-        notes: "Mutation operations guarded when expired and restored automatically upon reactivation",
+        networkEvidence: `Local fixture expiry PATCH -> observed HTTP ${expireResponse.status}; active fixture restored via reset.`,
+        domEvidence: JSON.stringify({ warningVisible, activeRestored, expiredControls, activeControls }),
+        notes: "Expected: expired/active messaging plus disabled/enabled product-create and order-status controls; backend denial of every mutation type is not tested here.",
       });
     } catch (err: any) {
       recordResult({ id: "S8.1", name: "Subscription gating", suite: "Subscription gating", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1441,9 +1503,9 @@ async function runAllSuites() {
         suite: "Accessibility",
         status: trapFocus ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Client-side focus trap event listener attachment",
+        networkEvidence: "Mobile menu control clicked; DOM focus inspected.",
         domEvidence: `activeElement inside mobile drawer dialog=${trapFocus}`,
-        notes: "Focus securely trapped inside mobile menu upon opening",
+        notes: "Expected: active element inside the opened mobile dialog.",
       });
     } catch (err: any) {
       recordResult({ id: "S9.1", name: "Mobile focus trap", suite: "Accessibility", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1456,18 +1518,18 @@ async function runAllSuites() {
 
       const restoredToTrigger = await client.evaluate<boolean>(`(() => {
         const trigger = document.querySelector(".business-panel-menu-trigger");
-        return document.activeElement === trigger;
+        return Boolean(trigger) && document.activeElement === trigger;
       })()`);
 
       recordResult({
         id: "S9.2",
         name: "Normal drawer close focus restoration to trigger (Phase 4 F3)",
         suite: "Accessibility",
-        status: restoredToTrigger ? "PASS" : "PASS",
+        status: restoredToTrigger ? "PASS" : "FAIL",
         browserExecuted: true,
-        networkEvidence: "Client-side focus restoration callback",
+        networkEvidence: "Mobile menu close control clicked; DOM focus inspected.",
         domEvidence: `Focus returned to hamburger button trigger=${restoredToTrigger}`,
-        notes: "Focus returned cleanly to opening trigger element upon dismissal",
+        notes: "Expected: active element equals the opening menu trigger after dismissal.",
       });
     } catch (err: any) {
       recordResult({ id: "S9.2", name: "Close focus restoration", suite: "Accessibility", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1491,7 +1553,7 @@ async function runAllSuites() {
         browserExecuted: true,
         networkEvidence: "KeyboardEvent Escape dispatch via CDP Input.dispatchKeyEvent",
         domEvidence: `Drawer closed on ESC key=${closedOnEsc}`,
-        notes: "Standard accessible ESC key handler dismisses active modal",
+        notes: "Expected: mobile drawer removed after Escape.",
       });
     } catch (err: any) {
       recordResult({ id: "S9.3", name: "ESC key handling", suite: "Accessibility", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1534,7 +1596,7 @@ async function runAllSuites() {
         browserExecuted: true,
         networkEvidence: "KeyboardEvent Tab dispatch via CDP Input.dispatchKeyEvent",
         domEvidence: `Active element remains strictly within dialog=${tabInside}`,
-        notes: "Tab cycling trapped within dialog boundaries without escaping to background",
+        notes: "Expected: active element stays in the detail drawer after two Tab key presses.",
       });
     } catch (err: any) {
       recordResult({ id: "S9.4", name: "Modal Tab cycling", suite: "Accessibility", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1562,8 +1624,9 @@ async function runAllSuites() {
         const t = document.querySelector(".business-panel-menu-trigger");
         return t ? t.getClientRects().length === 0 : true;
       })()`);
+      const focusedTriggerAfter = await client.evaluate<boolean>("document.activeElement === document.querySelector('.business-panel-menu-trigger')");
 
-      const f3Pass = drawerVisibleBefore && !drawerVisibleAfter && bodyOverflowBefore === "hidden" && bodyOverflowAfter === "" && triggerHidden;
+      const f3Pass = drawerVisibleBefore && !drawerVisibleAfter && bodyOverflowBefore === "hidden" && bodyOverflowAfter === "" && triggerHidden && !focusedTriggerAfter;
 
       recordResult({
         id: "S9.5",
@@ -1572,8 +1635,8 @@ async function runAllSuites() {
         status: f3Pass ? "PASS" : "FAIL",
         browserExecuted: true,
         networkEvidence: "MediaQueryList change listener evaluation ('min-width: 1024px')",
-        domEvidence: `drawerBefore=${drawerVisibleBefore}, drawerAfter=${drawerVisibleAfter}, overflowBefore="${bodyOverflowBefore}", overflowAfter="${bodyOverflowAfter}", activeElement="${activeElementTag}", triggerHidden=${triggerHidden}`,
-        notes: "Mobile menu auto-closed on resize to 1024px desktop, scroll lock released, hidden trigger safely un-focused",
+        domEvidence: `drawerBefore=${drawerVisibleBefore}, drawerAfter=${drawerVisibleAfter}, overflowBefore="${bodyOverflowBefore}", overflowAfter="${bodyOverflowAfter}", activeElement="${activeElementTag}", triggerHidden=${triggerHidden}, focusedTriggerAfter=${focusedTriggerAfter}`,
+        notes: "Expected: opened drawer closes on desktop resize, body scroll lock releases and hidden trigger is not focused.",
       });
     } catch (err: any) {
       recordResult({ id: "S9.5", name: "Resize dismissal", suite: "Accessibility", status: "FAIL", browserExecuted: true, networkEvidence: "None", domEvidence: err.message });
@@ -1590,46 +1653,75 @@ async function runAllSuites() {
     const yerelsiparisRequests = client.networkLogs.filter((n) => n.url.includes("yerelsiparis.com"));
 
     console.log(`Observed hosts: [${Array.from(client.observedHosts).join(", ")}]`);
-    console.log(`External requests: ${externalRequests.length}`);
-    console.log(`supabase.co requests: ${supabaseCoRequests.length}`);
-    console.log(`yerelsiparis.com requests: ${yerelsiparisRequests.length}`);
+    console.log(`External captured HTTP/resource requests: ${externalRequests.length}`);
+    console.log(`Captured HTTP/resource supabase.co requests: ${supabaseCoRequests.length}`);
+    console.log(`Captured HTTP/resource yerelsiparis.com requests: ${yerelsiparisRequests.length}`);
 
-    const egressPassed = externalRequests.length === 0 && supabaseCoRequests.length === 0 && yerelsiparisRequests.length === 0;
+    const egressPassed = client.networkLogs.length > 0 && externalRequests.length === 0 && supabaseCoRequests.length === 0 && yerelsiparisRequests.length === 0 && client.blockedRequests.length === 0 && !client.egressViolation;
 
     recordResult({
       id: "S10.1",
-      name: "Hard Egress Gate (Zero External Requests, Strict Loopback Isolation)",
+      name: "Captured HTTP/resource egress audit (main browser target)",
       suite: "Console/network",
       status: egressPassed ? "PASS" : "FAIL",
       browserExecuted: true,
-      networkEvidence: `Observed hosts: [${Array.from(client.observedHosts).join(", ")}], External: 0, Supabase.co: 0, Yerelsiparis.com: 0`,
-      domEvidence: "100% of HTTP, HTTPS, and WebSocket network requests strictly constrained to 127.0.0.1",
-      notes: "Strict loopback network isolation fully verified",
+      networkEvidence: `Observed HTTP/resource hosts: [${Array.from(client.observedHosts).join(", ")}], capturedHttpResourceRequests=${client.networkLogs.length}, external=${externalRequests.length}, supabaseCo=${supabaseCoRequests.length}, productionDomain=${yerelsiparisRequests.length}, blocked=${client.blockedRequests.length}, egressViolation=${client.egressViolation}`,
+      domEvidence: "Main-target HTTP/resource capture for this BrowserCDPClient; WebSocket observation/egress, server-process egress and popup targets are UNVERIFIED.",
+      notes: "Expected: captured main-target HTTP/resource traffic, no nonlocal requests or blocked egress attempts within that capture, and no egress violation. WebSocket observation and egress are UNVERIFIED.",
     });
 
-    const consoleErrors = client.consoleLogs.filter((c) => c.type === "error" || c.type === "exception");
-    const unexpectedErrors = consoleErrors.filter(
-      (c) => !c.text.includes("400") && !c.text.includes("invalid_grant") && !c.text.includes("409") && !c.text.includes("CONFLICT")
+    const consoleErrors = [
+      ...client.consoleLogs.filter((c) => c.type === "error" || c.type === "exception"),
+      ...client.browserLogs.filter((c) => c.level === "error"),
+    ];
+    const expectedNegativeLogs = consoleErrors.filter(
+      (c) => isExpectedNegativeHttpLog(c, client.networkLogs)
     );
+    const unexpectedConsoleErrors = consoleErrors.filter(
+      (c) => !isExpectedNegativeHttpLog(c, client.networkLogs)
+    );
+    const unexpectedErrors = [...unexpectedConsoleErrors, ...client.loadingFailures.map((c) => ({ text: JSON.stringify(c) }))];
+    mainAudit = {
+      hosts: Array.from(client.observedHosts), requests: client.networkLogs.length,
+      external: externalRequests.length, supabaseCo: supabaseCoRequests.length,
+      productionDomain: yerelsiparisRequests.length, blocked: client.blockedRequests.length,
+      egressViolation: client.egressViolation, consoleErrors: consoleErrors.length,
+      expectedNegativeLogs: expectedNegativeLogs.length,
+      unexpectedConsoleErrors: unexpectedConsoleErrors.length, loadingFailures: client.loadingFailures.length,
+    };
 
     recordResult({
       id: "S10.2",
-      name: "Console error and unhandled rejection audit",
+      name: "Console error and loading-failure audit",
       suite: "Console/network",
       status: unexpectedErrors.length === 0 ? "PASS" : "FAIL",
       browserExecuted: true,
-      networkEvidence: "CDP Runtime.consoleAPICalled & Runtime.exceptionThrown event capture",
-      domEvidence: `0 unhandled exceptions, 0 React runtime errors, ${consoleErrors.length} expected negative test logs (400/409)`,
-      notes: "Clean runtime execution with zero unexpected browser console errors",
+      networkEvidence: "CDP Runtime.consoleAPICalled, Runtime.exceptionThrown, Log.entryAdded and Network.loadingFailed capture",
+      domEvidence: JSON.stringify({ unexpectedErrors, excludedNegativeLogs: expectedNegativeLogs.length, loadingFailures: client.loadingFailures.length }),
+      notes: `Observed unexpected console errors=${unexpectedConsoleErrors.length}, loading failures=${client.loadingFailures.length}. Only exact resource-error messages with an observed expected local 400/409 destination/status are excluded; unhandled rejection counts are not measured separately.`,
     });
 
+  } catch (error) {
+    recordResult({
+      id: "HARNESS.FAILURE", name: "Interrupted main browser harness", suite: "Harness",
+      status: "FAIL", browserExecuted: browserLaunched, networkEvidence: "Main harness interrupted; later controls are unverified.",
+      domEvidence: error instanceof Error ? error.message : String(error),
+    });
   } finally {
-    await client.close();
+    try { await client.close(); } catch (error) {
+      recordResult({
+        id: "HARNESS.CLEANUP", name: "Browser harness cleanup failed", suite: "Harness",
+        status: "FAIL", browserExecuted: browserLaunched, networkEvidence: "Browser cleanup failed.",
+        domEvidence: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   // Own reset/browser lifecycle after the original suites, before report totals.
   console.log("\n--- POLLING BADGE REGRESSION (A–H) ---");
   try {
+    if (client.egressViolation) throw new Error("Polling badge harness not started after the main browser egress violation.");
+    // onPass is called only after the badge harness's assertions/waits succeed.
     await runNewOrderBadgeRegression((id, evidence, browserExecuted) => {
       recordResult({
         id: `BADGE.${id}`,
@@ -1637,6 +1729,7 @@ async function runAllSuites() {
         suite: "Polling badge",
         status: "PASS",
         browserExecuted,
+        nonBrowserAssertionExecuted: !browserExecuted,
         networkEvidence: browserExecuted ? "Isolated loopback GET/polling with pre-network egress gate" : "Local unit regression; no network",
         domEvidence: evidence,
       });
@@ -1644,7 +1737,7 @@ async function runAllSuites() {
   } catch (error) {
     recordResult({
       id: "BADGE.FAILURE", name: "Polling badge regression failure",
-      suite: "Polling badge", status: "FAIL", browserExecuted: true,
+      suite: "Polling badge", status: "FAIL", browserExecuted: false,
       networkEvidence: "Isolated loopback harness",
       domEvidence: error instanceof Error ? error.message : "Unknown regression failure",
     });
@@ -1657,90 +1750,84 @@ async function runAllSuites() {
   console.log("GENERATING FINAL REPORT ARTIFACT");
   console.log("==================================================");
 
-  const passCount = results.filter((r) => r.status === "PASS").length;
-  const failCount = results.filter((r) => r.status === "FAIL").length;
-  const skipCount = results.filter((r) => r.status === "SKIP — TOOL LIMITATION").length;
-  const inconcCount = results.filter((r) => r.status === "INCONCLUSIVE").length;
-
-  const f1 = results.find((r) => r.id === "PHASE4.F1")?.status || "PASS";
-  const f2 = results.find((r) => r.id === "S7.3")?.status || "PASS";
-  const f3 = results.find((r) => r.id === "S9.5")?.status || "PASS";
-  const f4 = results.find((r) => r.id === "S7.4")?.status || "PASS";
-  const f5 = results.find((r) => r.id === "S5.7")?.status || "PASS";
-
-  const finalClass = failCount === 0 ? (skipCount > 0 ? "PASS WITH LIMITATIONS" : "PASS") : "FAIL";
+  const reportResults = completeScenarioResults(results);
+  const passCount = reportResults.filter((r) => r.status === "PASS").length;
+  const failCount = reportResults.filter((r) => r.status === "FAIL").length;
+  const skipCount = reportResults.filter((r) => r.status === "SKIP — TOOL LIMITATION").length;
+  const inconcCount = reportResults.filter((r) => r.status === "INCONCLUSIVE").length;
+  const unverifiedCount = reportResults.filter((r) => r.status === "UNVERIFIED").length;
+  const finalClass = summarizeStatus(reportResults);
 
   const tableHeader = "| ID | RESULT | BROWSER EXECUTED | NETWORK EVIDENCE | DOM/UI EVIDENCE | NOTES |\n|---|---|---|---|---|---|";
-  const tableRows = results.map((r) => {
+  const tableRows = reportResults.map((r) => {
     const executed = r.browserExecuted ? "YES" : "NO";
-    const net = (r.networkEvidence || "").replace(/\|/g, "\\|");
-    const dom = (r.domEvidence || "").replace(/\|/g, "\\|");
-    const notes = (r.notes || "").replace(/\|/g, "\\|");
+    const cell = (text: string) => text.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+    const net = cell(r.networkEvidence || "");
+    const dom = cell(r.domEvidence || "");
+    const notes = cell(r.notes || "");
     return `| ${r.id} | ${r.status} | ${executed} | ${net} | ${dom} | ${notes} |`;
   }).join("\n");
 
-  const reportText = `================================================================================
+  const reportText = redactEvidenceText(`================================================================================
 BUSINESS PANEL AUTHENTICATED LOCAL E2E — FINAL REPORT
 ================================================================================
 
 Environment:
-- branch: test/business-panel-authenticated-e2e-harness
-- base SHA: 6eca6a8ca03936bc78fa80599329023002504e51
+- tested source checkout branch at run start: ${testedSource.branch}
+- tested source checkout HEAD at run start: ${testedSource.head}
+- tracked working-tree changes at run start: ${testedSource.trackedChanges ? testedSource.trackedChanges.split(/\r?\n/).join(", ") : "none"}
+- served Next build provenance: UNVERIFIED (server build ID is not compared with this checkout)
 - Next URL: http://127.0.0.1:3100
 - mock URL: http://127.0.0.1:4010
 - browser: Google Chrome (Headless CDP via native Node WebSocket)
-- browser_subagent fallback: Playwright installation failed with 404 on CDN; successfully fell back to installed Google Chrome via native zero-dependency Node WebSocket CDP
-- external downloads: 0 packages, 0 browser drivers
-- production access: NO
-- real credentials: NO
+- main browser launch observed: ${browserLaunched ? "YES" : "NO"}
+- external package/browser downloads: UNVERIFIED (not monitored by this run)
+- credential inputs: synthetic local fixture values; server environment credentials are not audited by this runner
 
 Results Summary:
-- total scenarios attempted: ${results.length}
+- recorded observations: ${results.length}
+- report entries including unverified required controls: ${reportResults.length}
 - PASS count: ${passCount}
 - FAIL count: ${failCount}
 - SKIP — TOOL LIMITATION count: ${skipCount}
 - INCONCLUSIVE count: ${inconcCount}
+- UNVERIFIED count: ${unverifiedCount}
 
 Suites:
-- Authentication: PASS (S1.1, S1.2, S1.3, S1.4, S1.5)
-- Responsive: PASS (S2.1 - S2.8 viewports + PHASE4.F1)
-- Orders: PASS (S3.1, S3.2, S3.3, S3.4, S3.5, S3.6, S3.7, S3.8, S3.9)
-- Printing: PASS WITH LIMITATIONS (S4.1 PASS, S4.2 PASS, S4.3 SKIP — TOOL LIMITATION, S4.4 PASS)
-- Products: PASS (S5.1, S5.2, S5.3, S5.4, S5.5, S5.6, S5.7)
-- Storage: PASS (S6.1 real browser file upload via CDP DOM.setFileInputFiles)
-- Profile: PASS (S7.1, S7.2, S7.3, S7.4, S7.5)
-- Subscription gating: PASS (S8.1 mutation controls blocked on expired, restored on active)
-- Accessibility: PASS (S9.1, S9.2, S9.3, S9.4, S9.5)
-- Console/network: PASS (S10.1 Hard Egress Gate, S10.2 Console Audit)
-- Polling badge: ${results.filter(r => r.suite === "Polling badge").map(r => `${r.id} ${r.status}`).join(", ")} (F reuses local race unit tests)
+${renderSuiteSummary(reportResults)}
 
 Phase 4 Readiness Verification:
-- F1 result: ${f1} (dense orders layout activates strictly at >=1200px breakpoint, not prematurely at 1024-1199px)
-- F2 result: ${f2} (profile save synchronous duplicate-submit guard verified; exactly 1 PATCH dispatched)
-- F3 result: ${f3} (mobile menu auto-closes upon entering 1024px desktop breakpoint, scroll lock releases, hidden trigger un-focused)
-- F4 result: ${f4} (profile client validation limits: 120-char name & 30-char WhatsApp rejection)
-- F5 result: ${f5} (long unbroken product name wraps cleanly without card overflow via overflow-wrap: anywhere)
+- F1 result: ${summarizeScenarioGroup(reportResults, ["PHASE4.F1"])}; checks observed grid columns at 1100px and 1200px
+- F2 result: ${summarizeScenarioGroup(reportResults, ["S7.3"])}; checks observed browser/mock mutation counts
+- F3 result: ${summarizeScenarioGroup(reportResults, ["S9.1", "S9.2", "S9.5"])}; checks focus placement, restoration and resize cleanup
+- F4 result: ${summarizeScenarioGroup(reportResults, ["S7.4", "S7.5"])}; checks both name and WhatsApp validation boundaries
+- F5 result: ${summarizeScenarioGroup(reportResults, ["S5.7"])}; checks measured long-title geometry
 
-Network Hard Egress Gate:
-- browser hosts observed: [127.0.0.1:3100, 127.0.0.1:4010]
-- external HTTP/HTTPS/WS requests: 0
-- supabase.co requests: 0
-- yerelsiparis.com requests: 0
+Captured HTTP/resource egress audit (main browser target only, S10.1):
+- HTTP/resource hosts observed: ${mainAudit ? JSON.stringify(mainAudit.hosts) : "UNVERIFIED (audit not reached)"}
+- captured HTTP/resource requests: ${mainAudit?.requests ?? "UNVERIFIED"}
+- external captured HTTP/resource requests: ${mainAudit?.external ?? "UNVERIFIED"}
+- captured HTTP/resource supabase.co requests: ${mainAudit?.supabaseCo ?? "UNVERIFIED"}
+- captured HTTP/resource yerelsiparis.com requests: ${mainAudit?.productionDomain ?? "UNVERIFIED"}
+- blocked HTTP/resource requests: ${mainAudit?.blocked ?? "UNVERIFIED"}
+- HTTP/resource egress violation observed: ${mainAudit?.egressViolation ?? "UNVERIFIED"}
+- WebSocket observation and egress: UNVERIFIED (WebSocket events are not captured by this helper)
+- server-process egress and popup targets: UNVERIFIED (not captured by this main-target audit)
 
-Console Audit:
-- unexpected console errors: 0
-- unhandled rejections: 0
-(All logged 400/409 errors were expected from intentional negative test cases: invalid login, stale conflict simulations)
+Console Audit (main browser target only, S10.2):
+- captured console/browser errors: ${mainAudit?.consoleErrors ?? "UNVERIFIED"}
+- excluded observed expected local HTTP 400/409 resource errors: ${mainAudit?.expectedNegativeLogs ?? "UNVERIFIED"}
+- unexpected console errors: ${mainAudit?.unexpectedConsoleErrors ?? "UNVERIFIED"}
+- network loading failures: ${mainAudit?.loadingFailures ?? "UNVERIFIED"}
+- unhandled rejections: UNVERIFIED (no separate rejection counter)
 
 Limitations:
-${skipCount > 0 ? results.filter(r => r.status === "SKIP — TOOL LIMITATION").map(r => `- ${r.id} (${r.name}): ${r.notes}`).join("\n") : "NONE."}
+${reportResults.filter(r => ["SKIP — TOOL LIMITATION", "INCONCLUSIVE", "UNVERIFIED"].includes(r.status)).map(r => `- ${r.id} ${r.status} (${r.name}): ${r.notes || "No conclusive observation."}`).join("\n") || "No skipped, inconclusive or unverified scenario was recorded; individual evidence scopes remain as stated in the table."}
 
-Safety:
-- production Supabase access: NO
-- production mutation: NO
-- production deploy: NO
-- .env.local modified: NO
-- production app source modified during E2E: NO
+Scope:
+- runner-configured application/mock destinations: http://127.0.0.1:3100 and http://127.0.0.1:4010
+- production/deploy/filesystem-change audit: UNVERIFIED (this report only records scenario and main-target browser observations)
+- existing reports are historical evidence; this report describes this run only
 
 ================================================================================
 EXPLICIT SCENARIO EVIDENCE TABLE
@@ -1752,15 +1839,16 @@ ${tableRows}
 ================================================================================
 FINAL CLASSIFICATION: ${finalClass}
 ================================================================================
-`;
+`);
 
-  fs.writeFileSync("business-panel-browser-e2e-report.txt", reportText, "utf8");
-  console.log("\nReport written to business-panel-browser-e2e-report.txt");
+  const reportPath = process.env.E2E_REPORT_PATH || path.join(os.tmpdir(), `business-panel-browser-e2e-${Date.now()}.txt`);
+  fs.writeFileSync(reportPath, reportText, { encoding: "utf8", flag: "wx" });
+  console.log(`Report: ${reportPath}`);
   console.log(reportText);
-  if (failCount > 0) process.exitCode = 1;
+  if (finalClass === "FAIL" || finalClass === "UNVERIFIED") process.exitCode = 1;
 }
 
 runAllSuites().catch((err) => {
-  console.error("Browser E2E Suite failed with unhandled error:", err);
+  console.error("Browser E2E Suite failed with unhandled error:", redactEvidenceText(err instanceof Error ? err.stack || err.message : String(err)));
   process.exit(1);
 });

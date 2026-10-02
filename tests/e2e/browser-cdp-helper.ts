@@ -2,6 +2,8 @@ import { spawn, ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { redactEvidenceText, redactNetworkHeaders, stringifyRedactedEvidence } from "./network-evidence-redaction";
 
 export interface NetworkLogEntry {
   requestId: string;
@@ -10,6 +12,27 @@ export interface NetworkLogEntry {
   status?: number;
   type?: string;
   host: string;
+  requestHeaders?: Record<string, string>;
+  responseHeaders?: Record<string, string>;
+  initiatorRequestId?: string;
+  finished?: boolean;
+  failure?: NetworkFailureEntry;
+}
+
+export interface NetworkFailureEntry {
+  requestId: string;
+  errorText: string;
+  canceled: boolean;
+  blockedReason?: string;
+  corsErrorStatus?: { corsError: string; failedParameter: string };
+}
+
+export interface BrowserLogEntry {
+  level: string;
+  text: string;
+  source: string;
+  url?: string;
+  timestamp: number;
 }
 
 export interface ConsoleLogEntry {
@@ -58,16 +81,39 @@ export class BrowserCDPClient {
   private tempProfileDir: string | null = null;
   private ws: WebSocket | null = null;
   private nextMsgId = 1;
+  private requestHeaderFingerprints = new WeakMap<NetworkLogEntry, Map<string, string>>();
   private pendingRequests = new Map<
     number,
     { resolve: (val: any) => void; reject: (err: any) => void }
   >();
   public networkLogs: NetworkLogEntry[] = [];
   public consoleLogs: ConsoleLogEntry[] = [];
+  public loadingFailures: NetworkFailureEntry[] = [];
+  public browserLogs: BrowserLogEntry[] = [];
   public observedHosts = new Set<string>();
   public blockedRequests: BlockedRequestEntry[] = [];
   public egressViolation = false;
   public egressViolationUrl: string | null = null;
+
+  private recordNetworkRequest(request: NetworkLogEntry) {
+    const captured: NetworkLogEntry = {
+      ...request,
+      requestHeaders: redactNetworkHeaders(request.requestHeaders),
+      responseHeaders: redactNetworkHeaders(request.responseHeaders),
+    };
+    // CDP reuses requestId across redirect hops; bind credentials to each record.
+    this.requestHeaderFingerprints.set(captured, new Map(
+      Object.entries(request.requestHeaders ?? {}).map(([name, value]) => [
+        name.toLowerCase(), createHash("sha256").update(value).digest("hex"),
+      ]),
+    ));
+    this.networkLogs.push(captured);
+  }
+
+  public requestHeaderMatches(request: NetworkLogEntry, headerName: string, expectedValue: string): boolean {
+    const actual = this.requestHeaderFingerprints.get(request)?.get(headerName.toLowerCase());
+    return actual !== undefined && actual === createHash("sha256").update(expectedValue).digest("hex");
+  }
 
   public resetEgressViolation() {
     this.egressViolation = false;
@@ -132,7 +178,7 @@ export class BrowserCDPClient {
         const { resolve, reject } = this.pendingRequests.get(msg.id)!;
         this.pendingRequests.delete(msg.id);
         if (msg.error) {
-          reject(new Error(msg.error.message || JSON.stringify(msg.error)));
+          reject(new Error(redactEvidenceText(msg.error.message || stringifyRedactedEvidence(msg.error))));
         } else {
           resolve(msg.result);
         }
@@ -168,7 +214,7 @@ export class BrowserCDPClient {
             method: request.method,
             timestamp: Date.now(),
           });
-          console.error(`[CDP Egress Interceptor] Pre-network BLOCKED external request: ${request.method} ${url}`);
+          console.error(redactEvidenceText(`[CDP Egress Interceptor] Pre-network BLOCKED external request: ${request.method} ${url}`));
           this.send("Fetch.failRequest", { requestId, errorReason: "BlockedByClient" }).catch(() => {});
         }
         return;
@@ -185,14 +231,16 @@ export class BrowserCDPClient {
             if (!isAllowedUrl(url)) {
               this.egressViolation = true;
               this.egressViolationUrl = url;
-              console.error(`CRITICAL SAFETY ABORT: External egress detected to ${url}`);
+              console.error(redactEvidenceText(`CRITICAL SAFETY ABORT: External egress detected to ${url}`));
             }
           }
         } catch {}
-        this.networkLogs.push({
+        this.recordNetworkRequest({
           requestId: msg.params.requestId,
           url,
           method: req.method,
+          requestHeaders: req.headers,
+          initiatorRequestId: msg.params.initiator?.requestId,
           host: url.startsWith("data:") ? "data:" : url.startsWith("blob:") ? "blob:" : new URL(url).host,
         });
       }
@@ -204,12 +252,36 @@ export class BrowserCDPClient {
         if (entry) {
           entry.status = resp.status;
           entry.type = resp.mimeType;
+          entry.responseHeaders = redactNetworkHeaders(resp.headers);
         }
+      }
+
+      if (msg.method === "Network.loadingFinished") {
+        const entry = this.networkLogs.findLast((n) => n.requestId === msg.params.requestId);
+        if (entry) entry.finished = true;
+      }
+
+      if (msg.method === "Network.loadingFailed") {
+        const { requestId, errorText, canceled, blockedReason, corsErrorStatus } = msg.params;
+        const failure: NetworkFailureEntry = { requestId, errorText: redactEvidenceText(errorText), canceled: Boolean(canceled), blockedReason, corsErrorStatus };
+        this.loadingFailures.push(failure);
+        const entry = this.networkLogs.findLast((n) => n.requestId === requestId);
+        if (entry) entry.failure = failure;
+        console.error("[CDP Network.loadingFailed]", stringifyRedactedEvidence(failure));
+      }
+
+      if (msg.method === "Log.entryAdded") {
+        const { level, text, source, url, timestamp } = msg.params.entry;
+        const entry: BrowserLogEntry = { level, text: redactEvidenceText(text), source, url: url && redactEvidenceText(url), timestamp };
+        this.browserLogs.push(entry);
+        console.log("[CDP Log.entryAdded]", stringifyRedactedEvidence(entry));
       }
 
       // Event: Runtime.consoleAPICalled
       if (msg.method === "Runtime.consoleAPICalled") {
-        const text = msg.params.args.map((a: any) => a.value ?? a.description ?? JSON.stringify(a)).join(" ");
+        const text = msg.params.args.map((a: any) => typeof a.value === "object" && a.value !== null
+          ? stringifyRedactedEvidence(a.value)
+          : redactEvidenceText(String(a.value ?? a.description ?? stringifyRedactedEvidence(a)))).join(" ");
         this.consoleLogs.push({
           type: msg.params.type,
           text,
@@ -219,7 +291,7 @@ export class BrowserCDPClient {
 
       // Event: Runtime.exceptionThrown
       if (msg.method === "Runtime.exceptionThrown") {
-        const text = msg.params.exceptionDetails?.text || "Unhandled exception";
+        const text = redactEvidenceText(msg.params.exceptionDetails?.text || "Unhandled exception");
         this.consoleLogs.push({
           type: "exception",
           text,
@@ -233,6 +305,7 @@ export class BrowserCDPClient {
     await this.send("Network.enable");
     await this.send("Page.enable");
     await this.send("Runtime.enable");
+    await this.send("Log.enable");
     await this.send("DOM.enable");
   }
 
@@ -286,7 +359,7 @@ export class BrowserCDPClient {
       awaitPromise: true,
     });
     if (res?.exceptionDetails) {
-      throw new Error(`CDP Evaluation Error: ${JSON.stringify(res.exceptionDetails)}`);
+      throw new Error(`CDP Evaluation Error: ${stringifyRedactedEvidence(res.exceptionDetails)}`);
     }
     return res?.result?.value;
   }

@@ -1,5 +1,6 @@
 import http from "node:http";
 import { URL } from "node:url";
+import { BUSINESS_B, businessBFixtures } from "./business-browser-fixtures";
 import {
   createInitialFixtures,
   FIXTURE_ACCESS_TOKEN,
@@ -63,11 +64,13 @@ function deepClone<T>(value: T): T {
 
 export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabaseServerInstance> {
   let state = deepClone(createInitialFixtures());
+  let businessBEnabled = false;
 
   // Resettable deterministic counters for synthetic UUIDs
   let nextProductCounter = 9001;
   let nextOrderCounter = 8001;
   const recordedRequests: Array<{ method: string; pathname: string; url: string; timestamp: number }> = [];
+  let storageFixture = "none";
 
   function generateProductId(): string {
     const id = `00000000-0000-4000-8000-${String(nextProductCounter).padStart(12, "0")}`;
@@ -82,10 +85,12 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
   }
 
   function resetState() {
+    businessBEnabled = false;
     state = deepClone(createInitialFixtures());
     nextProductCounter = 9001;
     nextOrderCounter = 8001;
     recordedRequests.length = 0;
+    storageFixture = "none";
   }
 
   function getState() {
@@ -108,11 +113,14 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, apikey, Prefer, Range, x-client-info",
+      "Content-Type, Authorization, apikey, Prefer, Range, x-client-info, x-upsert",
     );
     res.setHeader("Access-Control-Expose-Headers", "Content-Range, Range");
 
     if (method === "OPTIONS") {
+      if (pathname.startsWith("/storage/v1/object/") && storageFixture === "preflight-failure") {
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey, Prefer, Range, x-client-info");
+      }
       res.writeHead(204);
       res.end();
       return;
@@ -152,6 +160,29 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     // ==========================================
     // TEST-ONLY CONTROL ROUTES
     // ==========================================
+    if (pathname === "/__e2e/two-businesses" && method === "POST") {
+      resetState();
+      const b = businessBFixtures();
+      state.businesses.push(b.business);
+      state.products.push(...b.products);
+      state.orders.push(...b.orders);
+      state.orderItems.push(...b.orderItems);
+      state.profiles.push({ id: b.user.id, email: b.user.email });
+      businessBEnabled = true;
+      sendJson(200, { enabled: true });
+      return;
+    }
+    if (pathname === "/__e2e/storage-fixture" && method === "POST") {
+      const body = await readBody<{ mode: string }>();
+      if (!body || !["none", "preflight-failure", "upload-4xx", "upload-5xx"].includes(body.mode)) {
+        sendJson(400, { error: "Invalid storage fixture" });
+        return;
+      }
+      storageFixture = body.mode;
+      sendJson(200, { mode: storageFixture });
+      return;
+    }
+
     if (pathname === "/__e2e/health" && method === "GET") {
       sendJson(200, { ok: true, timestamp: Date.now() });
       return;
@@ -226,6 +257,15 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     if (pathname === "/auth/v1/token") {
       const grantType = parsedUrl.searchParams.get("grant_type");
       const body = await readBody<{ email?: string; password?: string; refresh_token?: string }>();
+      if (businessBEnabled && (
+        (grantType === "password" && body?.email?.trim().toLowerCase() === BUSINESS_B.email && body.password === BUSINESS_B.password) ||
+        (grantType === "refresh_token" && body?.refresh_token === BUSINESS_B.refreshToken)
+      )) {
+        sendJson(200, { access_token: BUSINESS_B.token, refresh_token: BUSINESS_B.refreshToken,
+          token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600,
+          user: businessBFixtures().user });
+        return;
+      }
 
       if (grantType === "password") {
         const email = body?.email?.trim().toLowerCase();
@@ -335,6 +375,10 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     if (pathname === "/auth/v1/user") {
       const authHeader = req.headers.authorization;
       const token = authHeader?.replace(/^Bearer\s+/i, "").trim();
+      if (businessBEnabled && token === BUSINESS_B.token) {
+        sendJson(200, businessBFixtures().user);
+        return;
+      }
 
       if (token === FIXTURE_ACCESS_TOKEN) {
         sendJson(200, state.user);
@@ -375,6 +419,10 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     }
 
     if (pathname.startsWith("/storage/v1/object/") && method === "POST") {
+      if (storageFixture === "upload-4xx" || storageFixture === "upload-5xx") {
+        sendJson(storageFixture === "upload-4xx" ? 403 : 503, { error: "Intentional upload failure" });
+        return;
+      }
       const subpath = pathname.replace("/storage/v1/object/", "");
       sendJson(200, { Key: subpath, Id: subpath });
       return;
@@ -679,7 +727,8 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
           return;
         }
 
-        const sorted = [...state.products].sort((a, b) => {
+        const businessId = parsedUrl.searchParams.get("business_id");
+        const sorted = state.products.filter(p => !businessId?.startsWith("eq.") || p.business_id === businessId.slice(3)).sort((a, b) => {
           if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
           return a.name.localeCompare(b.name, "tr");
         });
@@ -695,7 +744,7 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
         for (const item of items) {
           const newProduct: FixtureProduct = {
             id: generateProductId(),
-            business_id: FIXTURE_BUSINESS_ID,
+            business_id: item.business_id || FIXTURE_BUSINESS_ID,
             client_product_id: item.client_product_id || `cpid-${Date.now()}`,
             name: item.name || "Yeni Ürün",
             price: Number(item.price ?? 0),
@@ -1089,6 +1138,7 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
     if (pathname === "/rest/v1/rpc/get_business_dashboard_summary" && method === "POST") {
       const body = await readBody<{ p_business_id?: string; p_date?: string }>();
       const pDate = body?.p_date || "2026-09-21";
+      const summaryOrders = state.orders.filter(o => o.business_id === body?.p_business_id);
 
       const rangeStart = `${pDate}T00:00:00.000Z`;
       // Next day exclusive
@@ -1096,15 +1146,15 @@ export function createMockSupabaseServer(requestedPort = 0): Promise<MockSupabas
       nextDayDate.setUTCDate(nextDayDate.getUTCDate() + 1);
       const rangeEndExclusive = nextDayDate.toISOString();
 
-      const newOrdersCount = state.orders.filter((o) => o.status === "new").length;
-      const pendingOrdersCount = state.orders.filter(
+      const newOrdersCount = summaryOrders.filter((o) => o.status === "new").length;
+      const pendingOrdersCount = summaryOrders.filter(
         (o) => o.status === "new" || o.status === "preparing" || o.status === "ready",
       ).length;
-      const deliveredOrdersCount = state.orders.filter((o) => o.status === "delivered").length;
-      const cancelledOrdersCount = state.orders.filter((o) => o.status === "cancelled").length;
+      const deliveredOrdersCount = summaryOrders.filter((o) => o.status === "delivered").length;
+      const cancelledOrdersCount = summaryOrders.filter((o) => o.status === "cancelled").length;
       const totalOrdersCount = pendingOrdersCount + deliveredOrdersCount + cancelledOrdersCount;
 
-      const deliveredRevenue = state.orders
+      const deliveredRevenue = summaryOrders
         .filter((o) => o.status === "delivered")
         .reduce((sum, o) => sum + o.total_amount, 0);
 
