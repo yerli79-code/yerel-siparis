@@ -1,4 +1,5 @@
 import { isPaymentMethod, type PaymentMethod } from "./payment-methods";
+import { parsePublicOrderReceipt, type PublicOrderReceipt } from "./public-order-receipt";
 
 export type OrderStatus =
   | "new"
@@ -30,11 +31,7 @@ export type PublicOrderCreateInput = {
   idempotencyKey: string;
 };
 
-export type PublicOrderCreateResult = {
-  orderNumber: number;
-  totalAmount: number;
-  orderType: OrderType;
-};
+export type PublicOrderCreateResult = PublicOrderReceipt;
 
 export type PublicOrderErrorKind = "definitive" | "uncertain";
 
@@ -196,15 +193,8 @@ async function parsePublicOrderResponse(response: Response) {
     );
   }
 
-  if (
-    !body ||
-    typeof body !== "object" ||
-    !Number.isFinite(Number((body as PublicOrderCreateResult).orderNumber)) ||
-    !Number.isFinite(Number((body as PublicOrderCreateResult).totalAmount)) ||
-    !["delivery", "pickup"].includes(
-      String((body as PublicOrderCreateResult).orderType),
-    )
-  ) {
+  const receipt = parsePublicOrderReceipt(body);
+  if (!receipt) {
     throw new PublicOrderRequestError(
       "uncertain",
       "INVALID_SERVER_RESPONSE",
@@ -212,7 +202,7 @@ async function parsePublicOrderResponse(response: Response) {
     );
   }
 
-  return body as PublicOrderCreateResult;
+  return receipt;
 }
 
 async function parseApiResponse(response: Response) {

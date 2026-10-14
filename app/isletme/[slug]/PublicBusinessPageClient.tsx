@@ -36,7 +36,13 @@ import {
   PublicOrderRequestError,
   createPublicOrder,
   type PublicOrderCreateInput,
+  type PublicOrderCreateResult,
 } from "../../../lib/supabase-orders";
+import {
+  buildPublicOrderWhatsAppMessage,
+  formatRecordedOrderAmount,
+  haveOrderPricesChanged,
+} from "../../../lib/public-order-receipt";
 import {
   fetchPublicProductsByBusinessSlug,
   type BusinessProduct,
@@ -61,16 +67,11 @@ type PendingOrderAttempt = {
   fingerprint: string;
   idempotencyKey: string;
   payload: PublicOrderCreateInput;
+  quotedTotal: number;
+  quotedItems: Array<{ productId: string; quantity: number; unitPrice: number }>;
   message: {
     businessName: string;
     customer: Customer;
-    orderType: OrderType;
-    items: Array<{
-      name: string;
-      quantity: number;
-      lineTotal: number;
-    }>;
-    total: number;
   };
 };
 
@@ -779,41 +780,8 @@ export default function PublicBusinessPageClient({
     setDeliveryAddress({ ...emptyPublicOrderDeliveryAddress });
   }
 
-  function createMessage(attempt: PendingOrderAttempt, orderNumber: number) {
-    const lines = attempt.message.items
-      .map(
-        (item) =>
-          `- ${item.name} x ${item.quantity} = ${formatPrice(item.lineTotal)}`,
-      )
-      .join("\n");
-    const orderTypeLabel =
-      attempt.message.orderType === "delivery" ? "Teslimat" : "Gel-al";
-    const customerLines = [
-      `Ad Soyad: ${attempt.message.customer.fullName}`,
-      `Telefon: ${attempt.message.customer.phone}`,
-      `Sipariş Türü: ${orderTypeLabel}`,
-      `Ödeme Yöntemi: ${getPaymentMethodDisplayLabel(
-        attempt.payload.paymentMethod,
-      )}`,
-      ...(attempt.message.orderType === "delivery"
-        ? [`Adres: ${attempt.message.customer.address}`]
-        : []),
-      `Not: ${attempt.message.customer.note || "-"}`,
-    ];
-
-    return [
-      "Yeni Sipariş",
-      `Sipariş No: #${orderNumber}`,
-      `İşletme: ${attempt.message.businessName}`,
-      "",
-      "Müşteri Bilgileri:",
-      ...customerLines,
-      "",
-      "Sipariş:",
-      lines,
-      "",
-      `Genel Toplam: ${formatPrice(attempt.message.total)}`,
-    ].join("\n");
+  function createMessage(attempt: PendingOrderAttempt, receipt: PublicOrderCreateResult) {
+    return buildPublicOrderWhatsAppMessage(attempt.message, receipt);
   }
 
   function sendWhatsAppMessage(
@@ -849,7 +817,7 @@ export default function PublicBusinessPageClient({
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isRecordingOrderRef.current) return;
+    if (isRecordingOrderRef.current || orderRecoveryMode === "saved") return;
     setOrderRecordWarning("");
     setOrderRecoveryMode("none");
     setVerifiedWhatsAppMessage("");
@@ -924,6 +892,8 @@ export default function PublicBusinessPageClient({
       attempt = {
         fingerprint: attemptFingerprint,
         idempotencyKey,
+        quotedTotal: total,
+        quotedItems: cart.map(item => ({ productId: item.id, quantity: item.quantity, unitPrice: item.price })),
         payload: {
           businessSlug: currentBusiness.slug,
           orderType,
@@ -938,13 +908,6 @@ export default function PublicBusinessPageClient({
             ...normalizedCustomer,
             address: normalizedCustomer.address ?? "",
           },
-          orderType,
-          items: cart.map((item) => ({
-            name: item.name,
-            quantity: item.quantity,
-            lineTotal: item.price * item.quantity,
-          })),
-          total,
         },
       };
       pendingOrderAttemptRef.current = attempt;
@@ -976,19 +939,27 @@ export default function PublicBusinessPageClient({
       }
       pendingOrderAttemptRef.current = null;
       clearPublicCart(window.localStorage, slug);
+      setCart([]);
       setWarning("");
+      const verifiedMessage = createMessage(attempt, result);
+      setVerifiedWhatsAppMessage(verifiedMessage);
+      setOrderRecoveryMode("saved");
+      const recordedNotice = `Sipariş #${result.orderNumber}, ${formatRecordedOrderAmount(result.totalAmount)} tutarıyla kaydedildi.`;
+      if (haveOrderPricesChanged(result, attempt.quotedItems, attempt.quotedTotal)) {
+        preparedWhatsAppWindow?.close();
+        setOrderRecordWarning(`Fiyatlar güncellendi. ${recordedNotice} Kaydedilen fiyatlarla WhatsApp’ta devam edebilirsiniz.`);
+        return;
+      }
       const whatsappOpened = sendWhatsAppMessage(
-        createMessage(attempt, result.orderNumber),
+        verifiedMessage,
         preparedWhatsAppWindow,
       );
       if (!whatsappOpened) {
-        setOrderRecoveryMode("saved");
-        setVerifiedWhatsAppMessage(createMessage(attempt, result.orderNumber));
         setOrderRecordWarning(
-          "Sipariş kaydedildi. WhatsApp penceresini açmak için aşağıdaki butonu kullanın.",
+          `${recordedNotice} WhatsApp penceresini açmak için aşağıdaki butonu kullanın.`,
         );
       } else {
-        setCart([]);
+        setOrderRecordWarning(recordedNotice);
       }
     } catch (error) {
       preparedWhatsAppWindow?.close();
@@ -1064,10 +1035,11 @@ export default function PublicBusinessPageClient({
       }
       pendingOrderAttemptRef.current = null;
       clearPublicCart(window.localStorage, slug);
+      setCart([]);
       setOrderRecoveryMode("saved");
-      setVerifiedWhatsAppMessage(createMessage(attempt, result.orderNumber));
+      setVerifiedWhatsAppMessage(createMessage(attempt, result));
       setOrderRecordWarning(
-        "Sipariş kaydedildi. WhatsApp ile devam etmek için aşağıdaki butonu kullanın.",
+        `Sipariş #${result.orderNumber}, ${formatRecordedOrderAmount(result.totalAmount)} tutarıyla kaydedildi. WhatsApp ile devam etmek için aşağıdaki butonu kullanın.`,
       );
     } catch (error) {
       if (
@@ -1187,7 +1159,6 @@ export default function PublicBusinessPageClient({
               ) {
                 return;
               }
-              setOrderRecordWarning("");
               sendWhatsAppMessage(verifiedWhatsAppMessage);
             }}
             onSubmitOrder={submitOrder}
