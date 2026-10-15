@@ -71,6 +71,7 @@ function clientHarness(createPublicOrder, PublicOrderRequestError) {
     createPublicOrder, PublicOrderRequestError,
     ...require(path.join(root, 'lib/payment-methods.ts')),
     ...require(path.join(root, 'lib/public-order-address.ts')),
+    ...require(path.join(root, 'lib/public-order-receipt.ts')),
     pendingOrderAttemptRef: { current: null }, activeOrderRequestRef: { current: null },
     isRecordingOrderRef: { current: false },
     crypto: { randomUUID: () => key },
@@ -84,7 +85,8 @@ function clientHarness(createPublicOrder, PublicOrderRequestError) {
     window: { open: () => ({ close() {}, opener: null }), localStorage: {} },
     clearPublicCart: () => state.storageClears++,
     formatPrice: amount => `${amount} TRY`, sendWhatsAppMessage: () => false,
-    setOrderRecoveryMode: value => state.mode = value,
+    orderRecoveryMode: 'none',
+    setOrderRecoveryMode: value => { state.mode = value; context.orderRecoveryMode = value; },
     setVerifiedWhatsAppMessage: value => state.message = value,
     setOrderRecordWarning: value => state.warning = value,
     setWarning() {}, setPaymentMethodError() {}, setIsRecordingOrder() {}, setCart() {},
@@ -157,6 +159,27 @@ test('checkout recovers after committed DB order and lost HTTP response without 
 
     adapter = await listen(async (req, res) => {
       assert.equal(req.headers.apikey, 'local_fixture_secret');
+      if (req.method === 'GET') {
+        const url = new URL(req.url, 'http://127.0.0.1');
+        assert.equal(url.pathname, '/rest/v1/orders');
+        assert.equal(url.searchParams.get('businesses.slug'), 'eq.local-response-loss');
+        assert.equal(url.searchParams.get('idempotency_key'), `eq.${key}`);
+        const number = Number(url.searchParams.get('business_order_number').slice(3));
+        assert.ok(Number.isSafeInteger(number) && number > 0);
+        const result = await sql(`select json_build_object(
+          'business_order_number', o.business_order_number, 'total_amount', o.total_amount,
+          'order_type', o.order_type, 'payment_method', o.payment_method, 'currency', o.currency,
+          'businesses', json_build_object('slug', b.slug),
+          'order_items', (select json_agg(json_build_object('product_id', i.product_id,
+            'product_name', i.product_name, 'unit_price', i.unit_price, 'quantity', i.quantity,
+            'line_total', i.line_total)) from public.order_items i where i.order_id=o.id))
+          from public.orders o join public.businesses b on b.id=o.business_id
+          where b.slug='local-response-loss' and o.idempotency_key='${key}'::uuid
+            and o.business_order_number=${number};`);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(result ? [JSON.parse(result)] : []));
+        return;
+      }
       const p = JSON.parse(await body(req));
       let statement;
       if (req.url === '/rest/v1/rpc/check_public_order_rate_limit') {
