@@ -401,13 +401,14 @@ export default function PublicBusinessPageClient({
   }, [returnToMenu]);
 
   useEffect(() => {
-    if (view !== "checkout" || cart.length > 0) return;
+    // A saved receipt must remain visible after its cart is cleared.
+    if (view !== "checkout" || cart.length > 0 || orderRecoveryMode === "saved") return;
     if (checkoutHistoryEntryRef.current) {
       window.history.back();
       return;
     }
     returnToMenu();
-  }, [cart.length, returnToMenu, view]);
+  }, [cart.length, orderRecoveryMode, returnToMenu, view]);
 
   useEffect(() => {
     if (view !== "checkout") return;

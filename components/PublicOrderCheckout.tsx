@@ -490,6 +490,7 @@ export default function PublicOrderCheckout({
                 ) : null}
               </div>
             ) : null}
+            {orderRecoveryMode !== "saved" ? (
             <button
               className="submit-button public-order-submit-button whatsapp-order-submit"
               disabled={isOrderSubmitDisabled}
@@ -504,8 +505,10 @@ export default function PublicOrderCheckout({
               </span>
               {!isRecordingOrder ? <strong>{formatPrice(total)}</strong> : null}
             </button>
+            ) : null}
               </div>
 
+              {orderRecoveryMode !== "saved" ? (
               <aside className="public-order-checkout-summary" aria-label="Sepet özeti">
                 <section className="public-order-checkout-section public-order-cart-section">
                   <div className="public-order-checkout-section-heading">
@@ -513,7 +516,7 @@ export default function PublicOrderCheckout({
                       <span>Siparişiniz</span>
                       <h2>Sepetim ({cartItemCount})</h2>
                     </div>
-                    {cart.length > 0 && isOrderingOpen && orderRecoveryMode !== "saved" ? (
+                    {cart.length > 0 && isOrderingOpen ? (
                       <button
                         className="public-order-clear-cart-button"
                         disabled={isRecordingOrder}
@@ -590,6 +593,7 @@ export default function PublicOrderCheckout({
                   </div>
                 </section>
               </aside>
+              ) : null}
             </div>
           </form>
         </div>

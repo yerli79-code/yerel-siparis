@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { renderToStaticMarkup } from "react-dom/server";
 import vm from "node:vm";
 import { test } from "node:test";
 import ts from "typescript";
@@ -13,6 +15,43 @@ import * as receiptHelpers from "../../lib/public-order-receipt";
 import * as paymentHelpers from "../../lib/payment-methods";
 import * as addressHelpers from "../../lib/public-order-address";
 
+// Render the actual checkout JSX without loading a Next server or database.
+const checkoutModule = { exports: {} as { default: (props: Record<string, unknown>) => React.ReactNode } };
+const checkoutSource = readFileSync(new URL("../../components/PublicOrderCheckout.tsx", import.meta.url), "utf8");
+const checkoutRequire = createRequire(new URL("../../components/PublicOrderCheckout.tsx", import.meta.url));
+vm.runInNewContext(ts.transpileModule(checkoutSource, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+}).outputText, {
+  exports: checkoutModule.exports,
+  require: (name: string) => name === "../lib/payment-methods" ? paymentHelpers : checkoutRequire(name),
+});
+for (const mode of ["saved", "none", "uncertain", "definitive", "conflict"] as const) {
+  test(`checkout totals render only for an unsaved cart: ${mode}`, () => {
+    const saved = mode === "saved";
+    const html = renderToStaticMarkup(checkoutModule.exports.default({
+      cart: [], cartItemCount: 0, total: saved ? 0 : 180,
+      customer: { fullName: "", phone: "", address: "", note: "" },
+      deliveryAddress: {}, orderType: "pickup", paymentMethod: "cash",
+      fixedPaymentOption: null, paymentMethodError: "", warning: "", minimumOrderWarning: "",
+      orderRecoveryMode: mode, verifiedWhatsAppMessage: saved ? "Verified receipt" : "",
+      orderRecordWarning: saved ? "Sipariş #9100, 200,00 TL tutarıyla kaydedildi." : "",
+      isOrderingOpen: true, isRecordingOrder: false, isOrderSubmitDisabled: saved,
+      cartSectionRef: { current: null }, cartCloseButtonRef: { current: null },
+      formatPrice: (price: number) => `${price.toFixed(2).replace(".", ",")} TL`,
+    }));
+    assert.equal(html.includes("whatsapp-order-submit"), !saved);
+    assert.equal(html.includes("public-order-checkout-summary"), !saved);
+    if (saved) {
+      assert.ok(html.includes("Sipariş #9100, 200,00 TL"));
+      assert.ok(html.includes("public-order-secondary-button"));
+      assert.ok(!html.includes("Sepetiniz boş."));
+      assert.doesNotMatch(html, /(?:^|[>\s])0,00 TL/);
+    } else {
+      assert.ok(html.includes("180,00 TL"));
+    }
+  });
+}
+
 const productId = "22222222-2222-4222-8222-222222222222";
 const otherId = "33333333-3333-4333-8333-333333333333";
 const key = "11111111-1111-4111-8111-111111111111";
@@ -20,7 +59,15 @@ const source = readFileSync(new URL("../../app/isletme/[slug]/PublicBusinessPage
 const ast = ts.createSourceFile("client.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const functions: string[] = [];
 let reopen = "";
+let emptyCartEffect = "";
+let emptyCartDependencies = "";
 function visit(node: ts.Node) {
+  if (ts.isCallExpression(node) && node.expression.getText(ast) === "useEffect" &&
+      node.arguments[0]?.getText(ast).includes('view !== "checkout" || cart.length > 0')) {
+    assert.equal(emptyCartEffect, "", "Only one empty-cart navigation effect is expected");
+    emptyCartEffect = node.arguments[0].getText(ast);
+    emptyCartDependencies = node.arguments[1]?.getText(ast) ?? "";
+  }
   if (ts.isFunctionDeclaration(node) && ["submitOrder", "retryPendingOrder", "createMessage"].includes(node.name?.text ?? "")) {
     functions.push(node.getText(ast));
   }
@@ -33,6 +80,30 @@ function visit(node: ts.Node) {
 visit(ast);
 assert.equal(functions.length, 3);
 assert.ok(reopen);
+assert.ok(emptyCartEffect);
+test("empty-cart navigation effect reacts to recovery state changes", () => {
+  assert.match(emptyCartDependencies, /\borderRecoveryMode\b/);
+});
+for (const [name, view, quantity, mode, historyEntry, expected] of [
+  ["saved receipt stays open", "checkout", 0, "saved", true, ""],
+  ["saved receipt without history stays open", "checkout", 0, "saved", false, ""],
+  ["normal empty cart goes back", "checkout", 0, "none", true, "back"],
+  ["normal empty cart without history returns to menu", "checkout", 0, "none", false, "menu"],
+  ["uncertain empty cart keeps original close behavior", "checkout", 0, "uncertain", true, "back"],
+  ["nonempty cart stays open", "checkout", 1, "none", true, ""],
+  ["menu never navigates on an empty cart", "menu", 0, "none", true, ""],
+] as const) {
+  test(`empty-cart lifecycle: ${name}`, () => {
+    let navigation = "";
+    vm.runInNewContext(`(${emptyCartEffect})()`, {
+      view, cart: Array(quantity).fill({}), orderRecoveryMode: mode,
+      checkoutHistoryEntryRef: { current: historyEntry },
+      window: { history: { back() { navigation = "back"; } } },
+      returnToMenu() { navigation = "menu"; },
+    });
+    assert.equal(navigation, expected);
+  });
+}
 const compiled = ts.transpileModule(functions.join("\n") + "\n" + reopen, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
