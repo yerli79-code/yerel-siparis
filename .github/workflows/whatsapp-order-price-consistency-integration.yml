@@ -1,0 +1,117 @@
+name: Public Order PostgREST Integration
+
+on:
+  pull_request:
+    branches:
+      - release/order-management-20260630
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whatsapp-order-postgrest-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  postgrest-integration:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.repository == 'yerli79-code/yerel-siparis' &&
+      github.event.pull_request.number == 51 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feat/whatsapp-order-price-consistency'
+    name: Ephemeral PG17 + PostgREST Integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout authorized PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js 24.16.0
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "24.16.0"
+
+      - name: Install locked dependencies without lifecycle scripts
+        timeout-minutes: 5
+        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+
+      - name: Install PostgreSQL 17, pg_cron, and PostgREST v12
+        timeout-minutes: 6
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            iproute2 \
+            util-linux \
+            xz-utils
+
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl \
+            --fail \
+            --show-error \
+            --silent \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            --connect-timeout 10 --max-time 60 \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+
+          . /etc/os-release
+          if [ "${VERSION_CODENAME}" != "noble" ]; then
+            echo "Unexpected runner distro: ${VERSION_CODENAME}" >&2
+            exit 1
+          fi
+
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/pgdg.sources >/dev/null
+          Types: deb
+          URIs: https://apt.postgresql.org/pub/repos/apt
+          Suites: ${VERSION_CODENAME}-pgdg
+          Components: main
+          Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          EOF
+
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            postgresql-17 \
+            postgresql-17-cron \
+            postgresql-client-17
+
+          sudo systemctl stop postgresql || true
+          sudo systemctl disable postgresql || true
+
+          pgrst_tmp="$(mktemp -d)"
+          trap 'rm -rf "${pgrst_tmp}"' EXIT
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            --connect-timeout 10 --max-time 60 \
+            -o "${pgrst_tmp}/postgrest.tar.xz" \
+            https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz
+          echo '9f71269e61ac3a940281e93ff415760f5957e430e475ba4c3889f3ede7d5527c  '"${pgrst_tmp}/postgrest.tar.xz" | sha256sum --check --strict
+          tar -xJf "${pgrst_tmp}/postgrest.tar.xz" -C "${pgrst_tmp}"
+          sudo install -m 0755 "${pgrst_tmp}/postgrest" /usr/local/bin/postgrest
+
+          /usr/lib/postgresql/17/bin/postgres --version
+          /usr/local/bin/postgrest --version
+
+      - name: Run isolated PostgreSQL 17 and real PostgREST integration tests
+        timeout-minutes: 5
+        run: bash scripts/ci/run-whatsapp-order-price-consistency-integration.sh
+
+      # The runner script owns cleanup. Its PID namespace also kills descendants
+      # on exit; cancellation/VM loss is finally contained by this hosted runner.
+      # No host-wide pkill or wildcard deletion, no services, containers or secrets.

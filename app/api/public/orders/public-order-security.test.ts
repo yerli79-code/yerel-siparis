@@ -99,6 +99,13 @@ function createScenarioFetch(
         { order_number: 42, total_amount: 125, order_type: "pickup" },
       ]);
     }
+    if (url.pathname === "/rest/v1/orders" && init.method === "GET") {
+      return Response.json([{
+        business_order_number: 42, total_amount: 125, order_type: "pickup",
+        payment_method: "cash", currency: "TRY", businesses: { slug: "pilot-kebap" },
+        order_items: [{ product_id: productId, product_name: "Kaydedilmiş ürün", unit_price: 62.5, quantity: 2, line_total: 125 }],
+      }]);
+    }
     throw new Error(`Unexpected fetch: ${url}`);
   };
   return { calls, fetchMock };
@@ -148,6 +155,9 @@ test("normal public order below limits preserves the authoritative RPC flow", as
       orderNumber: 42,
       totalAmount: 125,
       orderType: "pickup",
+      paymentMethod: "cash",
+      currency: "TRY",
+      items: [{ productId, productName: "Kaydedilmiş ürün", unitPrice: 62.5, quantity: 2, lineTotal: 125 }],
     });
     assert.equal(rateRpcCalls(calls).length, 1);
     const rateHeaders = new Headers(rateRpcCalls(calls)[0].init.headers);

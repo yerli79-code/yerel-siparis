@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isPaymentMethod } from "../../../../lib/payment-methods";
+import { fetchRecordedOrderReceipt } from "./receipt";
 import {
   OrderRpcError,
   UUID_PATTERN,
@@ -254,11 +255,22 @@ export async function POST(request: Request) {
       p_payment_method: paymentMethod,
     });
 
-    return NextResponse.json({
-      orderNumber: Number(order.order_number),
-      totalAmount: Number(order.total_amount),
-      orderType: order.order_type,
-    });
+    try {
+      const receipt = await fetchRecordedOrderReceipt(
+        url, serverSecretKey, businessSlug, idempotencyKey, order,
+      );
+      return NextResponse.json(receipt, {
+        headers: { "Cache-Control": "private, no-store, max-age=0" },
+      });
+    } catch {
+      // The order may already be committed. Keep this result uncertain so the
+      // browser retries the same payload/key instead of creating a new order.
+      return publicOrderError(
+        "Sipariş kaydedilmiş olabilir; kaydedilen tutar henüz doğrulanamadı. Aynı siparişi tekrar kontrol edin.",
+        "ORDER_RECEIPT_UNAVAILABLE", 503,
+        { "Cache-Control": "private, no-store, max-age=0" },
+      );
+    }
   } catch (error) {
     if (error instanceof OrderRpcError) {
       if (error.reason === "idempotency_conflict") {
