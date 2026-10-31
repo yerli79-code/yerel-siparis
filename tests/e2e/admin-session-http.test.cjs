@@ -9,13 +9,14 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 const { existsSync, writeFileSync } = require('node:fs');
 const { createAuthFixture, latch } = require('./admin-session-fixture.cjs');
+const { createOfflineGoogleFonts } = require('./offline-google-fonts.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const selector = 'yerel-siparis-admin-session';
 const children = [];
 const origins = [];
 const wireHolds = new Map();
-let auth, proxy, origin;
+let auth, fonts, proxy, origin;
 
 async function listen(server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
@@ -89,15 +90,20 @@ before(async () => {
     SUPABASE_SERVER_SECRET_KEY: 'sb_secret_phase23e_synthetic' });
   // NEXT_PUBLIC values are inlined at build time, including in server bundles.
   // Build while THIS fixture is alive so barriers control the actual provider.
+  // Only this synthetic test build gets the font mock. Normal builds/start
+  // receive no mock variable; layout and production font choices stay intact.
+  fonts = await createOfflineGoogleFonts();
+  const buildEnv = { ...env, NEXT_FONT_GOOGLE_MOCKED_RESPONSES: fonts.responsesPath };
   const build = process.platform === 'win32'
-    ? spawn(env.COMSPEC || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], { cwd: root, env, windowsHide: true })
-    : spawn('npm', ['run', 'build'], { cwd: root, env });
+    ? spawn(env.COMSPEC || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], { cwd: root, env: buildEnv, windowsHide: true })
+    : spawn('npm', ['run', 'build'], { cwd: root, env: buildEnv });
   let buildOutput = '';
   build.stdout.on('data', data => { buildOutput += data; });
   build.stderr.on('data', data => { buildOutput += data; });
   const [buildCode] = await once(build, 'exit');
   writeFileSync(path.join(root, 'tmp_phase23e_http_build.txt'), buildOutput);
   assert.equal(buildCode, 0, buildOutput);
+  fonts.assertFetched();
   for (let i = 0; i < 2; i++) {
     const port = await unusedPort();
     const child = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'),
@@ -152,6 +158,7 @@ after(async () => {
   }
   if (proxy) { proxy.closeAllConnections(); await new Promise(r => proxy.close(r)); }
   if (auth) await auth.close();
+  if (fonts) await fonts.close();
 });
 
 test('normal login and refresh rotate both HttpOnly cookies across two Next instances', async () => {
