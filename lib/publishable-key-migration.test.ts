@@ -190,8 +190,10 @@ for (const [label, read] of configReaders) {
 test("browser login and expired-session refresh use publishable config without API-key Bearer", async () => {
   const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const storage = new Map<string, string>();
+  const generations = new Map<string, string>();
   Object.defineProperty(globalThis, "window", { configurable: true, value: {
     sessionStorage: { getItem: (name: string) => storage.get(name) ?? null, setItem: (name: string, value: string) => storage.set(name, value), removeItem: (name: string) => storage.delete(name) },
+    localStorage: { getItem: (name: string) => generations.get(name) ?? null, setItem: (name: string, value: string) => generations.set(name, value), removeItem: (name: string) => generations.delete(name) },
   } });
   const config = { url, publishableKey: key, sessionKey: "test-session" };
   try {

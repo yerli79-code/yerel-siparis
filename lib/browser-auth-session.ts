@@ -17,20 +17,43 @@ type BrowserAuthConfig = {
 
 const tokenRefreshMarginMs = 60 * 1000;
 const refreshLocks = new Map<string, Promise<string | null>>();
-const localGenerations = new Map<string, string>();
+// A failed storage operation cannot fall back to an apparently valid local
+// generation. Only a fresh login that publishes a new generation can recover.
+const blockedSessions = new Set<string>();
 export const businessSessionKey = "yerel-siparis-business-session";
 export const authGenerationKey = (sessionKey: string) => `${sessionKey}-generation`;
 
 function generation(sessionKey: string) {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined" || blockedSessions.has(sessionKey)) return null;
   try {
-    return window.localStorage?.getItem(authGenerationKey(sessionKey)) ?? localGenerations.get(sessionKey) ?? "";
-  } catch { return localGenerations.get(sessionKey) ?? ""; }
+    return window.localStorage.getItem(authGenerationKey(sessionKey)) ?? "";
+  } catch {
+    blockedSessions.add(sessionKey);
+    return null;
+  }
+}
+
+function discardLocalSession(sessionKey: string) {
+  try { window.sessionStorage.removeItem(sessionKey); }
+  catch { blockedSessions.add(sessionKey); }
+}
+
+function currentSession(sessionKey: string, session: BrowserAuthSession) {
+  const current = readBrowserAuthSession(sessionKey);
+  return current?.access_token === session.access_token &&
+    current.refresh_token === session.refresh_token &&
+    current.generation === session.generation && generation(sessionKey) === session.generation
+    ? current : null;
 }
 
 function isCurrentSession(sessionKey: string, session: BrowserAuthSession) {
-  const current = readBrowserAuthSession(sessionKey);
-  return current?.refresh_token === session.refresh_token && current?.generation === session.generation;
+  return currentSession(sessionKey, session) !== null;
+}
+
+function discardFailedSession(sessionKey: string, session: BrowserAuthSession) {
+  // Async failure is not a new logout intent. Publishing a shared generation
+  // here could invalidate a newer account in another tab after our last check.
+  if (isCurrentSession(sessionKey, session)) discardLocalSession(sessionKey);
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -77,18 +100,18 @@ function normalizeAuthSessionBody(body: unknown, requireExpiresAt = true) {
 export function readBrowserAuthSession(sessionKey: string) {
   if (typeof window === "undefined") return null;
 
-  const stored = window.sessionStorage.getItem(sessionKey);
-  if (!stored) return null;
-
   try {
+    const stored = window.sessionStorage.getItem(sessionKey);
+    if (!stored) return null;
     const parsed = JSON.parse(stored) as Partial<BrowserAuthSession>;
     const session = normalizeAuthSessionBody(parsed, false);
     if (!session) {
-      clearBrowserAuthSession(sessionKey);
+      discardLocalSession(sessionKey);
       return null;
     }
-    if ((session.generation ?? "") !== generation(sessionKey)) {
-      window.sessionStorage.removeItem(sessionKey);
+    const currentGeneration = generation(sessionKey);
+    if (currentGeneration === null || (session.generation ?? "") !== currentGeneration) {
+      discardLocalSession(sessionKey);
       return null;
     }
 
@@ -100,23 +123,47 @@ export function readBrowserAuthSession(sessionKey: string) {
       user: session.user,
     } satisfies BrowserAuthSession;
   } catch {
-    clearBrowserAuthSession(sessionKey);
+    blockedSessions.add(sessionKey);
+    discardLocalSession(sessionKey);
     return null;
   }
 }
 
-export function saveBrowserAuthSession(sessionKey: string, session: BrowserAuthSession) {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(sessionKey, JSON.stringify({ ...session, generation: generation(sessionKey) }));
+export function saveBrowserAuthSession(
+  sessionKey: string,
+  session: BrowserAuthSession,
+  expectedGeneration = session.generation ?? generation(sessionKey),
+) {
+  if (typeof window === "undefined" || expectedGeneration === null ||
+      generation(sessionKey) !== expectedGeneration) return null;
+  const candidate = { ...session, generation: expectedGeneration };
+  try {
+    // Another tab may invalidate between this check and setItem. Preserve the
+    // captured generation: an old write must remain old on every later read.
+    window.sessionStorage.setItem(sessionKey, JSON.stringify(candidate));
+    return currentSession(sessionKey, candidate);
+  } catch {
+    blockedSessions.add(sessionKey);
+    discardLocalSession(sessionKey);
+    return null;
+  }
 }
 
 export function clearBrowserAuthSession(sessionKey: string) {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(sessionKey);
-  const next = crypto.randomUUID();
-  localGenerations.set(sessionKey, next);
+  if (typeof window === "undefined") return null;
   refreshLocks.delete(sessionKey);
-  try { window.localStorage?.setItem(authGenerationKey(sessionKey), next); } catch { /* Same-tab invalidation still applies. */ }
+  blockedSessions.add(sessionKey);
+  try {
+    const next = crypto.randomUUID();
+    window.localStorage.setItem(authGenerationKey(sessionKey), next);
+    window.sessionStorage.removeItem(sessionKey);
+    if (window.localStorage.getItem(authGenerationKey(sessionKey)) !== next) return null;
+    blockedSessions.delete(sessionKey);
+    return next;
+  } catch {
+    discardLocalSession(sessionKey);
+    return null;
+  }
 }
 
 export async function signInWithPassword(
@@ -124,8 +171,8 @@ export async function signInWithPassword(
   email: string,
   password: string,
 ) {
-  clearBrowserAuthSession(config.sessionKey);
-  const startedGeneration = generation(config.sessionKey);
+  const startedGeneration = clearBrowserAuthSession(config.sessionKey);
+  if (startedGeneration === null) return null;
   let response: Response;
 
   try {
@@ -147,13 +194,14 @@ export async function signInWithPassword(
   const session = normalizeAuthSessionBody(body);
   if (!session || startedGeneration !== generation(config.sessionKey)) return null;
 
-  saveBrowserAuthSession(config.sessionKey, session);
-  return session;
+  const saved = await saveBrowserAuthSession(config.sessionKey, session, startedGeneration);
+  // Revalidate the async result handoff as well as the storage write.
+  return saved ? currentSession(config.sessionKey, saved) : null;
 }
 
 async function refreshAuthSession(config: BrowserAuthConfig, session: BrowserAuthSession) {
   if (!session.refresh_token) {
-    clearBrowserAuthSession(config.sessionKey);
+    discardFailedSession(config.sessionKey, session);
     return null;
   }
 
@@ -170,20 +218,20 @@ async function refreshAuthSession(config: BrowserAuthConfig, session: BrowserAut
     const body = await safeReadJson(response);
     if (!isCurrentSession(config.sessionKey, session)) return null;
     if (!response.ok) {
-      clearBrowserAuthSession(config.sessionKey);
+      discardFailedSession(config.sessionKey, session);
       return null;
     }
 
     const refreshedSession = normalizeAuthSessionBody(body);
     if (!refreshedSession) {
-      clearBrowserAuthSession(config.sessionKey);
+      discardFailedSession(config.sessionKey, session);
       return null;
     }
 
-    saveBrowserAuthSession(config.sessionKey, refreshedSession);
-    return refreshedSession.access_token;
+    const saved = saveBrowserAuthSession(config.sessionKey, refreshedSession, session.generation ?? "");
+    return saved?.access_token ?? null;
   } catch {
-    if (isCurrentSession(config.sessionKey, session)) clearBrowserAuthSession(config.sessionKey);
+    discardFailedSession(config.sessionKey, session);
     return null;
   }
 }
@@ -196,19 +244,26 @@ export async function getValidAccessToken(config: BrowserAuthConfig) {
     const expiresAtMs =
       typeof session.expires_at === "number" ? session.expires_at * 1000 : 0;
     if (expiresAtMs && expiresAtMs - Date.now() > tokenRefreshMarginMs) {
-      return session.access_token;
+      return isCurrentSession(config.sessionKey, session) ? session.access_token : null;
     }
 
     const existingRefresh = refreshLocks.get(config.sessionKey);
-    if (existingRefresh) return existingRefresh;
+    if (existingRefresh) {
+      const token = await existingRefresh;
+      const current = readBrowserAuthSession(config.sessionKey);
+      return token && current && current.generation === session.generation && current.access_token === token &&
+        isCurrentSession(config.sessionKey, current) ? token : null;
+    }
 
     const refreshPromise = refreshAuthSession(config, session).finally(() => {
       if (refreshLocks.get(config.sessionKey) === refreshPromise) refreshLocks.delete(config.sessionKey);
     });
     refreshLocks.set(config.sessionKey, refreshPromise);
-    return refreshPromise;
+    const token = await refreshPromise;
+    const current = readBrowserAuthSession(config.sessionKey);
+    return token && current && current.generation === session.generation && current.access_token === token &&
+      isCurrentSession(config.sessionKey, current) ? token : null;
   } catch {
-    clearBrowserAuthSession(config.sessionKey);
     return null;
   }
 }
