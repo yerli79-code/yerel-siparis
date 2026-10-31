@@ -40,3 +40,39 @@ jobs:
 
       - name: Check TypeScript
         run: ./node_modules/.bin/tsc --noEmit --incremental false
+
+  security-regression:
+    name: Security / regression (189 tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR merge commit with regression history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          # panel-v0-integration checks two historical commits using git diff.
+          fetch-depth: 0
+
+      - name: Setup Node.js 24.16.0
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "24.16.0"
+
+      - name: Install locked dependencies without lifecycle scripts
+        timeout-minutes: 5
+        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+
+      - name: Run 137 regression + 37 business session + 15 HTTP cookie tests offline
+        timeout-minutes: 8
+        run: bash scripts/ci/run-security-regression-isolated.sh
+
+      - name: Report exact test counts
+        if: always()
+        run: |
+          if [ -f tmp_phase23ic_results.txt ]; then
+            cat tmp_phase23ic_results.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Security tests did not produce a report; inspect the failed setup/test step.' >> "$GITHUB_STEP_SUMMARY"
+          fi

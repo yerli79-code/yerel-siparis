@@ -190,8 +190,10 @@ for (const [label, read] of configReaders) {
 test("browser login and expired-session refresh use publishable config without API-key Bearer", async () => {
   const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const storage = new Map<string, string>();
+  const generations = new Map<string, string>();
   Object.defineProperty(globalThis, "window", { configurable: true, value: {
     sessionStorage: { getItem: (name: string) => storage.get(name) ?? null, setItem: (name: string, value: string) => storage.set(name, value), removeItem: (name: string) => storage.delete(name) },
+    localStorage: { getItem: (name: string) => generations.get(name) ?? null, setItem: (name: string, value: string) => generations.set(name, value), removeItem: (name: string) => generations.delete(name) },
   } });
   const config = { url, publishableKey: key, sessionKey: "test-session" };
   try {
@@ -239,8 +241,13 @@ test("password recovery passes publishable key to the SDK without overriding SDK
     createClient: (...received: unknown[]) => { args = received; return {}; },
   });
   create();
-  assert.deepEqual(args, [url, key, { auth: { autoRefreshToken: true, detectSessionInUrl: true, persistSession: true } }]);
-  const recovery = source("app/sifre-yenile/page.tsx");
+  assert.equal(args[0], url);
+  assert.equal(args[1], key);
+  const options = args[2] as { auth: Record<string, unknown> };
+  assert.equal(options.auth.autoRefreshToken, false);
+  assert.equal(options.auth.detectSessionInUrl, false);
+  assert.equal(options.auth.flowType, "pkce");
+  const recovery = source("app/sifre-yenile/page.tsx") + source("lib/password-recovery.ts");
   for (const method of ["createBrowserSupabaseClient", "exchangeCodeForSession", "getSession", "resetPasswordForEmail", "updateUser", "signOut"]) assert.ok(recovery.includes(method));
   assert.doesNotMatch(source("lib/supabase-client.ts"), /Authorization|Bearer/);
 });
