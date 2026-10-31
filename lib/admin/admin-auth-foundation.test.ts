@@ -280,7 +280,7 @@ test("bad provider credentials become a controlled 401", () => {
 
 test("a verified non-admin is forbidden before cookies are written", () => {
   const loginFunction = adminAuth.slice(adminAuth.indexOf("export async function loginAdmin"));
-  assert.ok(loginFunction.indexOf("verifyTokens(tokens)") < loginFunction.indexOf("writeAdminSessionCookies(tokens)"));
+  assert.ok(loginFunction.indexOf("verifyTokens(tokens)") < loginFunction.indexOf("startAdminSessionCookies(tokens)"));
   assert.match(adminAuth, /"FORBIDDEN"/);
   assert.match(adminAuth, /isActiveAdminEmail/);
 });
@@ -309,8 +309,8 @@ test("access expiry follows provider expiry and refresh has a longer max-age", (
 
 test("refresh rotates both cookies and clears them on every failure", () => {
   assert.match(adminAuth, /exchangeRefreshToken\(refreshToken\)/);
-  assert.match(adminAuth, /writeAdminSessionCookies\(tokens\)/);
-  assert.match(adminAuth, /catch \(error\)[\s\S]*clearAdminSessionCookies\(\)/);
+  assert.match(adminAuth, /writeAdminSessionCookies\(tokens, sessionId\)/);
+  assert.match(adminAuth, /catch \(error\)[\s\S]*clearAdminSessionCookies\(sessionId\)/);
   assert.match(refreshRoute, /refreshAdminSession/);
 });
 

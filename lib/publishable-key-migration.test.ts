@@ -239,8 +239,13 @@ test("password recovery passes publishable key to the SDK without overriding SDK
     createClient: (...received: unknown[]) => { args = received; return {}; },
   });
   create();
-  assert.deepEqual(args, [url, key, { auth: { autoRefreshToken: true, detectSessionInUrl: true, persistSession: true } }]);
-  const recovery = source("app/sifre-yenile/page.tsx");
+  assert.equal(args[0], url);
+  assert.equal(args[1], key);
+  const options = args[2] as { auth: Record<string, unknown> };
+  assert.equal(options.auth.autoRefreshToken, false);
+  assert.equal(options.auth.detectSessionInUrl, false);
+  assert.equal(options.auth.flowType, "pkce");
+  const recovery = source("app/sifre-yenile/page.tsx") + source("lib/password-recovery.ts");
   for (const method of ["createBrowserSupabaseClient", "exchangeCodeForSession", "getSession", "resetPasswordForEmail", "updateUser", "signOut"]) assert.ok(recovery.includes(method));
   assert.doesNotMatch(source("lib/supabase-client.ts"), /Authorization|Bearer/);
 });

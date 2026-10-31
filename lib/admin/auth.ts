@@ -11,6 +11,7 @@ import { AdminError } from "./errors";
 import {
   clearAdminSessionCookies,
   readAdminSessionCookies,
+  startAdminSessionCookies,
   writeAdminSessionCookies,
   type AdminAuthTokens,
 } from "./session";
@@ -142,14 +143,14 @@ async function verifyTokens(tokens: AdminAuthTokens) {
 export async function loginAdmin(email: string, password: string) {
   const tokens = await exchangePassword(email, password);
   const identity = await verifyTokens(tokens);
-  await writeAdminSessionCookies(tokens);
+  await startAdminSessionCookies(tokens);
   return identity;
 }
 
 export async function refreshAdminSession() {
-  const { refreshToken } = await readAdminSessionCookies();
+  const { refreshToken, sessionId } = await readAdminSessionCookies();
   if (!refreshToken) {
-    await clearAdminSessionCookies();
+    await clearAdminSessionCookies(sessionId);
     throw new AdminError(
       "SESSION_EXPIRED",
       "Admin oturumunun süresi doldu.",
@@ -160,10 +161,10 @@ export async function refreshAdminSession() {
   try {
     const tokens = await exchangeRefreshToken(refreshToken);
     const identity = await verifyTokens(tokens);
-    await writeAdminSessionCookies(tokens);
+    await writeAdminSessionCookies(tokens, sessionId);
     return identity;
   } catch (error) {
-    await clearAdminSessionCookies();
+    await clearAdminSessionCookies(sessionId);
     throw error;
   }
 }

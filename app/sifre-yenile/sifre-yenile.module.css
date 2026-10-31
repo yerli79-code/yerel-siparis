@@ -1,0 +1,539 @@
+.recoveryPage {
+  --recovery-primary: var(--brand-primary);
+  --recovery-accent: var(--brand-accent);
+  --recovery-dark: var(--brand-dark);
+  --recovery-surface: var(--brand-surface);
+  --recovery-soft: var(--brand-soft);
+  --recovery-card: var(--brand-card);
+  --recovery-line: rgba(9, 93, 39, 0.18);
+  --recovery-focus: rgba(35, 145, 47, 0.26);
+
+  display: grid;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  place-items: center;
+  background:
+    radial-gradient(circle at 4% 8%, rgba(220, 235, 199, 0.92), transparent 30rem),
+    radial-gradient(circle at 96% 90%, rgba(35, 145, 47, 0.11), transparent 28rem),
+    var(--recovery-surface);
+  color: var(--recovery-dark);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  padding:
+    max(20px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.recoveryPage,
+.recoveryPage :where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+
+.recoveryShell {
+  display: grid;
+  width: min(100%, 980px);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--recovery-line);
+  border-radius: 24px;
+  background: var(--recovery-card);
+  box-shadow: 0 26px 70px rgba(17, 44, 30, 0.14);
+}
+
+.brandPanel {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 36px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.82), transparent 15rem),
+    linear-gradient(145deg, #edf6e5, var(--recovery-soft));
+  padding: 32px;
+}
+
+.brandPanel::after {
+  position: absolute;
+  right: -70px;
+  bottom: -90px;
+  width: 220px;
+  height: 220px;
+  border: 36px solid rgba(9, 93, 39, 0.07);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.backLink {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(9, 93, 39, 0.19);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--recovery-primary);
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.brandContent {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  margin-block: auto;
+}
+
+.brand {
+  width: fit-content;
+  max-width: 100%;
+  gap: 11px;
+}
+
+.brand :global(.platform-brand-public-mark) {
+  width: clamp(48px, 7vw, 64px);
+  filter: drop-shadow(0 8px 14px rgba(9, 93, 39, 0.15));
+}
+
+.brand :global(.platform-brand-public-wordmark) {
+  min-width: 0;
+  font-size: clamp(27px, 4.2vw, 40px);
+}
+
+.eyebrow {
+  color: var(--recovery-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.brandContent h1,
+.formHeading h2 {
+  margin: 0;
+  color: var(--recovery-dark);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  letter-spacing: -0.035em;
+}
+
+.brandContent h1 {
+  max-width: 12ch;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.brandContent p {
+  max-width: 42ch;
+  margin: 0;
+  color: #425448;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.formPanel {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 28px;
+  background: var(--recovery-card);
+  padding: 40px;
+}
+
+.formHeading {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: 14px;
+}
+
+.formHeading h2 {
+  font-size: clamp(25px, 3vw, 32px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.formHeading p {
+  margin: 0;
+  color: #526259;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.securityBadge {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  border: 1px solid var(--recovery-line);
+  border-radius: 999px;
+  background: rgba(220, 235, 199, 0.54);
+  color: var(--recovery-primary);
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recoveryForm {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.field label {
+  color: var(--recovery-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 54px;
+  border: 1px solid #789180;
+  border-radius: 15px;
+  background: #fbfdfb;
+  color: var(--recovery-dark);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  padding: 13px 15px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.field input:focus {
+  border-color: var(--recovery-accent);
+  background: var(--recovery-card);
+  box-shadow: 0 0 0 4px var(--recovery-focus);
+}
+
+.primaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.5;
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid var(--recovery-primary);
+  border-radius: 15px;
+  background: var(--recovery-primary);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px 18px;
+  box-shadow: 0 12px 24px rgba(9, 93, 39, 0.18);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.primaryAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  box-shadow: none;
+}
+
+.secondaryLink {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  color: var(--recovery-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.alert {
+  margin: 0;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fff1f2;
+  color: #991b1b;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.recoveryPage :where(a, button, input):focus-visible {
+  outline: 3px solid var(--recovery-primary);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .backLink:hover {
+    border-color: var(--recovery-accent);
+    background: var(--recovery-card);
+    transform: translateY(-1px);
+  }
+
+  .primaryAction:not(:disabled):hover {
+    border-color: var(--recovery-accent);
+    background: #074c20;
+    box-shadow: 0 14px 28px rgba(9, 93, 39, 0.22);
+    transform: translateY(-1px);
+  }
+
+  .secondaryLink:hover {
+    color: var(--recovery-accent);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+@media (min-width: 960px) {
+  .recoveryShell {
+    grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+  }
+
+  .brandPanel {
+    min-height: 620px;
+    justify-content: space-between;
+    padding: 40px;
+  }
+}
+
+@media (max-width: 959px) {
+  .recoveryPage {
+    place-items: start center;
+  }
+
+  .brandPanel {
+    gap: 28px;
+    padding: 24px;
+  }
+
+  .brandContent {
+    gap: 12px;
+  }
+
+  .brandContent h1 {
+    max-width: none;
+    font-size: clamp(29px, 8vw, 38px);
+  }
+
+  .brandContent p {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .formPanel {
+    gap: 24px;
+    padding: 28px 24px;
+  }
+}
+
+@media (max-width: 430px) {
+  .recoveryPage {
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+  }
+
+  .recoveryShell {
+    border-radius: 20px;
+  }
+
+  .brandPanel {
+    gap: 24px;
+    padding: 20px;
+  }
+
+  .backLink {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .brand :global(.platform-brand-public-mark) {
+    width: 46px;
+  }
+
+  .brand :global(.platform-brand-public-wordmark) {
+    font-size: 25px;
+  }
+
+  .formPanel {
+    padding: 24px 20px;
+  }
+}
+
+.recoveryPage :where(p, h1, h2, a, button, li) {
+  overflow-wrap: anywhere;
+}
+
+.browserNote {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-top: 1px solid rgba(9, 93, 39, 0.16);
+  padding-top: 24px;
+}
+
+.noteIcon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(9, 93, 39, 0.15);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--recovery-primary);
+}
+
+.noteIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.browserNote strong {
+  color: var(--recovery-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.browserNote p {
+  margin: 6px 0 0;
+  color: #425448;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.passwordRules {
+  border: 1px solid var(--recovery-line);
+  border-radius: 14px;
+  background: #f5f8f1;
+  padding: 16px;
+  color: #425448;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.passwordRules strong {
+  color: var(--recovery-primary);
+  font-size: 14px;
+}
+
+.passwordRules ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 22px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.passwordRules li::marker {
+  color: var(--recovery-primary);
+}
+
+.successMessage {
+  margin: 0;
+  border: 1px solid #b7d7ba;
+  border-radius: 14px;
+  background: #f0f8ef;
+  padding: 14px;
+  color: var(--recovery-primary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.successState {
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+}
+
+.successIcon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 1px solid #b7d7ba;
+  border-radius: 50%;
+  background: #f0f8ef;
+  color: var(--recovery-primary);
+  font-size: 28px;
+}
+
+.formHint {
+  margin: 0;
+  color: #607066;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--recovery-line);
+  border-radius: 14px;
+  background: #f5f8f1;
+  padding: 20px;
+}
+
+.loadingState p {
+  margin: 0;
+  color: #425448;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 3px solid #c8d9c3;
+  border-top-color: var(--recovery-primary);
+  border-radius: 50%;
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 430px) {
+  .browserNote { padding-top: 18px; }
+  .passwordRules ul { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+  .recoveryPage :where(a, button, input) { transition: none; }
+}

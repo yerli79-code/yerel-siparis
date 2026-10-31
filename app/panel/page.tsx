@@ -53,6 +53,10 @@ import {
 } from "./profile-form";
 import {
   clearBrowserAuthSession,
+  authGenerationKey,
+  readBrowserAuthSession,
+  signOutBrowserSession,
+  clearLegacySupabaseSession,
   getValidAccessToken,
 } from "../../lib/browser-auth-session";
 import {
@@ -448,6 +452,17 @@ export default function PanelPage() {
     setAccessToken("");
     router.replace("/giris");
   }
+
+  useEffect(() => {
+    function onSessionChange(event: StorageEvent) {
+      if (event.key === authGenerationKey(sessionKey) && !readBrowserAuthSession(sessionKey)) {
+        setAccessToken("");
+        router.replace("/giris");
+      }
+    }
+    window.addEventListener("storage", onSessionChange);
+    return () => window.removeEventListener("storage", onSessionChange);
+  }, [router]);
 
   async function getFreshAccessToken() {
     const token = await getValidAccessToken(getBusinessAuthConfig());
@@ -2010,8 +2025,12 @@ export default function PanelPage() {
   }
 
   function logout() {
-    clearBrowserAuthSession(sessionKey);
-    router.replace("/giris");
+    void signOutBrowserSession(getBusinessAuthConfig());
+    try { clearLegacySupabaseSession(); }
+    finally {
+      setAccessToken("");
+      router.replace("/giris");
+    }
   }
 
   function toggleProductDetails(productId: string) {
